@@ -2,6 +2,8 @@
 
 > THIS PROJECT IS NOT READY FOR PRODUCTION USE. It has undergone a modest amount of testing and code review. It is published to collect community feedback and attract others to make it production-ready. 
 
+This is the readme for Orleans Indexing for this fork; here is the [readme for Orleans itself](README_Orleans.md).
+
 Enables grains to be indexed and queried by scalar properties. A research paper describing the interface and implementation can be found [here](http://cidrdb.org/cidr2017/papers/p29-bernstein-cidr17.pdf).
 
 ## Features
