@@ -169,17 +169,6 @@ namespace Orleans.Transactions
                     // record this write in the transaction info data structure
                     info.RecordWrite(this.participantId, record.Timestamp);
 
-                    // record this participant as a TM candidate
-                    if (info.TMCandidate.Reference == null || !info.TMCandidate.Equals(this.participantId.Reference))
-                    {
-                        int batchsize = this.queue.BatchableOperationsCount();
-                        if (info.TMCandidate.Reference == null || batchsize > info.TMBatchSize)
-                        {
-                            info.TMCandidate = this.participantId;
-                            info.TMBatchSize = batchsize;
-                        }
-                    }
-
                     // perform the write
                     try
                     {
@@ -200,14 +189,23 @@ namespace Orleans.Transactions
 
         public void Participate(IGrainLifecycle lifecycle)
         {
-            lifecycle.Subscribe<TransactionalState<TState>>(GrainLifecycleStage.SetupState, OnSetupState);
+            lifecycle.Subscribe<TransactionalState<TState>>(GrainLifecycleStage.SetupState, (ct) => OnSetupState(ct, SetupResourceFactory));
         }
 
-        private async Task OnSetupState(CancellationToken ct)
+        private static void SetupResourceFactory(IGrainActivationContext context, string stateName, TransactionQueue<TState> queue)
+        {
+            // Add resources factory to the grain context
+            context.RegisterResourceFactory<ITransactionalResource>(stateName, () => new TransactionalResource<TState>(queue));
+
+            // Add tm factory to the grain context
+            context.RegisterResourceFactory<ITransactionManager>(stateName, () => new TransactionManager<TState>(queue));
+        }
+
+        internal async Task OnSetupState(CancellationToken ct, Action<IGrainActivationContext, string, TransactionQueue<TState>> setupResourceFactory)
         {
             if (ct.IsCancellationRequested) return;
 
-            this.participantId = new ParticipantId(this.config.StateName, this.context.GrainInstance.GrainReference);
+            this.participantId = new ParticipantId(this.config.StateName, this.context.GrainInstance.GrainReference, ParticipantId.Role.Resource | ParticipantId.Role.Manager);
 
             this.logger = loggerFactory.CreateLogger($"{context.GrainType.Name}.{this.config.StateName}.{this.context.GrainIdentity.IdentityString}");
 
@@ -220,11 +218,7 @@ namespace Orleans.Transactions
             var clock = this.context.ActivationServices.GetRequiredService<IClock>();
             this.queue = new TransactionQueue<TState>(options, this.participantId, deactivate, storage, this.serializerSettings, clock, logger);
 
-            // Add resources factory to the grain context
-            this.context.RegisterResourceFactory<ITransactionalResource>(this.config.StateName, () => new TransactionalResource<TState>(this.queue));
-
-            // Add tm factory to the grain context
-            this.context.RegisterResourceFactory<ITransactionManager>(this.config.StateName, () => new TransactionManager<TState>(this.queue));
+            setupResourceFactory(this.context, this.config.StateName, queue);
 
             // recover state
             await this.queue.NotifyOfRestore();
