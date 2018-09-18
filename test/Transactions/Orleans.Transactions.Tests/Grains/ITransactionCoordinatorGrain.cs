@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Orleans.Transactions.Abstractions;
 using Orleans.Transactions.Tests.Correctness;
 
 namespace Orleans.Transactions.Tests
@@ -26,5 +27,8 @@ namespace Orleans.Transactions.Tests
 
         [Transaction(TransactionOption.Create)]
         Task MultiGrainSetBit(List<ITransactionalBitArrayGrain> grains, int bitIndex);
+
+        [Transaction(TransactionOption.Create)]
+        Task MultiGrainAdd(ITransactionCommitterTestGrain committer, ITransactionCommitOperation<IRemoteCommitService> operation, List<ITransactionTestGrain> grains, int numberToAdd);
     }
 }

@@ -17,19 +17,19 @@ namespace Orleans.Transactions.Tests.DeactivationTransaction
         /// <summary>
         /// Configure cluster to use the distributed TM algorithm
         /// </summary>
-        public static ISiloHostBuilder UseDeactivationTransactionState(this ISiloHostBuilder builder)
+        public static ISiloHostBuilder UseControlledFaultInjectionTransactionState(this ISiloHostBuilder builder)
         {
-            return builder.ConfigureServices(services => services.UseDeactivationTransactionState());
+            return builder.ConfigureServices(services => services.UseControlledFaultInjectionTransactionState());
         }
 
         /// <summary>
         /// Configure cluster to use the distributed TM algorithm
         /// </summary>
-        public static IServiceCollection UseDeactivationTransactionState(this IServiceCollection services)
+        public static IServiceCollection UseControlledFaultInjectionTransactionState(this IServiceCollection services)
         {
-            services.AddSingleton<IAttributeToFactoryMapper<DeactivationTransactionalStateAttribute>, DeactivationTransactionalStateAttributeMapper>();
-            services.TryAddTransient<IDeactivationTransactionalStateFactory, DeactivationalTransactionalStateFactory>();
-            services.AddTransient(typeof(IDeactivationTransactionalState<>), typeof(DeactivationTransactionalState<>));
+            services.AddSingleton<IAttributeToFactoryMapper<FaultInjectionTransactionalStateAttribute>, FaultInjectionTransactionalStateAttributeMapper>();
+            services.TryAddTransient<IFaultInjectionTransactionalStateFactory, FaultInjectionTransactionalStateFactory>();
+            services.AddTransient(typeof(IFaultInjectionTransactionalState<>), typeof(FaultInjectionTransactionalState<>));
             return services;
         }
     }

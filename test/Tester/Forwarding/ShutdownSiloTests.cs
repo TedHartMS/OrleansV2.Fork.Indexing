@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Orleans.TestingHost;
 using TestExtensions;
@@ -8,6 +9,7 @@ using Xunit;
 using Orleans.TestingHost.Utils;
 using Orleans.Hosting;
 using Orleans.Configuration;
+using System.Diagnostics;
 
 namespace Tester.Forwarding
 {
@@ -15,10 +17,20 @@ namespace Tester.Forwarding
     {
         public const int NumberOfSilos = 2;
 
+        public static readonly TimeSpan DeactivationTimeout = TimeSpan.FromSeconds(10);
+
+        internal class SiloBuilderConfigurator : ISiloBuilderConfigurator
+        {
+            public void Configure(ISiloHostBuilder hostBuilder)
+            {
+                hostBuilder.Configure<GrainCollectionOptions>(options => options.DeactivationTimeout = DeactivationTimeout);
+            }
+        }
+
         protected override void ConfigureTestCluster(TestClusterBuilder builder)
         {
-            Assert.True(StorageEmulator.TryStart());
             builder.Options.InitialSilosCount = NumberOfSilos;
+            builder.AddSiloBuilderConfigurator<SiloBuilderConfigurator>();
             builder.ConfigureLegacyConfiguration(legacy =>
             {
                 legacy.ClusterConfiguration.Globals.DefaultPlacementStrategy = "ActivationCountBasedPlacement";
@@ -56,6 +68,36 @@ namespace Tester.Forwarding
             HostedCluster.StopSilo(HostedCluster.SecondarySilos.First());
 
             await promise;
+        }
+
+        [Fact, TestCategory("GracefulShutdown"), TestCategory("Functional")]
+        public async Task SiloGracefulShutdown_StuckTimers()
+        {
+            var grain = await GetTimerRequestGrainOnSecondary();
+
+            await grain.StartStuckTimer(TimeSpan.Zero);
+
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            var stopwatch = Stopwatch.StartNew();
+            HostedCluster.StopSilo(HostedCluster.SecondarySilos.First());
+            stopwatch.Stop();
+
+            Assert.True(stopwatch.Elapsed > DeactivationTimeout);
+        }
+
+        [Fact, TestCategory("GracefulShutdown"), TestCategory("Functional")]
+        public async Task SiloGracefulShutdown_StuckActivation()
+        {
+            var grain = await GetTimerRequestGrainOnSecondary();
+
+            var promise = grain.StartAndWaitTimerTick(TimeSpan.FromMinutes(2));
+
+            await Task.Delay(500);
+            var stopwatch = Stopwatch.StartNew();
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            HostedCluster.SecondarySilos.First().StopSilo(cts.Token);
+            stopwatch.Stop();
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromMinutes(1));
         }
 
         private async Task<ILongRunningTaskGrain<T>> GetLongRunningTaskGrainOnSecondary<T>()
