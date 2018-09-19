@@ -92,4 +92,20 @@ namespace Orleans.Indexing.Tests
     {
         public MultiIndex_All_Wf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
     }
+
+    #region DirectStorageManagedIndexes
+
+    [TestCategory("BVT"), TestCategory("Indexing")]
+    public class MultiIndex_DSMI_EG_Wf : MultiIndex_DSMI_EG_Runner, IClassFixture<WorkflowDSMIEGIndexingFixture>
+    {
+        public MultiIndex_DSMI_EG_Wf(WorkflowDSMIEGIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
+    }
+
+    [TestCategory("BVT"), TestCategory("Indexing")]
+    public class MultiIndex_DSMI_LZ_Wf : MultiIndex_DSMI_LZ_Runner, IClassFixture<WorkflowDSMILZIndexingFixture>
+    {
+        public MultiIndex_DSMI_LZ_Wf(WorkflowDSMILZIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
+    }
+
+    #endregion // DirectStorageManagedIndexes
 }
