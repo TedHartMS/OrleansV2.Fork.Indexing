@@ -21,6 +21,7 @@ namespace Orleans.Indexing
             throw new NotSupportedException();
         }
 
+        // Called by System.Linq.Queryable.Where()
         public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
             => (IQueryable<TElement>)((IQueryProvider)this).CreateQuery(expression);
 
@@ -31,14 +32,13 @@ namespace Orleans.Indexing
                 var methodCall = ((MethodCallExpression)expression);
                 if (IsWhereClause(methodCall)
                     && CheckIsOrleansIndex(methodCall.Arguments[0], iGrainType, iPropertiesType, out IIndexFactory indexFactory, out IStreamProvider streamProvider)
-                    && methodCall.Arguments[1].NodeType == ExpressionType.Quote
-                    && ((UnaryExpression)methodCall.Arguments[1]).Operand.NodeType == ExpressionType.Lambda)
+                    && methodCall.Arguments[1] is UnaryExpression ue && ue.NodeType == ExpressionType.Quote && ue.Operand.NodeType == ExpressionType.Lambda)
                 {
-                    var whereClause = (LambdaExpression)((UnaryExpression)methodCall.Arguments[1]).Operand;
-                    if (TryGetIndexNameAndLookupValue(whereClause, iGrainType, out string indexName, out object lookupValue))
+                    var whereClause = (LambdaExpression)ue.Operand;
+                    if (TryGetIndexNameAndLookupValue(whereClause, iPropertiesType, out string indexName, out object lookupValue))
                     {
-                        return (IQueryable)Activator.CreateInstance(typeof(QueryIndexedGrainsNode<,>)
-                                                    .MakeGenericType(iGrainType, iPropertiesType), indexFactory, streamProvider, indexName, lookupValue);
+                        var queryIndexedNodeType = typeof(QueryIndexedGrainsNode<,>).MakeGenericType(iGrainType, iPropertiesType);
+                        return (IQueryable)Activator.CreateInstance(queryIndexedNodeType, indexFactory, streamProvider, indexName, lookupValue);
                     }
                 }
             }
@@ -47,14 +47,17 @@ namespace Orleans.Indexing
 
         private bool CheckIsOrleansIndex(Expression e, Type iGrainType, Type iPropertiesType, out IIndexFactory indexFactory, out IStreamProvider streamProvider)
         {
-            if (e.NodeType == ExpressionType.Constant &&
-                typeof(QueryActiveGrainsNode<,>).MakeGenericType(iGrainType, iPropertiesType)
-                                                .IsAssignableFrom(((ConstantExpression)e).Value.GetType().GetGenericTypeDefinition().MakeGenericType(iGrainType, iPropertiesType)))
+            if (e.NodeType == ExpressionType.Constant)
             {
-                var qNode = ((QueryGrainsNode)((ConstantExpression)e).Value);
-                indexFactory = qNode.IndexFactory;
-                streamProvider = qNode.StreamProvider;
-                return true;
+                var queryActiveNodeType = typeof(QueryActiveGrainsNode<,>).MakeGenericType(iGrainType, iPropertiesType);
+                var valueType = ((ConstantExpression)e).Value.GetType().GetGenericTypeDefinition().MakeGenericType(iGrainType, iPropertiesType);
+                if (queryActiveNodeType.IsAssignableFrom(valueType))
+                {
+                    var qNode = ((QueryGrainsNode)((ConstantExpression)e).Value);
+                    indexFactory = qNode.IndexFactory;
+                    streamProvider = qNode.StreamProvider;
+                    return true;
+                }
             }
             indexFactory = null;
             streamProvider = null;
@@ -68,44 +71,38 @@ namespace Orleans.Indexing
         /// This method tries to pull out the index name and lookup value from the given expression tree.
         /// </summary>
         /// <param name="exprTree">the given expression tree</param>
-        /// <param name="iGrainType">the grain interface type</param>
+        /// <param name="iPropertiesType">the type of the properties that are being queried</param>
         /// <param name="indexName">the index name that is intended to be pulled out of the expression tree.</param>
         /// <param name="lookupValue">the lookup value that is intended to be pulled out of the expression tree.</param>
         /// <returns>determines whether the operation was successful or not</returns>
-        private static bool TryGetIndexNameAndLookupValue(LambdaExpression exprTree, Type iGrainType, out string indexName, out object lookupValue)
+        private static bool TryGetIndexNameAndLookupValue(LambdaExpression exprTree, Type iPropertiesType, out string indexName, out object lookupValue)
         {
             if (exprTree.Body is BinaryExpression operation)
             {
                 if (operation.NodeType == ExpressionType.Equal)
                 {
-                    Expression constantExpr = null;
-                    Expression fieldExpr = null;
-                    if (operation.Right is ConstantExpression || operation.Right is MemberExpression)
+                    // Passing 'value' to avoid CS1628: Cannot pass out or ref parameter to ...
+                    bool getLookupValue(Expression valueExpr, out object value)
                     {
-                        constantExpr = operation.Right;
-                        fieldExpr = operation.Left;
-                    }
-                    else if (operation.Left is ConstantExpression || operation.Right is MemberExpression)
-                    {
-                        constantExpr = operation.Left;
-                        fieldExpr = operation.Right;
+                        if (valueExpr is ConstantExpression constantExpr)
+                        {
+                            value = constantExpr.Value;
+                            return true;
+                        }
+                        if (valueExpr is MemberExpression memberExpr)
+                        {
+                            object targetObj = Expression.Lambda<Func<object>>(memberExpr.Expression).Compile()();
+                            value = ((FieldInfo)memberExpr.Member).GetValue(targetObj);
+                            return true;
+                        }
+                        value = null;
+                        return false;
                     }
 
-                    if (constantExpr != null && fieldExpr != null)
+                    if ((GetIndexName(exprTree, operation.Left, out indexName) && getLookupValue(operation.Right, out lookupValue))
+                        || (GetIndexName(exprTree, operation.Right, out indexName) && getLookupValue(operation.Left, out lookupValue)))
                     {
-                        if (constantExpr is ConstantExpression)
-                        {
-                            lookupValue = ((ConstantExpression)constantExpr).Value;
-                            indexName = GetIndexName(exprTree, iGrainType, fieldExpr);
-                            return true;
-                        }
-                        else if (constantExpr is MemberExpression)
-                        {
-                            object targetObj = Expression.Lambda<Func<object>>(((MemberExpression)operation.Right).Expression).Compile()();
-                            lookupValue = ((FieldInfo)((MemberExpression)operation.Right).Member).GetValue(targetObj);
-                            indexName = GetIndexName(exprTree, iGrainType, fieldExpr);
-                            return true;
-                        }
+                        return true;
                     }
                 }
             }
@@ -116,23 +113,24 @@ namespace Orleans.Indexing
         /// This method tries to pull out the index name from a given field expression.
         /// </summary>
         /// <param name="exprTree">the original expression tree</param>
-        /// <param name="iGrainType">the grain interface type</param>
-        /// <param name="fieldExpr">the field expression that should
-        /// contain the indexed field</param>
-        /// <returns></returns>
-        private static string GetIndexName(LambdaExpression exprTree, Type iGrainType, Expression fieldExpr)
+        /// <param name="fieldExpr">the field expression that should contain the indexed field</param>
+        /// <param name="indexName">receives the index name, if <paramref name="fieldExpr"/> is a query property</param>
+        /// <returns>A bool value indicating whether the index name was found</returns>
+        private static bool GetIndexName(LambdaExpression exprTree, Expression fieldExpr, out string indexName)
         {
             ParameterExpression iGrainParam = exprTree.Parameters[0];
-            if (fieldExpr is MemberExpression)
+            if (fieldExpr is MemberExpression memberExpression)
             {
-                Expression innerFieldExpr = ((MemberExpression)fieldExpr).Expression;
+                Expression innerFieldExpr = memberExpression.Expression;
                 if ((innerFieldExpr.NodeType == ExpressionType.Parameter && innerFieldExpr.Equals(iGrainParam)) ||
-                    (innerFieldExpr.NodeType == ExpressionType.Convert && ((UnaryExpression)innerFieldExpr).Operand.Equals(iGrainParam)))
+                    (innerFieldExpr.NodeType == ExpressionType.Convert && innerFieldExpr is UnaryExpression ue && ue.Operand.Equals(iGrainParam)))
                 {
-                    return IndexUtils.GetIndexNameOnInterfaceGetter(iGrainType, ((MemberExpression)fieldExpr).Member.Name);
+                    indexName = IndexUtils.PropertyNameToIndexName((memberExpression).Member.Name);
+                    return true;
                 }
             }
-            throw new NotSupportedException(string.Format("The provided expression is not supported yet: {0}", exprTree));
+            indexName = null;
+            return false;
         }
 
         #region IOrleansQueryProvider
@@ -143,9 +141,7 @@ namespace Orleans.Indexing
         /// Executes the query represented by a specified expression tree.
         /// </summary>
         /// <param name="expression">An expression tree that represents a LINQ query.</param>
-        /// <returns>
-        /// The value that results from executing the specified query.
-        /// </returns>
+        /// <returns>The value that results from executing the specified query.</returns>
         public TResult Execute<TResult>(Expression expression) => (TResult)Execute(expression);
 
         #endregion IOrleansQueryProvider

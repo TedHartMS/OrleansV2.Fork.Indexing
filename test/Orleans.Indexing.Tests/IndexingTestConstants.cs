@@ -16,11 +16,11 @@ namespace Orleans.Indexing.Tests
         public const string Tehran = "Tehran";
         public const string Yazd = "Yazd";
 
-        public const string LocationIndex = "__Location";
-        public const string UniqueIntIndex = "__UniqueInt";
-        public const string UniqueStringIndex = "__UniqueString";
-        public const string NonUniqueIntIndex = "__NonUniqueInt";
-        public const string NonUniqueStringIndex = "__NonUniqueString";
+        public const string LocationProperty = "Location";
+        public const string UniqueIntProperty = "UniqueInt";
+        public const string UniqueStringProperty = "UniqueString";
+        public const string NonUniqueIntProperty = "NonUniqueInt";
+        public const string NonUniqueStringProperty = "NonUniqueString";
 
         public const int DelayUntilIndexesAreUpdatedLazily = 1000; // One-second delay for writes to the in-memory indexes should be enough
     }

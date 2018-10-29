@@ -11,20 +11,18 @@ namespace Orleans.Indexing
     /// IndexableGrain class is the super-class of all fault-tolerant grains that need to have indexing capability.
     /// 
     /// To make a grain indexable, two steps should be taken:
-    ///     1- the grain class should extend IndexableGrain
+    ///     1- the grain class should extend <see cref="IndexableGrain{TState, TProperties}"/>
+    ///        or <see cref="IndexableGrainNonFaultTolerant{TState, TProperties}"/>.
     ///     2- the grain class is responsible for calling UpdateIndexes whenever one or more indexes need to be updated
     ///        
-    /// Fault tolerance can be an optional feature for indexing, i.e., IndexableGrain extends IndexableGrainNonFaultTolerant.
-    /// By default, indexing is fault tolerant.
+    /// Fault tolerance is an optional feature for indexing, i.e., <see cref="IndexableGrain{TState, TProperties}"/>
+    /// extends <see cref="IndexableGrainNonFaultTolerant{TState, TProperties}"/>. By default, indexing is fault tolerant.
     /// 
-    /// IndexableGrain creates a wrapper around the State class provided by the actual user-grain that extends it.
-    /// It adds the following information to it:
-    ///  - a list called activeWorkflowsList to the State, which points to the in-flight indexing workflowsIds.
-    ///  - There's a fixed mapping (e.g., a hash function) from a GrainReference to a <see cref="IndexWorkflowQueueGrainService"/>
-    ///    instance. Each IndexableGrain G has a property workflowQueue whose value, [grain-type-name + sequence number],
-    ///    that identifies the <see cref="IndexWorkflowQueueGrainService"/> grain that processes index updates on G's behalf.
+    /// <see cref="IndexableGrain{TState, TProperties}"/> creates a <see cref="FaultTolerantIndexableState{TState}"/>
+    /// wrapper around the State class provided by the actual user-grain that extends it.
     /// </summary>
-    public abstract class IndexableGrain<TState, TProperties> : IndexableGrainNonFaultTolerant<IndexableExtendedState<TState>, TProperties>, IIndexableGrainFaultTolerant
+    public abstract class IndexableGrain<TState, TProperties> : IndexableGrainNonFaultTolerant<FaultTolerantIndexableState<TState>, TProperties>,
+                                                                IIndexableGrainFaultTolerant
         where TProperties : new()
     {
         protected new TState State
@@ -329,22 +327,29 @@ namespace Orleans.Indexing
         }
 
         protected override void SetStateToNullValues()
-        {
-            IndexUtils.SetNullValues(base.State.UserState);
-        }
+            => IndexUtils.SetNullValues(base.State.UserState);
     }
 
     /// <summary>
-    /// IndexableExtendedState{TState} is a wrapper around a user-defined state, TState, which adds the necessary
-    /// information for fault-tolerant indexing
+    /// A wrapper around a user-defined state, TState, which adds the necessary information for fault-tolerant indexing
     /// </summary>
     /// <typeparam name="TState">the type of user state</typeparam>
     [Serializable]
-    public class IndexableExtendedState<TState>
+    public class FaultTolerantIndexableState<TState>
     {
+        /// <summary>
+        /// Points to the in-flight indexing workflowsIds
+        /// </summary>
         internal HashSet<Guid> ActiveWorkflowsSet = null;
+
+        /// There's a fixed mapping (e.g., a hash function) from a GrainReference to an <see cref="IndexWorkflowQueueGrainService"/>
+        /// instance. Each Indexable Grain Interface IG has a property workflowQueue whose value, [grain-interface-type-name + sequence number],
+        /// identifies the <see cref="IndexWorkflowQueueGrainService"/> grain that processes index updates on IG's behalf.
         internal IDictionary<Type, IIndexWorkflowQueue> WorkflowQueues = null;
 
+        /// <summary>
+        /// The actual user state.
+        /// </summary>
         public TState UserState = (TState)Activator.CreateInstance(typeof(TState));
     }
 

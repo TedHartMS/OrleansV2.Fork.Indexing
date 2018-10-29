@@ -65,15 +65,21 @@ namespace Orleans.Indexing
             }
         }
 
-        public Task<bool> DirectApplyIndexUpdate(IIndexableGrain g, Immutable<IMemberUpdate> iUpdate, bool isUniqueIndex, IndexMetaData idxMetaData, SiloAddress siloAddress)
-            => DirectApplyIndexUpdate(g, iUpdate.Value, isUniqueIndex, idxMetaData, siloAddress);
+        public Task<bool> DirectApplyIndexUpdate(V updatedGrain, Immutable<IMemberUpdate> iUpdate, bool isUniqueIndex, IndexMetaData idxMetaData, SiloAddress siloAddress)
+            => DirectApplyIndexUpdate(updatedGrain, iUpdate.Value, isUniqueIndex, idxMetaData, siloAddress);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Task<bool> DirectApplyIndexUpdate(IIndexableGrain g, IMemberUpdate updt, bool isUniqueIndex, IndexMetaData idxMetaData, SiloAddress siloAddress)
+        private Task<bool> DirectApplyIndexUpdate(V updatedGrain, IMemberUpdate updt, bool isUniqueIndex, IndexMetaData idxMetaData, SiloAddress siloAddress)
         {
-            V updatedGrain = g;
             HashIndexBucketUtils.UpdateBucket(updatedGrain, updt, state, isUniqueIndex, idxMetaData);
             return Task.FromResult(true);
+        }
+
+        private Exception LogException(string message, IndexingErrorCode errorCode)
+        {
+            var e = new Exception(message);
+            this.logger.Error(errorCode, message, e);
+            return e;
         }
 
         public async Task Lookup(IOrleansQueryResultStream<V> result, K key)
@@ -82,9 +88,7 @@ namespace Orleans.Indexing
 
             if (!(state.IndexStatus == IndexStatus.Available))
             {
-                var e = new Exception(string.Format("Index is not still available."));
-                logger.Error(IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainServiceBucket1, $"ParentIndex {_parentIndexName}: Index is not still available.", e);
-                throw e;
+                throw LogException($"ParentIndex {_parentIndexName}: Index is not still available.", IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainServiceBucket1);
             }
             if (state.IndexMap.TryGetValue(key, out HashIndexSingleBucketEntry<V> entry) && !entry.IsTentative)
             {
@@ -103,9 +107,7 @@ namespace Orleans.Indexing
 
             if (!(state.IndexStatus == IndexStatus.Available))
             {
-                var e = new Exception(string.Format("Index is not still available."));
-                logger.Error(IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainServiceBucket2, $"ParentIndex {_parentIndexName}: Index is not still available.", e);
-                throw e;
+                throw LogException($"ParentIndex {_parentIndexName}: Index is not still available.", IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainServiceBucket2);
             }
             var entryValues = (state.IndexMap.TryGetValue(key, out HashIndexSingleBucketEntry<V> entry) && !entry.IsTentative) ? entry.Values : Enumerable.Empty<V>();
             return Task.FromResult((IOrleansQueryResult<V>)new OrleansQueryResult<V>(entryValues));
@@ -115,25 +117,17 @@ namespace Orleans.Indexing
         {
             if (!(state.IndexStatus == IndexStatus.Available))
             {
-                var e = new Exception(string.Format("Index is not still available."));
-                logger.Error(IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainServiceBucket3, $"ParentIndex {_parentIndexName}: {e.Message}", e);
-                throw e;
+                throw LogException($"ParentIndex {_parentIndexName}: Index is not still available.", IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainServiceBucket3);
             }
             if (state.IndexMap.TryGetValue(key, out HashIndexSingleBucketEntry<V> entry) && !entry.IsTentative)
             {
-                if (entry.Values.Count() == 1)
-                {
-                    return Task.FromResult(entry.Values.GetEnumerator().Current);
-                }
-                var e = new Exception(string.Format("There are {0} values for the unique lookup key \"{1}\" does not exist on index \"{2}->{3}\".",
-                                                    entry.Values.Count(), key, _parentIndexName, IndexUtils.GetIndexNameFromIndexGrain(this)));
-                logger.Error(IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainServiceBucket4, $"ParentIndex {_parentIndexName}: {e.Message}", e);
-                throw e;
+                return (entry.Values.Count() == 1)
+                    ? Task.FromResult(entry.Values.GetEnumerator().Current)
+                    : throw LogException($"ParentIndex {_parentIndexName}: There are {entry.Values.Count()} values for the unique lookup key \"{key}\" on index \"{IndexUtils.GetIndexNameFromIndexGrain(this)}\".",
+                                      IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainServiceBucket4);
             }
-            var ex = new Exception(string.Format("The lookup key \"{0}\" does not exist on index \"{1}->{2}\".",
-                                                 key, _parentIndexName, IndexUtils.GetIndexNameFromIndexGrain(this)));
-            logger.Error(IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainServiceBucket5, $"ParentIndex {_parentIndexName}: {ex.Message}", ex);
-            throw ex;
+            throw LogException($"ParentIndex {_parentIndexName}The lookup key \"{key}\" does not exist on index \"{IndexUtils.GetIndexNameFromIndexGrain(this)}\".",
+                                   IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainServiceBucket5);
         }
 
         public Task Dispose()

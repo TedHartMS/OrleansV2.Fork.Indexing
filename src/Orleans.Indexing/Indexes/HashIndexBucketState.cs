@@ -29,8 +29,7 @@ namespace Orleans.Indexing
     /// <summary>
     /// Represents an index entry in the hash-index
     /// </summary>
-    /// <typeparam name="T">the type of elements stored in
-    /// the entry</typeparam>
+    /// <typeparam name="T">the type of elements stored in the entry</typeparam>
     [Serializable]
     public sealed class HashIndexSingleBucketEntry<T>
     {

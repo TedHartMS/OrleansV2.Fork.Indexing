@@ -2,7 +2,7 @@ using Orleans.CodeGeneration;
 using Orleans.Indexing;
 using System.Runtime.CompilerServices;
 
-[assembly: GenerateSerializer(typeof(IndexableExtendedState<>))]
+[assembly: GenerateSerializer(typeof(FaultTolerantIndexableState<>))]
 [assembly: GenerateSerializer(typeof(IndexWorkflowQueueState))]
 [assembly: GenerateSerializer(typeof(IndexWorkflowQueueEntry))]
 [assembly: GenerateSerializer(typeof(IndexWorkflowRecord))]

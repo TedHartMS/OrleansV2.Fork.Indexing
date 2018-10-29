@@ -60,7 +60,7 @@ namespace Orleans.Indexing
             //  3. An attempt to activate PP will cause a violation of the Active Index on email.
             // In other words, having a Total unique index prevents the possibility of such a conflict; having an Active unique index does not,
             // because one could activate a Grain, set its email to something already there and persist it (and then deactivate it and activate
-            // a new one, etc.). The only use case would be “only one such value can be active at a time”, but this would lead to more issues
+            // a new one, etc.). The only use case would be "only one such value can be active at a time", but this would lead to more issues
             // than gain. This implies we should disallow such indexes, which happens during assembly load in ValidateSingleIndex.
             if (this.IsUnique)
             {

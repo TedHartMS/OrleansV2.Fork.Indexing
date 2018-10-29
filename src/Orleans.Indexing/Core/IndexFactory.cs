@@ -173,9 +173,9 @@ namespace Orleans.Indexing
         {
             for (int i = 0; i < IndexWorkflowQueueBase.NUM_AVAILABLE_INDEX_WORKFLOW_QUEUES; ++i)
             {
-                bool isAssignable = typeof(IIndexableGrainFaultTolerant).IsAssignableFrom(grainImplType);
-                await siloIndexManager.Silo.AddGrainService(new IndexWorkflowQueueGrainService(siloIndexManager, iGrainType, i, isAssignable));
-                await siloIndexManager.Silo.AddGrainService(new IndexWorkflowQueueHandlerGrainService(siloIndexManager, iGrainType, i, isAssignable));
+                bool isFaultTolerant = typeof(IIndexableGrainFaultTolerant).IsAssignableFrom(grainImplType);
+                await siloIndexManager.Silo.AddGrainService(new IndexWorkflowQueueGrainService(siloIndexManager, iGrainType, i, isFaultTolerant));
+                await siloIndexManager.Silo.AddGrainService(new IndexWorkflowQueueHandlerGrainService(siloIndexManager, iGrainType, i, isFaultTolerant));
             }
         }
 

@@ -28,9 +28,9 @@ namespace Orleans.Indexing.Tests
                     await base.WriteStateAsync();
                     return;
                 }
-                catch (Exception)
+                catch (Exception) when (retries < MaxRetries)
                 {
-                    if (++retries >= MaxRetries) throw;
+                    ++retries;
                     await base.ReadStateAsync();
                 }
             }
