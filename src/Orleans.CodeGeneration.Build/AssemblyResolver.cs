@@ -19,7 +19,7 @@ namespace Orleans.CodeGeneration
     internal class AssemblyResolver
     {
         /// <summary>
-        /// Needs to be public so can be serialized accross the the app domain.
+        /// Needs to be public so can be serialized across the app domain.
         /// </summary>
         public Dictionary<string, string> ReferenceAssemblyPaths { get; } = new Dictionary<string, string>();
 
@@ -114,7 +114,7 @@ namespace Orleans.CodeGeneration
         /// <param name="sender">The source of the event.</param>
         /// <param name="args">The event data.</param>
         /// <returns>The assembly that resolves the type, assembly, or resource; 
-        /// or null if theassembly cannot be resolved.
+        /// or null if the assembly cannot be resolved.
         /// </returns>
         public Assembly ResolveAssembly(object sender, ResolveEventArgs args)
         {

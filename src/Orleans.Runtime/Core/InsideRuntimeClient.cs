@@ -372,9 +372,8 @@ namespace Orleans.Runtime
 
                         if (startNewTransaction)
                         {
-                            OrleansTransactionAbortedException abortException = transactionInfo.MustAbort(serializationManager);
-                            this.transactionAgent.Abort(transactionInfo, abortException);
-                            exc1 = abortException;
+                            exc1 = transactionInfo.MustAbort(serializationManager);
+                            await this.transactionAgent.Abort(transactionInfo);
                             TransactionContext.Clear();
                         }
                     }
@@ -415,19 +414,26 @@ namespace Orleans.Runtime
                         // or if it must abort, tell participants that it aborted
                         if (startNewTransaction)
                         {
-                            if (transactionException == null)
+                            try
                             {
-                                var status = await this.transactionAgent.Commit(transactionInfo);
-                                if (status != TransactionalStatus.Ok)
+                                if (transactionException == null)
                                 {
-                                    transactionException = status.ConvertToUserException(transactionInfo.Id);
+                                    var status = await this.transactionAgent.Resolve(transactionInfo);
+                                    if (status != TransactionalStatus.Ok)
+                                    {
+                                        transactionException = status.ConvertToUserException(transactionInfo.Id);
+                                    }
+                                }
+                                else
+                                {
+                                    await this.transactionAgent.Abort(transactionInfo);
                                 }
                             }
-                            else
+                            finally
                             {
-                                this.transactionAgent.Abort(transactionInfo, (OrleansTransactionAbortedException) transactionException);
+
+                                TransactionContext.Clear();
                             }
-                            TransactionContext.Clear();
                         }
                     }
                     catch (Exception e)

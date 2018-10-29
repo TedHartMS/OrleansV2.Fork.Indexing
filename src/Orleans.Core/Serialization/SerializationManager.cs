@@ -84,9 +84,10 @@ namespace Orleans.Serialization
             IOptions<SerializationProviderOptions> serializationProviderOptions,
             ILoggerFactory loggerFactory,
             ITypeResolver typeResolver,
-            SerializationStatisticsGroup serializationStatistics)
+            SerializationStatisticsGroup serializationStatistics,
+            int largeMessageWarningThreshold)
         {
-            this.LargeObjectSizeThreshold = Constants.LARGE_OBJECT_HEAP_THRESHOLD;
+            this.LargeObjectSizeThreshold = largeMessageWarningThreshold;
             this.serializationContext = new ThreadLocal<SerializationContext>(() => new SerializationContext(this));
             this.deserializationContext = new ThreadLocal<DeserializationContext>(() => new DeserializationContext(this));
 
@@ -139,12 +140,17 @@ namespace Orleans.Serialization
 
             foreach (var serializer in serializerFeature.SerializerDelegates)
             {
-                this.Register(serializer.Target, serializer.Delegates.DeepCopy, serializer.Delegates.Serialize, serializer.Delegates.Deserialize);
+                this.Register(
+                    serializer.Target,
+                    serializer.Delegates.DeepCopy,
+                    serializer.Delegates.Serialize,
+                    serializer.Delegates.Deserialize,
+                    serializer.OverrideExisting);
             }
 
             foreach (var serializer in serializerFeature.SerializerTypes)
             {
-                this.Register(serializer.Target, serializer.Serializer);
+                this.Register(serializer.Target, serializer.Serializer, serializer.OverrideExisting);
             }
 
             foreach (var knownType in serializerFeature.KnownTypes)
@@ -332,7 +338,8 @@ namespace Orleans.Serialization
         /// </summary>
         /// <param name="type">The type serialized by the provided serializer type.</param>
         /// <param name="serializerType">The type containing serialization methods for <paramref name="type"/>.</param>
-        private void Register(Type type, Type serializerType)
+        /// <param name="overrideExisting">Whether or not to override existing registrations for the provided <paramref name="type"/>.</param>
+        private void Register(Type type, Type serializerType, bool overrideExisting = true)
         {
             GetSerializationMethods(serializerType, out var copier, out var serializer, out var deserializer);
 
@@ -384,7 +391,7 @@ namespace Orleans.Serialization
                         copier != null ? DeepCopyGeneric : default(DeepCopier),
                         serializer != null ? SerializeGeneric : default(Serializer),
                         deserializer != null ? DeserializeGeneric : default(Deserializer),
-                        true);
+                        overrideExisting);
                 }
                 else
                 {
@@ -394,7 +401,7 @@ namespace Orleans.Serialization
                         CreateDelegate<DeepCopier>(copier, serializerInstance),
                         CreateDelegate<Serializer>(serializer, serializerInstance),
                         CreateDelegate<Deserializer>(deserializer, serializerInstance),
-                        true);
+                        overrideExisting);
                 }
             }
             catch (ArgumentException)
@@ -1488,7 +1495,7 @@ namespace Orleans.Serialization
         }
 
         /// <summary>
-        /// Deserialize data from the specified byte[] and rehydrate backi into objects.
+        /// Deserialize data from the specified byte[] and rehydrate back into objects.
         /// </summary>
         /// <typeparam name="T">Type of data to be returned.</typeparam>
         /// <param name="data">Input data.</param>
@@ -1787,7 +1794,7 @@ namespace Orleans.Serialization
         }
 
         /// <summary>
-        /// Loads the external srializers and places them into a hash set
+        /// Loads the external serializers and places them into a hash set
         /// </summary>
         /// <param name="providerTypes">The list of types that implement <see cref="IExternalSerializer"/></param>
         private void RegisterSerializationProviders(List<TypeInfo> providerTypes)

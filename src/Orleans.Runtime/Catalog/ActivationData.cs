@@ -111,7 +111,7 @@ namespace Orleans.Runtime
             {
                 if (extensionMap == null || !extensionMap.ContainsKey(request.InterfaceId))
                     throw new InvalidOperationException(
-                        String.Format("Extension invoker invoked with an unknown inteface ID:{0}.", request.InterfaceId));
+                        String.Format("Extension invoker invoked with an unknown interface ID:{0}.", request.InterfaceId));
 
                 var invoker = extensionMap[request.InterfaceId].Item2;
                 var extension = extensionMap[request.InterfaceId].Item1;
@@ -263,6 +263,8 @@ namespace Orleans.Runtime
             result = null;
             return extensionInvoker != null && extensionInvoker.TryGetExtensionHandler(extensionType, out result);
         }
+
+        public HashSet<ActivationId> RunningRequestsSenders { get; } = new HashSet<ActivationId>();
 
         public ISchedulingContext SchedulingContext { get; }
 
@@ -446,10 +448,13 @@ namespace Orleans.Runtime
         public IMultiClusterRegistrationStrategy RegistrationStrategy { get; private set; }
 
         // Currently, the only supported multi-activation grain is one using the StatelessWorkerPlacement strategy.
-        internal bool IsStatelessWorker { get { return PlacedUsing is StatelessWorkerPlacement; } }
-
-        // Currently, the only grain type that is not registered in the Grain Directory is StatelessWorker. 
-        internal bool IsUsingGrainDirectory { get { return !IsStatelessWorker; } }
+        internal bool IsStatelessWorker => this.PlacedUsing is StatelessWorkerPlacement;
+        
+        /// <summary>
+        /// Returns a value indicating whether or not this placement strategy requires activations to be registered in
+        /// the grain directory.
+        /// </summary>
+        internal bool IsUsingGrainDirectory => this.PlacedUsing.IsUsingGrainDirectory;
 
         public Message Running { get; private set; }
 
@@ -466,6 +471,13 @@ namespace Orleans.Runtime
             // Note: This method is always called while holding lock on this activation, so no need for additional locks here
 
             numRunning++;
+            if (message.Direction != Message.Directions.OneWay 
+                && message.SendingActivation != null
+                && !message.SendingGrain?.IsClient == true)
+            {
+                RunningRequestsSenders.Add(message.SendingActivation);
+            }
+
             if (Running != null) return;
 
             // This logic only works for non-reentrant activations
@@ -478,6 +490,7 @@ namespace Orleans.Runtime
         {
             // Note: This method is always called while holding lock on this activation, so no need for additional locks here
             numRunning--;
+            RunningRequestsSenders.Remove(message.SendingActivation);
             if (numRunning == 0)
             {
                 becameIdle = DateTime.UtcNow;
@@ -514,10 +527,10 @@ namespace Orleans.Runtime
         /// <summary>Decrement the number of in-flight messages currently being processed.</summary>
         public void DecrementInFlightCount() { Interlocked.Decrement(ref inFlightCount); }
 
-        /// <summary>Increment the number of messages currently in the prcess of being received.</summary>
+        /// <summary>Increment the number of messages currently in the process of being received.</summary>
         public void IncrementEnqueuedOnDispatcherCount() { Interlocked.Increment(ref enqueuedOnDispatcherCount); }
 
-        /// <summary>Decrement the number of messages currently in the prcess of being received.</summary>
+        /// <summary>Decrement the number of messages currently in the process of being received.</summary>
         public void DecrementEnqueuedOnDispatcherCount() { Interlocked.Decrement(ref enqueuedOnDispatcherCount); }
        
         /// <summary>

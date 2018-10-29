@@ -5,7 +5,6 @@ using Xunit.Abstractions;
 
 namespace Orleans.Transactions.Azure.Tests
 {
-    // TODO: add to functional when slow abort is addressed - jbragg
     [TestCategory("Azure"), TestCategory("Transactions")]
     public class TransactionFaultInjectionTests : ControlledFaultInjectionTransactionTestRunner, IClassFixture<ControlledFaultInjectionTestFixture>
     {
