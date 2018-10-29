@@ -49,14 +49,14 @@ namespace Orleans.Indexing.Tests
 
         protected async Task<IIndexInterface<TKey, TValue>> GetAndWaitForIndex<TKey, TValue>(string indexName) where TValue : IIndexableGrain
         {
-            var locIdx = this.IndexFactory.GetIndex<TKey, TValue>(indexName);
-            while (!await locIdx.IsAvailable()) Thread.Sleep(50);
+            var locIdx = this.IndexFactory.GetIndex<TKey, TValue>(IndexUtils.PropertyNameToIndexName(indexName));
+            while (!await locIdx.IsAvailable()) await Task.Delay(50);
             return locIdx;
         }
 
-        protected async Task<IIndexInterface<TKey, TValue>[]> GetAndWaitForIndexes<TKey, TValue>(params string[] indexNames) where TValue : IIndexableGrain
+        protected async Task<IIndexInterface<TKey, TValue>[]> GetAndWaitForIndexes<TKey, TValue>(params string[] propertyNames) where TValue : IIndexableGrain
         {
-            var indexes = indexNames.Select(name => this.IndexFactory.GetIndex<TKey, TValue>(name)).ToArray();
+            var indexes = propertyNames.Select(name => this.IndexFactory.GetIndex<TKey, TValue>(IndexUtils.PropertyNameToIndexName(name))).ToArray();
 
             const int MaxRetries = 100;
             int retries = 0;
@@ -70,16 +70,6 @@ namespace Orleans.Indexing.Tests
                 }
             }
             return indexes;
-        }
-
-        public async Task<TInterface> CreateGrain<TInterface>(int uInt, string uString, int nuInt, string nuString) where TInterface : IGrainWithIntegerKey, ITestIndexGrain
-        {
-            var p1 = this.GetGrain<TInterface>(GrainPkFromUniqueInt(uInt));
-            await p1.SetUniqueInt(uInt);
-            await p1.SetUniqueString(uString);
-            await p1.SetNonUniqueInt(nuInt);
-            await p1.SetNonUniqueString(nuString);
-            return p1;
         }
 
         internal async Task TestIndexesWithDeactivations<TIGrain, TProperties>(int intAdjust = 0)
@@ -107,8 +97,15 @@ namespace Orleans.Indexing.Tests
                 var adj2k = "2k" + intAdjust;
                 var adj3k = "3k" + intAdjust;
 
-                Task<TIGrain> makeGrain(int uInt, string uString, int nuInt, string nuString)
-                    => this.CreateGrain<TIGrain>(uInt, uString, nuInt, nuString);
+                async Task<TIGrain> makeGrain(int uInt, string uString, int nuInt, string nuString)
+                {
+                    var grain = this.GetGrain<TIGrain>(GrainPkFromUniqueInt(uInt));
+                    await grain.SetUniqueInt(uInt);
+                    await grain.SetUniqueString(uString);
+                    await grain.SetNonUniqueInt(nuInt);
+                    await grain.SetNonUniqueString(nuString);
+                    return grain;
+                }
                 var p1 = await makeGrain(adj1, adjOne, adj1000, adj1k);
                 var p11 = await makeGrain(adj11, adjEleven, adj1000, adj1k);
                 var p111 = await makeGrain(adj111, adjOneEleven, adj1000, adj1k);
@@ -116,11 +113,11 @@ namespace Orleans.Indexing.Tests
                 var p2 = await makeGrain(adj2, adjTwo, adj2000, adj2k);
                 var p3 = await makeGrain(adj3, adjThree, adj3000, adj3k);
 
-                var intIndexes = await this.GetAndWaitForIndexes<int, TIGrain>(ITC.UniqueIntIndex, ITC.NonUniqueIntIndex);
+                var intIndexes = await this.GetAndWaitForIndexes<int, TIGrain>(ITC.UniqueIntProperty, ITC.NonUniqueIntProperty);
                 var nonUniqueIntIndexType = intIndexes[1].GetType();
                 bool ignoreDeactivate = typeof(ITotalIndex).IsAssignableFrom(nonUniqueIntIndexType)
                                       || typeof(IDirectStorageManagedIndex).IsAssignableFrom(nonUniqueIntIndexType);
-                var stringIndexes = await this.GetAndWaitForIndexes<string, TIGrain>(ITC.UniqueStringIndex, ITC.NonUniqueStringIndex);
+                var stringIndexes = await this.GetAndWaitForIndexes<string, TIGrain>(ITC.UniqueStringProperty, ITC.NonUniqueStringProperty);
 
                 Assert.Equal(1, await this.GetUniqueStringCount<TIGrain, TProperties>(adjOne));
                 Assert.Equal(1, await this.GetUniqueStringCount<TIGrain, TProperties>(adjEleven));

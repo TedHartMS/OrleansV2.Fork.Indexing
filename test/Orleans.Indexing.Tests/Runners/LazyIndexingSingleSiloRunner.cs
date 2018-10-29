@@ -28,7 +28,7 @@ namespace Orleans.Indexing.Tests
             await p2.SetLocation(ITC.Seattle);
             await p3.SetLocation(ITC.SanFrancisco);
 
-            var locIdx = await base.GetAndWaitForIndex<string, IPlayer1GrainNonFaultTolerantLazy>(ITC.LocationIndex);
+            var locIdx = await base.GetAndWaitForIndex<string, IPlayer1GrainNonFaultTolerantLazy>(ITC.LocationProperty);
 
             Task<int> getLocationCount(string location) => this.GetLocationCount<IPlayer1GrainNonFaultTolerantLazy, Player1PropertiesNonFaultTolerantLazy>(location, ITC.DelayUntilIndexesAreUpdatedLazily);
 
@@ -58,7 +58,7 @@ namespace Orleans.Indexing.Tests
             await p2.SetLocation(ITC.Tehran);
             await p3.SetLocation(ITC.Yazd);
 
-            var locIdx = await base.GetAndWaitForIndex<string, IPlayer2GrainNonFaultTolerantLazy>(ITC.LocationIndex);
+            var locIdx = await base.GetAndWaitForIndex<string, IPlayer2GrainNonFaultTolerantLazy>(ITC.LocationProperty);
 
             Task<int> getLocationCount(string location) => this.GetLocationCount<IPlayer2GrainNonFaultTolerantLazy, Player2PropertiesNonFaultTolerantLazy>(location, ITC.DelayUntilIndexesAreUpdatedLazily);
 
@@ -88,7 +88,7 @@ namespace Orleans.Indexing.Tests
             await p2.SetLocation(ITC.Seattle);
             await p3.SetLocation(ITC.SanFrancisco);
 
-            var locIdx = await base.GetAndWaitForIndex<string, IPlayer3GrainNonFaultTolerantLazy>(ITC.LocationIndex);
+            var locIdx = await base.GetAndWaitForIndex<string, IPlayer3GrainNonFaultTolerantLazy>(ITC.LocationProperty);
 
             Task<int> getLocationCount(string location) => this.GetLocationCount<IPlayer3GrainNonFaultTolerantLazy, Player3PropertiesNonFaultTolerantLazy>(location, ITC.DelayUntilIndexesAreUpdatedLazily);
 

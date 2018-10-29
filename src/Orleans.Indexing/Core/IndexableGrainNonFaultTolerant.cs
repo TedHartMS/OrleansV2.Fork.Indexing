@@ -430,30 +430,14 @@ namespace Orleans.Indexing
         }
 
         /// <summary>
-        /// This method finds the IGrain interface that is the lowest one in the interface type hierarchy of the current grain
+        /// This method finds all descendant interfaces of <see cref="IIndexableGrain{TProperties}"/>
         /// </summary>
-        /// <returns>lowest IGrain interface in the hierarchy that the current class implements</returns>
         protected IList<Type> GetIIndexableGrainTypes()
         {
             if (this._iGrainTypes == null)
             {
-                this._iGrainTypes = new List<Type>();
-                Type iIndexableGrainTp = typeof(IIndexableGrain<TProperties>);
-
-                Type[] interfaces = GetType().GetInterfaces();
-                int numInterfaces = interfaces.Length;
-
-                for (int i = 0; i < numInterfaces; ++i)
-                {
-                    Type otherIGrainType = interfaces[i];
-
-                    //iIndexableGrainTp and typedIIndexableGrainTp are ignored when checking the descendants of IGrain,
-                    // because there is no guarantee user defined grain interfaces extend these interfaces
-                    if (iIndexableGrainTp != otherIGrainType && iIndexableGrainTp.IsAssignableFrom(otherIGrainType))
-                    {
-                        this._iGrainTypes.Add(otherIGrainType);
-                    }
-                }
+                Type iIndexableT = typeof(IIndexableGrain<TProperties>);
+                this._iGrainTypes = GetType().GetInterfaces().Where(iOtherT => iIndexableT != iOtherT && iIndexableT.IsAssignableFrom(iOtherT)).ToArray();
             }
             return this._iGrainTypes;
         }
@@ -508,7 +492,7 @@ namespace Orleans.Indexing
         protected override async Task WriteStateAsync()
         {
             // WriteBaseStateAsync should be done before UpdateIndexes, in order to ensure that only the successfully persisted bits get to be indexed,
-            // so we cannot do these two tasks in parallel
+            // so we cannot do these two tasks in parallel.
             //await Task.WhenAll(WriteBaseStateAsync(), UpdateIndexes());
 
             // During WriteStateAsync for a stateful indexable grain, the indexes get updated concurrently while WriteBaseStateAsync is done.
@@ -517,26 +501,21 @@ namespace Orleans.Indexing
 
         protected async override Task ReadStateAsync()
         {
-            if (this.initialStateRead)
-            {
-                await base.ReadStateAsync();
-                return;
-            }
-
             var initialState = base.State;
             await base.ReadStateAsync();
-            this.initialStateRead = true;
-            if ((object)initialState == (object)base.State)
+            if (!this.initialStateRead)
             {
-                // No persisted state was read, so populate any non-nullables with their [nullvalue]s
-                SetStateToNullValues();
+                this.initialStateRead = true;
+                if ((object)initialState == (object)base.State)
+                {
+                    // No persisted state was read, so populate any non-nullables with their [nullvalue]s
+                    SetStateToNullValues();
+                }
             }
         }
 
         protected virtual void SetStateToNullValues()
-        {
-            IndexUtils.SetNullValues(base.State);
-        }
+            => IndexUtils.SetNullValues(base.State);
 
         /// <summary>
         /// Writes the state of the grain back to the storage without updating the indexes (which is done separately)
@@ -555,8 +534,7 @@ namespace Orleans.Indexing
             => throw new NotSupportedException();
 
         /// <summary>
-        /// Find the corresponding work-flow queue for a given grain interface
-        /// type that the current IndexableGrain implements
+        /// Find the corresponding work-flow queue for a given grain interface type that the current IndexableGrain implements
         /// </summary>
         /// <param name="iGrainType">the given grain interface type</param>
         /// <returns>the work-flow queue corresponding to the iGrainType</returns>
