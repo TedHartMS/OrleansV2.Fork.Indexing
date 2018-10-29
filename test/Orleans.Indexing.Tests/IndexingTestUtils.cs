@@ -7,8 +7,8 @@ namespace Orleans.Indexing.Tests
 {
     public static class IndexingTestUtils
     {
-        public static async Task<int> CountItemsStreamingIn<TIGrain, TIProperties, TQueryProp>(this IndexingTestRunnerBase runner,
-                                                                Func<IndexingTestRunnerBase, TQueryProp, Tuple<IOrleansQueryable<TIGrain, TIProperties>, Func<TIGrain, Task<TQueryProp>>>> queryTupleFunc,
+        public static async Task<int> CountItemsStreamingIn<TIGrain, TProperties, TQueryProp>(this IndexingTestRunnerBase runner,
+                                                                Func<IndexingTestRunnerBase, TQueryProp, Tuple<IOrleansQueryable<TIGrain, TProperties>, Func<TIGrain, Task<TQueryProp>>>> queryTupleFunc,
                                                                 string propertyName, TQueryProp queryValue, int delayInMilliseconds = 0)
             where TIGrain : IIndexableGrain
         {
@@ -23,7 +23,7 @@ namespace Orleans.Indexing.Tests
             var queryPropAsync = queryTuple.Item2;
 
             int counter = 0;
-            var _ = queryItems.ObserveResults(new QueryResultStreamObserver<TIGrain>(async entry =>
+            await queryItems.ObserveResults(new QueryResultStreamObserver<TIGrain>(async entry =>
             {
                 counter++;
                 runner.Output.WriteLine($"grain id = {entry}, {propertyName} = {await queryPropAsync(entry)}, primary key = {entry.GetPrimaryKeyLong()}");
@@ -43,6 +43,26 @@ namespace Orleans.Indexing.Tests
             // Task.Delay cannot be in the ITestIndexGrain implementation class because Deactivate() is codegen'd to a different thread.
             await grain.Deactivate();
             await (delayMs > 0 ? Task.Delay(delayMs) : Task.CompletedTask);
+        }
+
+        internal static async Task SetProperty<T>(Action<T> setter, T value, Func<Task> writeStateFunc, Func<Task>readStateFunc, bool retry)
+        {
+            const int MaxRetries = 10;
+            int retries = 0;
+            while (true)
+            {
+                setter(value);
+                try
+                {
+                    await writeStateFunc();
+                    return;
+                }
+                catch (Exception) when (retry && retries < MaxRetries)
+                {
+                    ++retries;
+                    await readStateFunc();
+                }
+            }
         }
 
         #region PlayerGrain
@@ -81,16 +101,18 @@ namespace Orleans.Indexing.Tests
                             from item in QueryActiveTestIndexGrains<TIGrain, TProperties>(runner) where item.UniqueString == queryValue select item,
                             entry => entry.GetUniqueString());
 
+        // Note: QueryByNonUnique* reverses the order of the comparison so that both variations are tested.
+
         internal static Tuple<IOrleansQueryable<TIGrain, TProperties>, Func<TIGrain, Task<int>>> QueryByNonUniqueInt<TIGrain, TProperties>(this IndexingTestRunnerBase runner, int queryValue)
             where TIGrain : ITestIndexGrain, IIndexableGrain where TProperties : ITestIndexProperties
             => Tuple.Create<IOrleansQueryable<TIGrain, TProperties>, Func<TIGrain, Task<int>>>(
-                            from item in QueryActiveTestIndexGrains<TIGrain, TProperties>(runner) where item.NonUniqueInt == queryValue select item,
+                            from item in QueryActiveTestIndexGrains<TIGrain, TProperties>(runner) where queryValue == item.NonUniqueInt select item,
                             entry => entry.GetNonUniqueInt());
 
         internal static Tuple<IOrleansQueryable<TIGrain, TProperties>, Func<TIGrain, Task<string>>> QueryByNonUniqueString<TIGrain, TProperties>(this IndexingTestRunnerBase runner, string queryValue)
             where TIGrain : ITestIndexGrain, IIndexableGrain where TProperties : ITestIndexProperties
             => Tuple.Create<IOrleansQueryable<TIGrain, TProperties>, Func<TIGrain, Task<string>>>(
-                            from item in QueryActiveTestIndexGrains<TIGrain, TProperties>(runner) where item.NonUniqueString == queryValue select item,
+                            from item in QueryActiveTestIndexGrains<TIGrain, TProperties>(runner) where queryValue == item.NonUniqueString select item,
                             entry => entry.GetNonUniqueString());
 
         internal static Task<int> GetUniqueIntCount<TIGrain, TProperties>(this IndexingTestRunnerBase runner, int uniqueValue, int delayInMilliseconds = 0)

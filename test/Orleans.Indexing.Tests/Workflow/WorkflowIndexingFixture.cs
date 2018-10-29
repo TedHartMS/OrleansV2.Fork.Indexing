@@ -33,7 +33,6 @@ namespace Orleans.Indexing.Tests
         protected static IndexingOptions ConfigureBasicOptions(IndexingOptions indexingOptions)
         {
             indexingOptions.MaxHashBuckets = 42;
-            indexingOptions.ConfigureWorkflow();
             return indexingOptions; // allow chaining
         }
     }

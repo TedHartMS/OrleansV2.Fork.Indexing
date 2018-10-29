@@ -43,7 +43,7 @@ namespace Orleans.Indexing.Tests
             await p9.SetLocation(ITC.Seattle);
             await p10.SetLocation(ITC.Kirkland);
 
-            var locIdx = await base.GetAndWaitForIndex<string, IPlayerChain1Grain>(ITC.LocationIndex);
+            var locIdx = await base.GetAndWaitForIndex<string, IPlayerChain1Grain>(ITC.LocationProperty);
 
             Task<int> getLocationCount(string location) => this.GetLocationCount<IPlayerChain1Grain, PlayerChain1Properties>(location);
 
@@ -76,7 +76,7 @@ namespace Orleans.Indexing.Tests
             await p2.SetLocation(ITC.Tehran);
             await p3.SetLocation(ITC.Yazd);
 
-            var locIdx = await base.GetAndWaitForIndex<string, IPlayer2GrainNonFaultTolerant>("__Location");
+            var locIdx = await base.GetAndWaitForIndex<string, IPlayer2GrainNonFaultTolerant>(ITC.LocationProperty);
 
             Task<int> getLocationCount(string location) => this.GetLocationCount<IPlayer2GrainNonFaultTolerant, Player2PropertiesNonFaultTolerant>(location);
 
@@ -106,7 +106,7 @@ namespace Orleans.Indexing.Tests
             await p2.SetLocation(ITC.Seattle);
             await p3.SetLocation(ITC.SanFrancisco);
 
-            var locIdx = await base.GetAndWaitForIndex<string, IPlayer3GrainNonFaultTolerant>(ITC.LocationIndex);
+            var locIdx = await base.GetAndWaitForIndex<string, IPlayer3GrainNonFaultTolerant>(ITC.LocationProperty);
 
             Task<int> getLocationCount(string location) => this.GetLocationCount<IPlayer3GrainNonFaultTolerant, Player3PropertiesNonFaultTolerant>(location);
 
