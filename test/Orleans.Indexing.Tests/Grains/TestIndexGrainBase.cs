@@ -40,22 +40,7 @@ namespace Orleans.Indexing.Tests
 
         internal async Task SetProperty<T>(Action<T> setter, T value, bool retry)
         {
-            const int MaxRetries = 10;
-            int retries = 0;
-            while (true)
-            {
-                setter(value);
-                try
-                {
-                    await writeStateFunc();
-                    return;
-                }
-                catch (Exception)
-                {
-                    if (!retry || ++retries >= MaxRetries) throw;
-                    await readStateFunc();
-                }
-            }
+            await IndexingTestUtils.SetProperty(setter, value, this.writeStateFunc, this.readStateFunc, retry);
         }
 
         internal Task SetPropertyWithoutWrite<T>(Action<T> setter, T value)

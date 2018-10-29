@@ -73,8 +73,7 @@ namespace Orleans.Indexing
     }
 
     /// <summary>
-    /// This is the typed variant of IndexInterface, which is assumed to be 
-    /// the root interface for the index implementations.
+    /// This is the typed variant of IndexInterface, which is assumed to be the root interface for the index implementations.
     /// </summary>
     [Unordered]
     public interface IIndexInterface<K, V> : IIndexInterface where V : IIndexableGrain

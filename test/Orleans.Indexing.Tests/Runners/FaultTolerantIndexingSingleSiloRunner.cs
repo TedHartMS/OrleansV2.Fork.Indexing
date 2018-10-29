@@ -30,7 +30,7 @@ namespace Orleans.Indexing.Tests
             await p2.SetLocation(ITC.Seattle);
             await p3.SetLocation(ITC.SanFrancisco);
 
-            var locIdx = await base.GetAndWaitForIndex<string, IPlayer2Grain>(ITC.LocationIndex);
+            var locIdx = await base.GetAndWaitForIndex<string, IPlayer2Grain>(ITC.LocationProperty);
 
             Task<int> getLocationCount(string location) => this.GetLocationCount<IPlayer2Grain, Player2Properties>(location, ITC.DelayUntilIndexesAreUpdatedLazily);
 

@@ -33,7 +33,7 @@ namespace Orleans.Indexing
             return key.Substring(key.LastIndexOf("-") + 1);
         }
 
-        public static string GetNextIndexBucketIdInChain(IAddressable index)
+        internal static string GetNextIndexBucketIdInChain(IAddressable index)
         {
             string key = index.GetPrimaryKeyString();
             int next = 1;
@@ -50,21 +50,15 @@ namespace Orleans.Indexing
         /// This method is a central place for finding the indexes defined on a getter method of a given
         /// grain interface.
         /// </summary>
-        /// <typeparam name="IGrainType">the given grain interface type</typeparam>
-        /// <param name="grainInterfaceMethod">the getter method on the grain interface</param>
+        /// <param name="propertyName">the name of the property on the grain interface</param>
         /// <returns>the name of the index on the getter method of the grain interface</returns>
-        public static string GetIndexNameOnInterfaceGetter<IGrainType>(string grainInterfaceMethod)
-            => GetIndexNameOnInterfaceGetter(typeof(IGrainType), grainInterfaceMethod);
+        public static string PropertyNameToIndexName(string propertyName)
+            => "__" + propertyName;
 
-        /// <summary>
-        /// This method is a central place for finding the indexes defined on a getter method of a given
-        /// grain interface.
-        /// </summary>
-        /// <param name="grainType">the given grain interface type</param>
-        /// <param name="grainInterfaceMethod">the getter method on the grain interface</param>
-        /// <returns>the name of the index on the getter method of the grain interface</returns>
-        public static string GetIndexNameOnInterfaceGetter(Type grainType, string grainInterfaceMethod)
-            => "__" + grainInterfaceMethod;
+        public static System.Threading.Tasks.Task<bool> WriteIndexes<TGrainState>(TGrainState grainState, params object[] indexedProperties)
+        {
+            return System.Threading.Tasks.Task.FromResult(true);
+        }
 
         // The ILoggerFactory implementation creates the category without generic type arguments.
         internal static ILogger CreateLoggerWithFullCategoryName<T>(this ILoggerFactory lf) where T: class

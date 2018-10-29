@@ -2,7 +2,11 @@ using System;
 
 namespace Orleans.Indexing
 {
-    public class IndexingOptions
+    public interface IIndexingOptions
+    {
+        int MaxHashBuckets { get; set; }
+    }
+    public class IndexingOptions : IIndexingOptions
     {
         public IndexingOptions()
         {
@@ -10,15 +14,5 @@ namespace Orleans.Indexing
         }
 
         public int MaxHashBuckets { get; set; }
-
-        public void ConfigureWorkflow()
-        {
-            // Placeholder
-        }
-
-        public void ConfigureTransactions()
-        {
-            // Placeholder
-        }
     }
 }

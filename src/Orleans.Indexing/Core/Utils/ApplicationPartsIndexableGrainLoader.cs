@@ -86,15 +86,15 @@ namespace Orleans.Indexing
         {
             // All the properties in TProperties are scanned for Index annotation.
             // If found, the index is created using the information provided in the annotation.
-            NamedIndexMap indexesOnGrain = new NamedIndexMap();
+            NamedIndexMap indexesOnInterface = new NamedIndexMap();
             var interfaceHasLazyIndex = false;  // Use a separate value from grainIndexesAreEager in case we change to allow mixing eager and lazy on a single grain.
             foreach (PropertyInfo propInfo in propertiesArgType.GetProperties())
             {
                 var indexAttrs = propInfo.GetCustomAttributes<IndexAttribute>(inherit:false);
                 foreach (var indexAttr in indexAttrs)
                 {
-                    string indexName = "__" + propInfo.Name;
-                    if (indexesOnGrain.ContainsKey(indexName))
+                    string indexName = IndexUtils.PropertyNameToIndexName(propInfo.Name);
+                    if (indexesOnInterface.ContainsKey(indexName))
                     {
                         throw new InvalidOperationException($"An index named {indexName} already exists for user-defined grain interface {userDefinedIGrain.Name}");
                     }
@@ -116,11 +116,11 @@ namespace Orleans.Indexing
                     int maxEntriesPerBucket = (int)maxEntriesPerBucketProperty.GetValue(indexAttr);
                     if (loader != null)
                     {
-                        await loader.CreateIndex(propertiesArgType, userDefinedIGrain, indexesOnGrain, propInfo, indexName, indexType, isEager, isUnique, maxEntriesPerBucket);
+                        await loader.CreateIndex(propertiesArgType, userDefinedIGrain, indexesOnInterface, propInfo, indexName, indexType, isEager, isUnique, maxEntriesPerBucket);
                     }
                 }
             }
-            registry[userDefinedIGrain] = indexesOnGrain;
+            registry[userDefinedIGrain] = indexesOnInterface;
             if (interfaceHasLazyIndex && loader != null)
             {
                 await loader.RegisterWorkflowQueues(userDefinedIGrain, userDefinedGrainImpl);
@@ -176,7 +176,7 @@ namespace Orleans.Indexing
                 throw new InvalidOperationException($"Some indexes on {IndexUtils.GetFullTypeName(userDefinedGrainImpl)} grain implementation class are defined as eager while others are lazy." +
                                                     $" The index of type {IndexUtils.GetFullTypeName(indexType)} is defined to be updated {(isEager ? "eagerly" : "lazily")} on property { propInfo.Name}" +
                                                     $" of property class {IndexUtils.GetFullTypeName(propertiesArgType)} on {IndexUtils.GetFullTypeName(userDefinedIGrain)} grain interface," +
-                                                    $" while previous indexs have been configured to be updated {(isEager ? "lazily" : "eagerly")}." +
+                                                    $" while previous indexes have been configured to be updated {(isEager ? "lazily" : "eagerly")}." +
                                                     $" You must fix this by configuring all indexes to be updated lazily or eagerly." +
                                                     $" Note: If you have at least one Total Index among your indexes, this must be lazy, and thus all other indexes must be lazy also.");
             }
