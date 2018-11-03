@@ -31,7 +31,7 @@ namespace Orleans.Indexing.Tests
 
             var locIdx = await base.GetAndWaitForIndex<string, IPlayer1GrainNonFaultTolerant>(ITC.LocationProperty);
 
-            Task<int> getLocationCount(string location) => this.GetLocationCount<IPlayer1GrainNonFaultTolerant, Player1PropertiesNonFaultTolerant>(location);
+            Task<int> getLocationCount(string location) => this.GetPlayerLocationCount<IPlayer1GrainNonFaultTolerant, Player1PropertiesNonFaultTolerant>(location);
 
             Assert.Equal(2, await getLocationCount(ITC.Seattle));
 
@@ -61,7 +61,7 @@ namespace Orleans.Indexing.Tests
 
             var locIdx = await base.GetAndWaitForIndex<string, IPlayer2GrainNonFaultTolerant>(ITC.LocationProperty);
 
-            Task<int> getLocationCount(string location) => this.GetLocationCount<IPlayer2GrainNonFaultTolerant, Player2PropertiesNonFaultTolerant>(location);
+            Task<int> getLocationCount(string location) => this.GetPlayerLocationCount<IPlayer2GrainNonFaultTolerant, Player2PropertiesNonFaultTolerant>(location);
 
             Assert.Equal(2, await getLocationCount(ITC.Tehran));
 
@@ -91,7 +91,7 @@ namespace Orleans.Indexing.Tests
 
             var locIdx = await base.GetAndWaitForIndex<string, IPlayer3GrainNonFaultTolerant>(ITC.LocationProperty);
 
-            Task<int> getLocationCount(string location) => this.GetLocationCount<IPlayer3GrainNonFaultTolerant, Player3PropertiesNonFaultTolerant>(location);
+            Task<int> getLocationCount(string location) => this.GetPlayerLocationCount<IPlayer3GrainNonFaultTolerant, Player3PropertiesNonFaultTolerant>(location);
 
             Assert.Equal(2, await getLocationCount(ITC.Seattle));
 
@@ -118,7 +118,7 @@ namespace Orleans.Indexing.Tests
 
             var locIdx = await base.GetAndWaitForIndex<string, IPlayer4GrainNonFaultTolerant>(ITC.LocationProperty);
 
-            Task<int> getLocationCount(string location) => this.GetLocationCount<IPlayer4GrainNonFaultTolerant, Player4PropertiesNonFaultTolerant>(location);
+            Task<int> getLocationCount(string location) => this.GetPlayerLocationCount<IPlayer4GrainNonFaultTolerant, Player4PropertiesNonFaultTolerant>(location);
 
             Assert.Equal(1, await getLocationCount(ITC.Seattle));
             Assert.Equal(1, await getLocationCount(ITC.Redmond));

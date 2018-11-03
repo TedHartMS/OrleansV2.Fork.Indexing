@@ -846,6 +846,9 @@ namespace Orleans.Runtime
         public static IGrain GetGrain(IGrainFactory grainFactory, string grainPrimaryKey, Type grainInterfaceType, Type outputGrainInterfaceType)
             => ((GrainFactory)grainFactory).GetGrain(grainPrimaryKey, grainInterfaceType, outputGrainInterfaceType);
 
+        public OutputGrainInterfaceType Cast<OutputGrainInterfaceType>(IAddressable grain) where OutputGrainInterfaceType : IGrain
+            => grain.Cast<OutputGrainInterfaceType>();
+
         public IGrain Cast(IAddressable grain, Type outputGrainInterfaceType)
             => (IGrain)this.runtimeClient.InternalGrainFactory.Cast(grain, outputGrainInterfaceType);
 

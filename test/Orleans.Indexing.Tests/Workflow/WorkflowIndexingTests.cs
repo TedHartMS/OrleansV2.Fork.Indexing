@@ -1,5 +1,6 @@
 using Xunit.Abstractions;
 using Xunit;
+using Orleans.Indexing.Tests.MultiInterface;
 
 namespace Orleans.Indexing.Tests
 {
@@ -63,6 +64,8 @@ namespace Orleans.Indexing.Tests
         public NoIndexingTestsWf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
     }
 
+    #region MultiIndex
+
     [TestCategory("BVT"), TestCategory("Indexing")]
     public class MultiIndex_AI_EG_Wf : MultiIndex_AI_EG_Runner, IClassFixture<WorkflowIndexingFixture>
     {
@@ -92,6 +95,18 @@ namespace Orleans.Indexing.Tests
     {
         public MultiIndex_All_Wf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
     }
+
+    #endregion MultiIndex
+
+    #region MultiInterface
+
+    [TestCategory("BVT"), TestCategory("Indexing")]
+    public class MultiInterface_AI_EG_Wf : MultiInterface_AI_EG_Runner, IClassFixture<WorkflowIndexingFixture>
+    {
+        public MultiInterface_AI_EG_Wf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
+    }
+
+    #endregion MultiInterface
 
     #region DirectStorageManagedIndexes
 

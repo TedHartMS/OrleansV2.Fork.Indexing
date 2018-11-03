@@ -1,6 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Orleans.Configuration;
 using System;
+using Microsoft.Extensions.DependencyInjection;
+using Orleans.Configuration;
 
 namespace Orleans.Indexing
 {

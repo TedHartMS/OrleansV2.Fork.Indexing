@@ -1,4 +1,4 @@
-﻿// Naming convention used when creating sub-interfaces and classes:
+// Naming convention used when creating sub-interfaces and classes:
 //  Prefix is:
 //      I - for interface
 //      FT or NFT - Fault Tolerant or Non FT for class impl
@@ -13,7 +13,7 @@
 
 namespace Orleans.Indexing.Tests
 {
-    public interface ITestIndexProperties
+    public interface ITestMultiIndexProperties
     {
         int UniqueInt { get; set; }
 

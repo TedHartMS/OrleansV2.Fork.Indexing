@@ -33,7 +33,7 @@ namespace Orleans.Indexing.Tests
 
             var locIdx = await base.GetAndWaitForIndex<string, IPlayer2GrainNonFaultTolerant>(ITC.LocationProperty);
 
-            Task<int> getLocationCount(string location) => this.GetLocationCount<IPlayer2GrainNonFaultTolerant, Player2PropertiesNonFaultTolerant>(location);
+            Task<int> getLocationCount(string location) => this.GetPlayerLocationCount<IPlayer2GrainNonFaultTolerant, Player2PropertiesNonFaultTolerant>(location);
 
             Assert.Equal(2, await getLocationCount(ITC.Seattle));
 

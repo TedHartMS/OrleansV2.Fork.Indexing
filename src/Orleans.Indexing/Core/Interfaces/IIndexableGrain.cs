@@ -6,7 +6,18 @@ using System.Threading.Tasks;
 namespace Orleans.Indexing
 {
     /// <summary>
-    /// The grain interface for the IndexableGrain and IndexableGrainNonFaultTolerant grains.
+    /// Marker interface for an interface that will "contain" indexed properties. TODO: MOve to Orleans.Indexing.Facets
+    /// </summary>
+    /// <remarks>
+    /// The indexed properties of an <see cref="IIndexableGrain{TProperties}"/> are actually
+    /// the properties of <typeparamref name="TProperties"/>, not any properties of the interface itself.
+    /// </remarks>
+    public interface IIndexableGrain<TProperties> : IIndexableGrain
+    {
+    }
+
+    /// <summary>
+    /// Untyped base marker interface for indexable grains.
     /// </summary>
     public interface IIndexableGrain : IGrain
     {
@@ -29,8 +40,5 @@ namespace Orleans.Indexing
         /// This method removes a work-flow ID from the list of active work-flow IDs for a Total Index
         /// </summary>
         Task RemoveFromActiveWorkflowIds(HashSet<Guid> removedWorkflowId);
-    }
-    public interface IIndexableGrain<TProperties> : IIndexableGrain
-    {
     }
 }

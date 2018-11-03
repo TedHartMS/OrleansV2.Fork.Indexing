@@ -11,7 +11,7 @@ namespace Orleans.Indexing.Tests
     // NFT only; FT cannot be configured to be Eager.
 
     [Serializable]
-    public class NFT_Props_UIUSNINS_DSMI_EG_PK : ITestIndexProperties
+    public class NFT_Props_UIUSNINS_DSMI_EG_PK : ITestMultiIndexProperties
     {
         [StorageManagedIndex(IsEager = true, IsUnique = true, NullValue = "-1")]
         public int UniqueInt { get; set; }
@@ -27,17 +27,17 @@ namespace Orleans.Indexing.Tests
     }
 
     [Serializable]
-    public class NFT_State_UIUSNINS_DSMI_EG_PK : NFT_Props_UIUSNINS_DSMI_EG_PK, ITestIndexState
+    public class NFT_State_UIUSNINS_DSMI_EG_PK : NFT_Props_UIUSNINS_DSMI_EG_PK, ITestMultiIndexState
     {
         public string UnIndexedString { get; set; }
     }
 
-    public interface INFT_Grain_UIUSNINS_DSMI_EG_PK : ITestIndexGrain, IIndexableGrain<NFT_Props_UIUSNINS_DSMI_EG_PK>
+    public interface INFT_Grain_UIUSNINS_DSMI_EG_PK : ITestMultiIndexGrain, IIndexableGrain<NFT_Props_UIUSNINS_DSMI_EG_PK>
     {
     }
 
     [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
-    public class NFT_Grain_UIUSNINS_DSMI_EG_PK : TestIndexGrainNonFaultTolerant<NFT_State_UIUSNINS_DSMI_EG_PK, NFT_Props_UIUSNINS_DSMI_EG_PK>,
+    public class NFT_Grain_UIUSNINS_DSMI_EG_PK : TestMultiIndexGrainNonFaultTolerant<NFT_State_UIUSNINS_DSMI_EG_PK, NFT_Props_UIUSNINS_DSMI_EG_PK>,
                                                  INFT_Grain_UIUSNINS_DSMI_EG_PK
     {
     }
@@ -48,7 +48,7 @@ namespace Orleans.Indexing.Tests
     // NFT only; FT cannot be configured to be Eager.
 
     [Serializable]
-    public class NFT_Props_UIUSNINS_DSMI_EG_PS : ITestIndexProperties
+    public class NFT_Props_UIUSNINS_DSMI_EG_PS : ITestMultiIndexProperties
     {
         [StorageManagedIndex(IsEager = true, IsUnique = true, NullValue = "-1")]
         public int UniqueInt { get; set; }
@@ -64,17 +64,17 @@ namespace Orleans.Indexing.Tests
     }
 
     [Serializable]
-    public class NFT_State_UIUSNINS_DSMI_EG_PS : NFT_Props_UIUSNINS_DSMI_EG_PS, ITestIndexState
+    public class NFT_State_UIUSNINS_DSMI_EG_PS : NFT_Props_UIUSNINS_DSMI_EG_PS, ITestMultiIndexState
     {
         public string UnIndexedString { get; set; }
     }
 
-    public interface INFT_Grain_UIUSNINS_DSMI_EG_PS : ITestIndexGrain, IIndexableGrain<NFT_Props_UIUSNINS_DSMI_EG_PS>
+    public interface INFT_Grain_UIUSNINS_DSMI_EG_PS : ITestMultiIndexGrain, IIndexableGrain<NFT_Props_UIUSNINS_DSMI_EG_PS>
     {
     }
 
     [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
-    public class NFT_Grain_UIUSNINS_DSMI_EG_PS : TestIndexGrainNonFaultTolerant<NFT_State_UIUSNINS_DSMI_EG_PS, NFT_Props_UIUSNINS_DSMI_EG_PS>,
+    public class NFT_Grain_UIUSNINS_DSMI_EG_PS : TestMultiIndexGrainNonFaultTolerant<NFT_State_UIUSNINS_DSMI_EG_PS, NFT_Props_UIUSNINS_DSMI_EG_PS>,
                                                  INFT_Grain_UIUSNINS_DSMI_EG_PS
     {
     }
@@ -85,7 +85,7 @@ namespace Orleans.Indexing.Tests
     // NFT only; FT cannot be configured to be Eager.
 
     [Serializable]
-    public class NFT_Props_UIUSNINS_DSMI_EG_SB : ITestIndexProperties
+    public class NFT_Props_UIUSNINS_DSMI_EG_SB : ITestMultiIndexProperties
     {
         [StorageManagedIndex(IsEager = true, IsUnique = true, NullValue = "-1")]
         public int UniqueInt { get; set; }
@@ -101,17 +101,17 @@ namespace Orleans.Indexing.Tests
     }
 
     [Serializable]
-    public class NFT_State_UIUSNINS_DSMI_EG_SB : NFT_Props_UIUSNINS_DSMI_EG_SB, ITestIndexState
+    public class NFT_State_UIUSNINS_DSMI_EG_SB : NFT_Props_UIUSNINS_DSMI_EG_SB, ITestMultiIndexState
     {
         public string UnIndexedString { get; set; }
     }
 
-    public interface INFT_Grain_UIUSNINS_DSMI_EG_SB : ITestIndexGrain, IIndexableGrain<NFT_Props_UIUSNINS_DSMI_EG_SB>
+    public interface INFT_Grain_UIUSNINS_DSMI_EG_SB : ITestMultiIndexGrain, IIndexableGrain<NFT_Props_UIUSNINS_DSMI_EG_SB>
     {
     }
 
     [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
-    public class NFT_Grain_UIUSNINS_DSMI_EG_SB : TestIndexGrainNonFaultTolerant<NFT_State_UIUSNINS_DSMI_EG_SB, NFT_Props_UIUSNINS_DSMI_EG_SB>,
+    public class NFT_Grain_UIUSNINS_DSMI_EG_SB : TestMultiIndexGrainNonFaultTolerant<NFT_State_UIUSNINS_DSMI_EG_SB, NFT_Props_UIUSNINS_DSMI_EG_SB>,
                                                  INFT_Grain_UIUSNINS_DSMI_EG_SB
     {
     }
