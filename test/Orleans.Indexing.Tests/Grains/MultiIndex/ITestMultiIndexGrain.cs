@@ -1,8 +1,8 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 
 namespace Orleans.Indexing.Tests
 {
-    public interface ITestIndexGrain : IGrainWithIntegerKey
+    public interface ITestMultiIndexGrain : IGrainWithIntegerKey
     {
         Task<string> GetUnIndexedString();
         Task SetUnIndexedString(string value);

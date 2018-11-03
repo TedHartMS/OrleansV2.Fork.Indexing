@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Orleans.Configuration;
 using Orleans.Hosting;
 using Orleans.Runtime;
+using Orleans.Indexing.Facets;
 
 namespace Orleans.Indexing
 {
@@ -37,6 +38,13 @@ namespace Orleans.Indexing
             services.AddSingleton<SiloIndexManager>()
                     .AddFromExisting<ILifecycleParticipant<ISiloLifecycle>, SiloIndexManager>();
             services.AddFromExisting<IndexManager, SiloIndexManager>();
+
+            // Facet Factory and Mappers
+            services.AddTransient<IIndexWriterFactory, IndexWriterFactory>()
+                    .AddSingleton(typeof(IAttributeToFactoryMapper<NonFaultTolerantWorkflowIndexWriterAttribute>),
+                                  typeof(NonFaultTolerantWorkflowIndexWriterAttributeMapper))
+                    .AddSingleton(typeof(IAttributeToFactoryMapper<FaultTolerantWorkflowIndexWriterAttribute>),
+                                  typeof(FaultTolerantWorkflowIndexWriterAttributeMapper));
             return services;
         }
     }

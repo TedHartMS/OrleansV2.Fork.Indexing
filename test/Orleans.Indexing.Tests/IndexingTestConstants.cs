@@ -17,6 +17,10 @@ namespace Orleans.Indexing.Tests
         public const string Yazd = "Yazd";
 
         public const string LocationProperty = "Location";
+        public const string AgeProperty = "Age";
+        public const string TitleProperty = "Title";
+        public const string DepartmentProperty = "Department";
+
         public const string UniqueIntProperty = "UniqueInt";
         public const string UniqueStringProperty = "UniqueString";
         public const string NonUniqueIntProperty = "NonUniqueInt";

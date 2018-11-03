@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Orleans.Indexing.Tests
 {
-    internal class TestIndexGrainBase<TState, TProps> where TProps: new()
+    internal class TestMultiIndexGrainBase<TState, TProps> where TProps: new()
     {
         internal bool IsUniqueIntIndexed;
         internal bool IsUniqueStringIndexed;
@@ -16,7 +16,7 @@ namespace Orleans.Indexing.Tests
         private Func<Task> writeStateFunc;
         private Func<Task> readStateFunc;
 
-        internal TestIndexGrainBase(Func<Task> wsf, Func<Task> rsf)
+        internal TestMultiIndexGrainBase(Func<Task> wsf, Func<Task> rsf)
         {
             this.writeStateFunc = wsf;
             this.readStateFunc = rsf;
@@ -30,10 +30,10 @@ namespace Orleans.Indexing.Tests
                 return propInfo.GetCustomAttributes<IndexAttribute>(inherit: false).Any();
             }
 
-            this.IsUniqueIntIndexed = isIndexed(nameof(ITestIndexProperties.UniqueInt));
-            this.IsUniqueStringIndexed = isIndexed(nameof(ITestIndexProperties.UniqueString));
-            this.IsNonUniqueIntIndexed = isIndexed(nameof(ITestIndexProperties.NonUniqueInt));
-            this.IsNonUniqueStringIndexed = isIndexed(nameof(ITestIndexProperties.NonUniqueString));
+            this.IsUniqueIntIndexed = isIndexed(nameof(ITestMultiIndexProperties.UniqueInt));
+            this.IsUniqueStringIndexed = isIndexed(nameof(ITestMultiIndexProperties.UniqueString));
+            this.IsNonUniqueIntIndexed = isIndexed(nameof(ITestMultiIndexProperties.NonUniqueInt));
+            this.IsNonUniqueStringIndexed = isIndexed(nameof(ITestMultiIndexProperties.NonUniqueString));
 
             Assert.True(IsUniqueIntIndexed || IsUniqueStringIndexed || IsNonUniqueIntIndexed || IsNonUniqueStringIndexed);
         }
