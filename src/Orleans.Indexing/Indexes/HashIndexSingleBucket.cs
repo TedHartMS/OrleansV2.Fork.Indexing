@@ -179,9 +179,13 @@ namespace Orleans.Indexing
             {
                 throw LogException("Index is not still available", IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainBucket1);
             }
-            if (this.State.IndexMap.TryGetValue(key, out HashIndexSingleBucketEntry<V> entry) && !entry.IsTentative)
+            if (this.State.IndexMap.TryGetValue(key, out HashIndexSingleBucketEntry<V> entry))
             {
-                await result.OnNextBatchAsync(entry.Values);
+                System.Diagnostics.Debug.Assert(!entry.IsTentative, "TODO IsTentative in Lookup(); for current tests this indicates a race condition");
+                if (!entry.IsTentative)
+                {
+                    await result.OnNextBatchAsync(entry.Values);
+                }
                 await result.OnCompletedAsync();
             }
             else if (this.State.NextBucket != null)
@@ -200,11 +204,13 @@ namespace Orleans.Indexing
             {
                 throw LogException("Index is not still available", IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainBucket2);
             }
-            if (this.State.IndexMap.TryGetValue(key, out HashIndexSingleBucketEntry<V> entry) && !entry.IsTentative)
+            if (this.State.IndexMap.TryGetValue(key, out HashIndexSingleBucketEntry<V> entry))
             {
-                return (entry.Values.Count() == 1)
+                System.Diagnostics.Debug.Assert(!entry.IsTentative, "TODO IsTentative in LookupUnique(); for current tests this indicates a race condition");
+                return (entry.Values.Count() == 1 && !entry.IsTentative)
                     ? entry.Values.GetEnumerator().Current
-                    : throw LogException($"There are {entry.Values.Count()} values for the unique lookup key \"{key}\" on index \"{IndexUtils.GetIndexNameFromIndexGrain(this)}\".",
+                    : throw LogException($"There are {entry.Values.Count()} values for the unique lookup key \"{key}\" on index" +
+                                         $" \"{IndexUtils.GetIndexNameFromIndexGrain(this)}\", and the entry is{(entry.IsTentative ? "" : " not")} tentative.",
                                         IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainBucket3);
             }
             return (this.State.NextBucket != null)

@@ -10,6 +10,8 @@ namespace Orleans.Indexing.Tests.MultiInterface
         Task<string> GetDepartment();
         Task SetDepartment(string value);
 
-        Task Deactivate();  // For testing
+        // For testing
+        Task WriteState();
+        Task Deactivate();
     }
 }

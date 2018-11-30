@@ -106,6 +106,30 @@ namespace Orleans.Indexing.Tests
         public MultiInterface_AI_EG_Wf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
     }
 
+    [TestCategory("BVT"), TestCategory("Indexing")]
+    public class MultiInterface_AI_LZ_Wf : MultiInterface_AI_LZ_Runner, IClassFixture<WorkflowIndexingFixture>
+    {
+        public MultiInterface_AI_LZ_Wf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
+    }
+
+    [TestCategory("BVT"), TestCategory("Indexing")]
+    public class MultiInterface_TI_EG_Wf : MultiInterface_TI_EG_Runner, IClassFixture<WorkflowIndexingFixture>
+    {
+        public MultiInterface_TI_EG_Wf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
+    }
+
+    [TestCategory("BVT"), TestCategory("Indexing")]
+    public class MultiInterface_TI_LZ_Wf : MultiInterface_TI_LZ_Runner, IClassFixture<WorkflowIndexingFixture>
+    {
+        public MultiInterface_TI_LZ_Wf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
+    }
+
+    [TestCategory("BVT"), TestCategory("Indexing")]
+    public class MultiInterface_All_Wf : MultiInterface_All_Runner, IClassFixture<WorkflowIndexingFixture>
+    {
+        public MultiInterface_All_Wf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
+    }
+
     #endregion MultiInterface
 
     #region DirectStorageManagedIndexes

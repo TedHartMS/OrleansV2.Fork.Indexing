@@ -491,11 +491,8 @@ namespace Orleans.Indexing
 
         protected override async Task WriteStateAsync()
         {
-            // WriteBaseStateAsync should be done before UpdateIndexes, in order to ensure that only the successfully persisted bits get to be indexed,
-            // so we cannot do these two tasks in parallel.
-            //await Task.WhenAll(WriteBaseStateAsync(), UpdateIndexes());
-
-            // During WriteStateAsync for a stateful indexable grain, the indexes get updated concurrently while WriteBaseStateAsync is done.
+            // WriteBaseStateAsync is called during the UpdateIndexes workflow to ensure that only the successfully persisted bits get to be indexed;
+            // during WriteStateAsync for a stateful indexable grain, the indexes get updated concurrently while WriteBaseStateAsync is done.
             await UpdateIndexes(this.Properties, isOnActivate: false, onlyUpdateActiveIndexes: false, writeStateIfConstraintsAreNotViolated: true);
         }
 
@@ -509,7 +506,7 @@ namespace Orleans.Indexing
                 if ((object)initialState == (object)base.State)
                 {
                     // No persisted state was read, so populate any non-nullables with their [nullvalue]s
-                    SetStateToNullValues();
+                    this.SetStateToNullValues();
                 }
             }
         }
@@ -556,6 +553,11 @@ namespace Orleans.Indexing
 
         // Note: this should be identical to base.SiloAddress as that calls into the runtime
         private SiloAddress BaseSiloAddress => this.SiloIndexManager.SiloAddress;
+
+        // TODO: new Facet methods (dummied out here)
+        public virtual Task OnGrainActivateAsync() => throw new NotImplementedException();
+        public virtual Task OnGrainDeactivateAsync() => throw new NotImplementedException();
+        public Task WriteGrainStateAsync() => throw new NotImplementedException();
     }
 
     /// <summary>
