@@ -6,7 +6,7 @@ namespace Orleans.Indexing.Tests
     [Serializable]
     public class Player5Properties : IPlayerProperties
     {
-        [Index(typeof(IActiveHashIndexSingleBucket<string, IPlayer5Grain>)/*, IsEager = false*/, IsUnique = true, NullValue = "0")]
+        [Index(typeof(IActiveHashIndexSingleBucket<int, IPlayer5Grain>)/*, IsEager = false*/, IsUnique = true, NullValue = "0")]
         public int Score { get; set; }
 
         [Index(typeof(ActiveHashIndexPartitionedPerKey<string, IPlayer5Grain>)/*, IsEager = false*/, IsUnique = true)]

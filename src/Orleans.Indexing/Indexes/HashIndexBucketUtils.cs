@@ -14,8 +14,9 @@ namespace Orleans.Indexing
         /// <param name="state">the index bucket to be updated</param>
         /// <param name="isUniqueIndex">a flag to indicate whether the hash-index has a uniqueness constraint</param>
         /// <param name="idxMetaData">the index metadata</param>
-        internal static bool UpdateBucket<K, V>(V updatedGrain, IMemberUpdate iUpdate, HashIndexBucketState<K, V> state, bool isUniqueIndex, IndexMetaData idxMetaData) where V : IIndexableGrain
-            => UpdateBucket(updatedGrain, iUpdate, state, isUniqueIndex, idxMetaData, out K befImg, out HashIndexSingleBucketEntry<V> befEntry, out bool fixIndexUnavailableOnDelete);
+        internal static bool UpdateBucket<K, V>(V updatedGrain, IMemberUpdate iUpdate, HashIndexBucketState<K, V> state, bool isUniqueIndex,
+                                                IndexMetaData idxMetaData) where V : IIndexableGrain
+            => UpdateBucket(updatedGrain, iUpdate, state, isUniqueIndex, idxMetaData, out K befImg, out HashIndexSingleBucketEntry<V> _, out bool _);
 
         /// <summary>
         /// This method contains the common functionality for updating the hash-index bucket.
@@ -31,8 +32,9 @@ namespace Orleans.Indexing
         /// <param name="befEntry">output parameter: the index entry containing the before-image</param>
         /// <param name="fixIndexUnavailableOnDelete">output parameter: this variable determines whether
         ///             the index was still unavailable when we received a delete operation</param>
-        internal static bool UpdateBucket<K, V>(V updatedGrain, IMemberUpdate update, HashIndexBucketState<K, V> state, bool isUniqueIndex, IndexMetaData idxMetaData, out K befImg,
-                                                out HashIndexSingleBucketEntry<V> befEntry, out bool fixIndexUnavailableOnDelete) where V : IIndexableGrain
+        internal static bool UpdateBucket<K, V>(V updatedGrain, IMemberUpdate update, HashIndexBucketState<K, V> state, bool isUniqueIndex,
+                                                IndexMetaData idxMetaData, out K befImg, out HashIndexSingleBucketEntry<V> befEntry,
+                                                out bool fixIndexUnavailableOnDelete) where V : IIndexableGrain
         {
             fixIndexUnavailableOnDelete = false;
             befImg = default(K);
@@ -65,10 +67,11 @@ namespace Orleans.Indexing
                         {
                             if (isUniqueIndex && aftEntry.Values.Count > 0)
                             {
-                                throw new UniquenessConstraintViolatedException(string.Format(
-                                        "The uniqueness property of index is violated after an update operation for before-image = {0}, after-image = {1} and grain = {2}",
-                                        befImg, aftImg, updatedGrain.GetPrimaryKey()));
+                                throw new UniquenessConstraintViolatedException(
+                                        $"The uniqueness property of index {idxMetaData.IndexName} is would be violated for an update operation" +
+                                        $" for before-image = {befImg}, after-image = {aftImg} and grain = {updatedGrain.GetPrimaryKey()}");
                             }
+                            // TODO: Possible race condition as in Insert below (recovery would have to restore to befEntry).
                             befEntry.Remove(updatedGrain, isTentativeUpdate, isUniqueIndex);
                             aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
                         }
@@ -84,7 +87,9 @@ namespace Orleans.Indexing
                 else
                 {
                     if (idxMetaData.IsChainedBuckets)
+                    {
                         return false; //not found in this bucket
+                    }
                     //Insert
                     if (state.IndexMap.TryGetValue(aftImg, out aftEntry))
                     {
@@ -92,8 +97,11 @@ namespace Orleans.Indexing
                         {
                             if (isUniqueIndex && aftEntry.Values.Count > 0)
                             {
-                                throw new UniquenessConstraintViolatedException(string.Format("The uniqueness property of index is violated after an update operation for (not found before-image = {0}), after-image = {1} and grain = {2}", befImg, aftImg, updatedGrain.GetPrimaryKey()));
+                                throw new UniquenessConstraintViolatedException(
+                                        $"The uniqueness property of index {idxMetaData.IndexName} would be violated for an update operation" +
+                                        $" for (not found before-image = {befImg}), after-image = {aftImg} and grain = {updatedGrain.GetPrimaryKey()}");
                             }
+                            // TODO Possible race condition as in Insert below
                             aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
                         }
                         else if (isTentativeUpdate)
@@ -126,10 +134,21 @@ namespace Orleans.Indexing
                     {
                         if (isUniqueIndex && aftEntry.Values.Count > 0)
                         {
-                            throw new UniquenessConstraintViolatedException(string.Format("The uniqueness property of index is violated after an insert operation for after-image = {0} and grain = {1}",
-                                                                                           aftImg, updatedGrain.GetPrimaryKey()));
+                            throw new UniquenessConstraintViolatedException(
+                                    $"The uniqueness property of index {idxMetaData.IndexName} would be violated for an insert operation" +
+                                    $" for after-image = {aftImg} and grain = {updatedGrain.GetPrimaryKey()}");
                         }
                         aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
+                        if (isUniqueIndex && aftEntry.Values.Count > 1)
+                        {
+                            // TODO: diagnose and better fix for a possible race condition; Test_MultiInterface_All occasionally returns
+                            // a count of 2 when edited to allow duplicate values for "title_2" (Title has a unique index) when this
+                            // check does not fire (this one didn't fire either, but that could be part of the race).
+                            aftEntry.Remove(updatedGrain, isTentativeUpdate, isUniqueIndex);
+                            throw new UniquenessConstraintViolatedException(
+                                    $"The uniqueness property of index {idxMetaData.IndexName} has been violated after an insert operation" +
+                                    $" for after-image = {aftImg} and grain = {updatedGrain.GetPrimaryKey()}");
+                        }
                     }
                     else if (isTentativeUpdate)
                     {
@@ -148,6 +167,8 @@ namespace Orleans.Indexing
                     }
                     aftEntry = new HashIndexSingleBucketEntry<V>();
                     aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
+
+                    // TODO One Add() could be lost if two threads simultaneously found no aftEntry
                     state.IndexMap.Add(aftImg, aftEntry);
                 }
             }

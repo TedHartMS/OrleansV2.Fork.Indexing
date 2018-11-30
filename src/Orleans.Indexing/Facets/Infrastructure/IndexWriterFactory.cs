@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Orleans.Runtime;
 
@@ -5,11 +6,11 @@ namespace Orleans.Indexing.Facets
 {
     public class IndexWriterFactory : IIndexWriterFactory
     {
-        private readonly IGrainActivationContext context;   // TODO is this needed?
+        private readonly IServiceProvider activationServices;
 
         public IndexWriterFactory(IGrainActivationContext context, ITypeResolver typeResolver, IGrainFactory grainFactory)
         {
-            this.context = context;
+            this.activationServices = context.ActivationServices;
         }
 
         public INonFaultTolerantWorkflowIndexWriter<TState> CreateNonFaultTolerantWorkflowIndexWriter<TState>(IIndexWriterConfiguration config)
@@ -22,6 +23,6 @@ namespace Orleans.Indexing.Facets
 
         private TIndexWriterImplementationWithState CreateIndexWriter<TIndexWriterImplementationWithState>(IIndexWriterConfiguration config)
             => ActivatorUtilities.CreateInstance<TIndexWriterImplementationWithState>(
-                    this.context.ActivationServices, config, this.context);
+                    this.activationServices, config);
     }
 }

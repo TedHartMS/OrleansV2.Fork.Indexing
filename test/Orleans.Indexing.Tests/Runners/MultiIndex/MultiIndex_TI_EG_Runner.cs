@@ -1,7 +1,5 @@
-﻿using Orleans.Providers;
 using System;
 using System.Threading.Tasks;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace Orleans.Indexing.Tests

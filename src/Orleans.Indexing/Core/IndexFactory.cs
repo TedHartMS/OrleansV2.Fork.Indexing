@@ -4,6 +4,8 @@ using System.Reflection;
 using Orleans.Streams;
 using System.Threading.Tasks;
 using System.Linq.Expressions;
+using System.Linq;
+using Orleans.Indexing.Facets;
 
 namespace Orleans.Indexing
 {
@@ -88,14 +90,14 @@ namespace Orleans.Indexing
         /// Gets an IndexInterface given its name and grain interface type
         /// </summary>
         /// <param name="indexName">the name of the index, which is the identifier of the index</param>
-        /// <param name="iGrainType">the grain interface type that is being indexed</param>
+        /// <param name="iInterfaceType">the grain interface type that is being indexed</param>
         /// <returns>the IndexInterface with the specified name on the given grain interface type</returns>
-        public IIndexInterface GetIndex(Type iGrainType, string indexName)
+        public IIndexInterface GetIndex(Type iInterfaceType, string indexName)
         {
             // It should never happen that the indexes are not loaded if the index is registered in the index registry
-            return GetGrainIndexes(iGrainType).TryGetValue(indexName, out IndexInfo indexInfo)
+            return GetGrainIndexes(iInterfaceType).TryGetValue(indexName, out IndexInfo indexInfo)
                 ? indexInfo.IndexInterface
-                : throw new IndexException(string.Format("Index \"{0}\" does not exist for {1}.", indexName, iGrainType));
+                : throw new IndexException(string.Format("Index \"{0}\" does not exist for {1}.", indexName, iInterfaceType));
         }
 
         #endregion IIndexFactory
@@ -105,13 +107,13 @@ namespace Orleans.Indexing
         /// <summary>
         /// Provides the index information for a given grain interface type.
         /// </summary>
-        /// <param name="iGrainType">The target grain interface type</param>
+        /// <param name="iInterfaceType">The target grain interface type</param>
         /// <returns>A per-grain index registry, which may be empty if the grain does not have indexes.</returns>
-        internal NamedIndexMap GetGrainIndexes(Type iGrainType)
+        internal NamedIndexMap GetGrainIndexes(Type iInterfaceType)
         {
-            return this.indexManager.IndexRegistry.TryGetValue(iGrainType, out NamedIndexMap grainIndexes)
+            return this.indexManager.IndexRegistry.TryGetValue(iInterfaceType, out var grainIndexes)
                 ? grainIndexes
-                : new NamedIndexMap();
+                : throw new IndexException($"No indexes exist for interface {iInterfaceType.Name}");
         }
 
         /// <summary>
@@ -128,28 +130,21 @@ namespace Orleans.Indexing
         /// <returns>An <see cref="IndexInfo"/> for the specified idxType and indexName.</returns>
         internal async Task<IndexInfo> CreateIndex(Type idxType, string indexName, bool isUniqueIndex, bool isEager, int maxEntriesPerBucket, PropertyInfo indexedProperty)
         {
-            Type iIndexType = idxType.GetGenericType(typeof(IIndexInterface<,>));
-            if (iIndexType == null)
-            {
-                throw new NotSupportedException(string.Format("Adding an index that does not implement IndexInterface<K,V> is not supported yet. Your requested index ({0}) is invalid.", idxType.ToString()));
-            }
-
-            Type[] indexTypeArgs = iIndexType.GetGenericArguments();
-            Type keyType = indexTypeArgs[0];
-            Type grainType = indexTypeArgs[1];
+            Type iIndexGenericType, grainInterfaceType;
+            ValidateIndexType(idxType, indexedProperty, out iIndexGenericType, out grainInterfaceType);
 
             IIndexInterface index;
             if (typeof(IGrain).IsAssignableFrom(idxType))
             {
                 // This must call the static Silo methods because we may not be InSilo.
-                index = (IIndexInterface)Silo.GetGrain(this.grainFactory, IndexUtils.GetIndexGrainPrimaryKey(grainType, indexName), idxType, idxType);
+                index = (IIndexInterface)Silo.GetGrain(this.grainFactory, IndexUtils.GetIndexGrainPrimaryKey(grainInterfaceType, indexName), idxType, idxType);
 
                 if (this.IsInSilo)
                 {
                     var idxImplType = this.indexManager.CachedTypeResolver.ResolveType(
                                             TypeCodeMapper.GetImplementation(this.siloIndexManager.GrainTypeResolver, idxType).GrainClass);
                     if (idxImplType.IsGenericTypeDefinition)
-                        idxImplType = idxImplType.MakeGenericType(iIndexType.GetGenericArguments());
+                        idxImplType = idxImplType.MakeGenericType(iIndexGenericType.GetGenericArguments());
 
                     var initPerSiloMethodInfo = idxImplType.GetMethod("InitPerSilo", BindingFlags.Static | BindingFlags.NonPublic);
                     if (initPerSiloMethodInfo != null)  // Static method so cannot use an interface
@@ -159,23 +154,37 @@ namespace Orleans.Indexing
                     }
                 }
             }
-            else 
+            else
             {
                 index = idxType.IsClass
                     ? (IIndexInterface)Activator.CreateInstance(idxType, this.indexManager.ServiceProvider, indexName, isUniqueIndex)
                     : throw new IndexException(string.Format("{0} is neither a grain nor a class. Index \"{1}\" cannot be created.", idxType, indexName));
             }
 
-            return new IndexInfo(index, new IndexMetaData(idxType, isUniqueIndex, isEager, maxEntriesPerBucket), CreateIndexUpdateGenFromProperty(indexedProperty));
+            return new IndexInfo(index, new IndexMetaData(idxType, indexName, isUniqueIndex, isEager, maxEntriesPerBucket), CreateIndexUpdateGenFromProperty(indexedProperty));
         }
 
-        internal static async Task RegisterIndexWorkflowQueues(SiloIndexManager siloIndexManager, Type iGrainType, Type grainImplType)
+        internal static void ValidateIndexType(Type idxType, PropertyInfo indexedProperty, out Type iIndexGenericType, out Type grainInterfaceType)
         {
-            for (int i = 0; i < IndexWorkflowQueueBase.NUM_AVAILABLE_INDEX_WORKFLOW_QUEUES; ++i)
+            iIndexGenericType = idxType.GetGenericType(typeof(IIndexInterface<,>))
+                                    ?? throw new NotSupportedException("Adding an index that does not implement IndexInterface<K,V> is not supported yet." +
+                                                                       $" Your requested index ({idxType.ToString()}) is invalid.");
+
+            Type[] indexTypeArgs = iIndexGenericType.GetGenericArguments();
+            var keyType = indexTypeArgs[0];
+            grainInterfaceType = indexTypeArgs[1];
+            if (keyType != indexedProperty.PropertyType)
             {
-                bool isFaultTolerant = typeof(IIndexableGrainFaultTolerant).IsAssignableFrom(grainImplType);
-                await siloIndexManager.Silo.AddGrainService(new IndexWorkflowQueueGrainService(siloIndexManager, iGrainType, i, isFaultTolerant));
-                await siloIndexManager.Silo.AddGrainService(new IndexWorkflowQueueHandlerGrainService(siloIndexManager, iGrainType, i, isFaultTolerant));
+                throw new NotSupportedException($"Index <{idxType.ToString()}, V> does not match property '{indexedProperty.PropertyType} {indexedProperty.Name}'");
+            }
+        }
+
+        internal static async Task RegisterIndexWorkflowQueues(SiloIndexManager sim, Type grainInterfaceType, Type grainClassType, bool isFaultTolerant)
+        {
+            for (int i = 0; i < sim.NumWorkflowQueuesPerInterface; ++i)
+            {
+                await sim.Silo.AddGrainService(new IndexWorkflowQueueGrainService(sim, grainInterfaceType, i, isFaultTolerant));
+                await sim.Silo.AddGrainService(new IndexWorkflowQueueHandlerGrainService(sim, grainInterfaceType, i, isFaultTolerant));
             }
         }
 

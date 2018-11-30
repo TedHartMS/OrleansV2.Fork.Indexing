@@ -46,49 +46,39 @@ namespace Orleans.Indexing
         {
             try
             {
-                var workflows = workflowRecords.Value;
-                while (workflows != null)
+                var workflowNode = workflowRecords.Value;
+                while (workflowNode != null)
                 {
-                    var grainsToActiveWorkflows = IsFaultTolerant ? await GetActiveWorkflowsListsFromGrains(workflows) : null;
-                    var updatesToIndexes = CreateAMapForUpdatesToIndexes();
-                    PopulateUpdatesToIndexes(workflows, updatesToIndexes, grainsToActiveWorkflows);
+                    var grainsToActiveWorkflows = IsFaultTolerant ? await GetActiveWorkflowsListsFromGrains(workflowNode) : emptyDictionary;
+                    var updatesToIndexes = PopulateUpdatesToIndexes(workflowNode, grainsToActiveWorkflows);
+
                     await Task.WhenAll(PrepareIndexUpdateTasks(updatesToIndexes));
-                    if (IsFaultTolerant)
+                    if (this.IsFaultTolerant)
                     {
-                        Task.WhenAll(RemoveFromActiveWorkflowsInGrainsTasks(grainsToActiveWorkflows)).Ignore();
+                        Task.WhenAll(this.RemoveFromActiveWorkflowsInGrainsTasks(grainsToActiveWorkflows)).Ignore();
                     }
-                    workflows = (await WorkflowQueue.GiveMoreWorkflowsOrSetAsIdle()).Value;
+                    workflowNode = (await this.WorkflowQueue.GiveMoreWorkflowsOrSetAsIdle()).Value;
                 }
             }
             catch (Exception e)
             {
-                throw e;
+                throw e;    // TODO empty handler; add handler logic or remove
             }
         }
 
-        private IList<Task> RemoveFromActiveWorkflowsInGrainsTasks(Dictionary<IIndexableGrain, HashSet<Guid>> grainsToActiveWorkflows)
-            => grainsToActiveWorkflows.Select(pair => pair.Key.RemoveFromActiveWorkflowIds(pair.Value)).ToList();
+        private IEnumerable<Task> RemoveFromActiveWorkflowsInGrainsTasks(Dictionary<IIndexableGrain, HashSet<Guid>> grainsToActiveWorkflows)
+            => grainsToActiveWorkflows.Select(kvp => kvp.Key.RemoveFromActiveWorkflowIds(kvp.Value));
 
-        private IList<Task<bool>> PrepareIndexUpdateTasks(Dictionary<string, IDictionary<IIndexableGrain, IList<IMemberUpdate>>> updatesToIndexes)
+        private IEnumerable<Task<bool>> PrepareIndexUpdateTasks(Dictionary<string, IDictionary<IIndexableGrain, IList<IMemberUpdate>>> updatesToIndexes)
+            => this.GrainIndexes.Select(indexEntry => (indexInfo: indexEntry.Value, updatesToIndex: updatesToIndexes[indexEntry.Key]))
+                                .Where(pair => pair.updatesToIndex.Count > 0)
+                                .Select(pair => pair.indexInfo.IndexInterface.ApplyIndexUpdateBatch(this._siloIndexManager, pair.updatesToIndex.AsImmutable(),
+                                                                                pair.indexInfo.MetaData.IsUniqueIndex, pair.indexInfo.MetaData, _silo));
+
+        private Dictionary<string, IDictionary<IIndexableGrain, IList<IMemberUpdate>>> PopulateUpdatesToIndexes(
+                        IndexWorkflowRecordNode currentWorkflow, Dictionary<IIndexableGrain, HashSet<Guid>> grainsToActiveWorkflows)
         {
-            IList<Task<bool>> updateIndexTasks = new List<Task<bool>>();
-            foreach (var indexEntry in GrainIndexes)
-            {
-                var idxInfo = indexEntry.Value;
-                var updatesToIndex = updatesToIndexes[indexEntry.Key];
-                if (updatesToIndex.Count() > 0)
-                {
-                    updateIndexTasks.Add(idxInfo.IndexInterface.ApplyIndexUpdateBatch(_siloIndexManager, updatesToIndex.AsImmutable(),
-                                                                                      idxInfo.MetaData.IsUniqueIndex, idxInfo.MetaData, _silo));
-                }
-            }
-
-            return updateIndexTasks;
-        }
-
-        private void PopulateUpdatesToIndexes(IndexWorkflowRecordNode currentWorkflow, Dictionary<string, IDictionary<IIndexableGrain,
-                                              IList<IMemberUpdate>>> updatesToIndexes, Dictionary<IIndexableGrain, HashSet<Guid>> grainsToActiveWorkflows)
-        {
+            var updatesToIndexes = CreateAMapForUpdatesToIndexes();
             bool faultTolerant = IsFaultTolerant;
             while (!currentWorkflow.IsPunctuation())
             {
@@ -97,37 +87,34 @@ namespace Orleans.Indexing
                 bool existsInActiveWorkflows = faultTolerant && grainsToActiveWorkflows.TryGetValue(g, out HashSet<Guid> activeWorkflowRecs)
                                                              && activeWorkflowRecs.Contains(workflowRec.WorkflowId);
 
-                foreach (var updates in currentWorkflow.WorkflowRecord.MemberUpdates)
+                foreach (var (indexName, updt) in currentWorkflow.WorkflowRecord.MemberUpdates.Where(kvp => kvp.Value.OperationType != IndexOperationType.None))
                 {
-                    IMemberUpdate updt = updates.Value;
-                    if (updt.OperationType != IndexOperationType.None)
-                    {
-                        string index = updates.Key;
-                        var updatesToIndex = updatesToIndexes[index];
-                        if (!updatesToIndex.TryGetValue(g, out IList<IMemberUpdate> updatesList))
-                        {
-                            updatesList = new List<IMemberUpdate>();
-                            updatesToIndex.Add(g, updatesList);
-                        }
+                    var updatesToIndex = updatesToIndexes[indexName];
+                    IList<IMemberUpdate> updatesList = updatesToIndex.GetOrAdd(g, () => new List<IMemberUpdate>());
 
-                        if (!faultTolerant || existsInActiveWorkflows)
-                        {
-                            updatesList.Add(updt);
-                        }
+                    System.Diagnostics.Debug.Assert(!faultTolerant || existsInActiveWorkflows, "TODO inactive FT record; for current tests this indicates a race condition");
+
+                    if (!faultTolerant || existsInActiveWorkflows)
+                    {
+                        updatesList.Add(updt);
+                    }
+                    else if (GrainIndexes[indexName].MetaData.IsUniqueIndex)
+                    {
+                        // TODO: Race condition here where FTWIndexWriter has not yet completed its eager write of unique indexes
+                        //       and thus has not placed the workflowId into its active list.
+
                         // If the workflow record does not exist in the list of active work-flows and the index is fault-tolerant,
-                        // we should make sure that tentative updates to unique indexes are undone.
-                        else if (GrainIndexes[index].MetaData.IsUniqueIndex)
-                        {
-                            // Reverse a possible remaining tentative record from the index
-                            updatesList.Add(new MemberUpdateReverseTentative(updt));
-                        }
+                        // enqueue a reversal (undo) to any possible remaining tentative updates to unique indexes.
+                        updatesList.Add(new MemberUpdateReverseTentative(updt));
                     }
                 }
                 currentWorkflow = currentWorkflow.Next;
             }
+            return updatesToIndexes;
         }
 
         private static HashSet<Guid> emptyHashset = new HashSet<Guid>();
+        private static Dictionary<IIndexableGrain, HashSet<Guid>> emptyDictionary = new Dictionary<IIndexableGrain, HashSet<Guid>>();
 
         private async Task<Dictionary<IIndexableGrain, HashSet<Guid>>> GetActiveWorkflowsListsFromGrains(IndexWorkflowRecordNode currentWorkflow)
         {

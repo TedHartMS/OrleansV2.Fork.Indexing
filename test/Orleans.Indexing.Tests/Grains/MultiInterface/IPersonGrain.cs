@@ -10,6 +10,8 @@ namespace Orleans.Indexing.Tests.MultiInterface
         Task<int> GetAge();
         Task SetAge(int value);
 
-        Task Deactivate();  // For testing
+        // For testing
+        Task WriteState();
+        Task Deactivate();
     }
 }

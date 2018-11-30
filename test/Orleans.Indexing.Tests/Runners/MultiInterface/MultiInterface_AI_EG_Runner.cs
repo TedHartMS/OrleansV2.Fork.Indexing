@@ -4,9 +4,6 @@ using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 using Orleans.Indexing.Facets;
-using Orleans.Indexing.Tests;
-using Orleans.Concurrency;
-using System.Collections.Generic;
 
 namespace Orleans.Indexing.Tests.MultiInterface
 {
@@ -17,20 +14,20 @@ namespace Orleans.Indexing.Tests.MultiInterface
     [Serializable]
     public class NFT_Props_Person_AI_EG_PK : IPersonProperties
     {
-        [Index(typeof(ActiveHashIndexPartitionedPerKey<int, INFT_Grain_UIUSNINS_AI_EG_PK>), IsEager = true, IsUnique = true)]
+        [Index(typeof(ActiveHashIndexPartitionedPerKey<string, INFT_Grain_Person_AI_EG_PK>), IsEager = true, IsUnique = true)]
         public string Location { get; set; }
 
-        [Index(typeof(ActiveHashIndexPartitionedPerKey<string, INFT_Grain_UIUSNINS_AI_EG_PK>), IsEager = true, IsUnique = true, NullValue = "-1")]
+        [Index(typeof(ActiveHashIndexPartitionedPerKey<int, INFT_Grain_Person_AI_EG_PK>), IsEager = true, IsUnique = false, NullValue = "0")]
         public int Age { get; set; }
     }
 
     [Serializable]
     public class NFT_Props_Job_AI_EG_PK : IJobProperties
     {
-        [Index(typeof(ActiveHashIndexPartitionedPerKey<int, INFT_Grain_UIUSNINS_AI_EG_PK>), IsEager = true, IsUnique = true)]
+        [Index(typeof(ActiveHashIndexPartitionedPerKey<string, INFT_Grain_Job_AI_EG_PK>), IsEager = true, IsUnique = true)]
         public string Title { get; set; }
 
-        [Index(typeof(ActiveHashIndexPartitionedPerKey<string, INFT_Grain_UIUSNINS_AI_EG_PK>), IsEager = true, IsUnique = true)]
+        [Index(typeof(ActiveHashIndexPartitionedPerKey<string, INFT_Grain_Job_AI_EG_PK>), IsEager = true, IsUnique = false)]
         public string Department { get; set; }
     }
 
@@ -43,7 +40,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     }
 
     [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
-    public class NFT_Grain_Employee_AI_EG_PK : TestEmployeeGrain<EmployeeGrainState, INFT_Grain_Person_AI_EG_PK, INFT_Grain_Job_AI_EG_PK>,
+    public class NFT_Grain_Employee_AI_EG_PK : TestEmployeeGrain<EmployeeGrainState, IndexableGrainStateWrapper<EmployeeGrainState>>,
                                                INFT_Grain_Person_AI_EG_PK, INFT_Grain_Job_AI_EG_PK
     {
         public NFT_Grain_Employee_AI_EG_PK(
@@ -60,20 +57,20 @@ namespace Orleans.Indexing.Tests.MultiInterface
     [Serializable]
     public class NFT_Props_Person_AI_EG_PS : IPersonProperties
     {
-        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_UIUSNINS_AI_EG_PS>), IsEager = true, IsUnique = true)]
+        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_Person_AI_EG_PS>), IsEager = true, IsUnique = true)]
         public string Location { get; set; }
 
-        [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, INFT_Grain_UIUSNINS_AI_EG_PS>), IsEager = true, IsUnique = false, NullValue = "0")]
+        [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, INFT_Grain_Person_AI_EG_PS>), IsEager = true, IsUnique = false, NullValue = "0")]
         public int Age { get; set; }
     }
 
     [Serializable]
     public class NFT_Props_Job_AI_EG_PS : IJobProperties
     {
-        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_UIUSNINS_AI_EG_PS>), IsEager = true, IsUnique = true)]
+        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_Job_AI_EG_PS>), IsEager = true, IsUnique = true)]
         public string Title { get; set; }
 
-        [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, INFT_Grain_UIUSNINS_AI_EG_PS>), IsEager = true, IsUnique = false)]
+        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_Job_AI_EG_PS>), IsEager = true, IsUnique = false)]
         public string Department { get; set; }
     }
 
@@ -86,7 +83,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     }
 
     [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
-    public class NFT_Grain_Employee_AI_EG_PS : TestEmployeeGrain<EmployeeGrainState, NFT_Props_Person_AI_EG_PS, NFT_Props_Job_AI_EG_PS>,
+    public class NFT_Grain_Employee_AI_EG_PS : TestEmployeeGrain<EmployeeGrainState, IndexableGrainStateWrapper<EmployeeGrainState>>,
                                                INFT_Grain_Person_AI_EG_PS, INFT_Grain_Job_AI_EG_PS
     {
         public NFT_Grain_Employee_AI_EG_PS(
@@ -103,20 +100,20 @@ namespace Orleans.Indexing.Tests.MultiInterface
     [Serializable]
     public class NFT_Props_Person_AI_EG_SB : IPersonProperties
     {
-        [Index(typeof(IActiveHashIndexSingleBucket<string, INFT_Grain_UIUSNINS_AI_EG_SB>), IsEager = true, IsUnique = true)]
+        [Index(typeof(IActiveHashIndexSingleBucket<string, INFT_Grain_Person_AI_EG_SB>), IsEager = true, IsUnique = true)]
         public string Location { get; set; }
 
-        [Index(typeof(IActiveHashIndexSingleBucket<int, INFT_Grain_UIUSNINS_AI_EG_SB>), IsEager = true, IsUnique = false, NullValue = "0")]
+        [Index(typeof(IActiveHashIndexSingleBucket<int, INFT_Grain_Person_AI_EG_SB>), IsEager = true, IsUnique = false, NullValue = "0")]
         public int Age { get; set; }
     }
 
     [Serializable]
     public class NFT_Props_Job_AI_EG_SB : IJobProperties
     {
-        [Index(typeof(IActiveHashIndexSingleBucket<string, INFT_Grain_UIUSNINS_AI_EG_SB>), IsEager = true, IsUnique = true)]
+        [Index(typeof(IActiveHashIndexSingleBucket<string, INFT_Grain_Job_AI_EG_SB>), IsEager = true, IsUnique = true)]
         public string Title { get; set; }
 
-        [Index(typeof(IActiveHashIndexSingleBucket<int, INFT_Grain_UIUSNINS_AI_EG_SB>), IsEager = true, IsUnique = false, NullValue = "0")]
+        [Index(typeof(IActiveHashIndexSingleBucket<string, INFT_Grain_Job_AI_EG_SB>), IsEager = true, IsUnique = false)]
         public string Department { get; set; }
     }
 
@@ -129,7 +126,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     }
 
     [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
-    public class NFT_Grain_Employee_AI_EG_SB : TestEmployeeGrain<EmployeeGrainState, NFT_Props_Person_AI_EG_SB, NFT_Props_Job_AI_EG_SB>,
+    public class NFT_Grain_Employee_AI_EG_SB : TestEmployeeGrain<EmployeeGrainState, IndexableGrainStateWrapper<EmployeeGrainState>>,
                                                INFT_Grain_Person_AI_EG_SB, INFT_Grain_Job_AI_EG_SB
     {
         public NFT_Grain_Employee_AI_EG_SB(

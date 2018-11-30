@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans.ApplicationParts;
+using Orleans.Indexing.Facets;
 using Orleans.Runtime;
 
 namespace Orleans.Indexing
@@ -37,95 +39,160 @@ namespace Orleans.Indexing
         /// <returns>An index registry for the silo. </returns>
         public async Task<IndexRegistry> GetGrainClassIndexes()
         {
-            Type[] grainTypes = this.indexManager.ApplicationPartManager.ApplicationParts.OfType<AssemblyPart>()
-                                    .SelectMany(part => part.Assembly.GetConcreteGrainClasses(this.logger))
-                                    .ToArray();
-            return await GetIndexRegistry(this, grainTypes);
+            Type[] grainClassTypes = this.indexManager.ApplicationPartManager.ApplicationParts.OfType<AssemblyPart>()
+                                        .SelectMany(part => part.Assembly.GetConcreteGrainClasses(this.logger))
+                                        .ToArray();
+            return await GetIndexRegistry(this, grainClassTypes);
         }
 
-        internal async static Task<IndexRegistry> GetIndexRegistry(ApplicationPartsIndexableGrainLoader loader, Type[] grainTypes)
+        internal async static Task<IndexRegistry> GetIndexRegistry(ApplicationPartsIndexableGrainLoader loader, Type[] grainClassTypes)
         {
             var registry = new IndexRegistry();
-            foreach (var grainType in grainTypes)
+            foreach (var grainClassType in grainClassTypes)
             {
-                if (registry.ContainsKey(grainType))
+                if (registry.ContainsKey(grainClassType))
                 {
-                    throw new InvalidOperationException($"Precondition violated: GetGrainClassIndexes should not encounter a duplicate type ({IndexUtils.GetFullTypeName(grainType)})");
+                    throw new InvalidOperationException($"Precondition violated: GetGrainClassIndexes should not encounter a duplicate type ({IndexUtils.GetFullTypeName(grainClassType)})");
                 }
-                await GetIndexesForASingleGrainType(loader, registry, grainType);
+                await GetIndexesForASingleGrainType(loader, registry, grainClassType);
             }
             return registry;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private async static Task GetIndexesForASingleGrainType(ApplicationPartsIndexableGrainLoader loader, IndexRegistry registry, Type grainType)
+        private async static Task GetIndexesForASingleGrainType(ApplicationPartsIndexableGrainLoader loader, IndexRegistry registry, Type grainClassType)
         {
-            Type[] interfaces = grainType.GetInterfaces();
+            if (registry.ContainsGrainType(grainClassType))
+            {
+                throw new InvalidOperationException($"Grain class type {grainClassType.Name} has already been added to the registry");
+            }
+
+            Type[] interfaces = grainClassType.GetInterfaces();
             bool? grainIndexesAreEager = null;
 
             // If there is an interface that directly extends IIndexableGrain<TProperties>...
-            Type iIndexableGrain = interfaces.Where(itf => itf.IsGenericType && itf.GetGenericTypeDefinition() == typeof(IIndexableGrain<>)).FirstOrDefault();
-            if (iIndexableGrain != null)
+            var indexableInterfaces = interfaces.Where(itf => itf.IsGenericType && itf.GetGenericTypeDefinition() == typeof(IIndexableGrain<>)).ToArray();
+            if (indexableInterfaces.Length == 0)
+            {
+                return;
+            }
+            var indexedInterfaces = new List<Type>();
+
+            var isFaultTolerant = IsFaultTolerantGrain(grainClassType);
+            foreach (var iIndexableGrain in indexableInterfaces)
             {
                 // ... and its generic argument is a class (TProperties)... 
-                Type propertiesArgType = iIndexableGrain.GetGenericArguments()[0];
-                if (propertiesArgType.GetTypeInfo().IsClass)
+                var propertiesClassType = iIndexableGrain.GetGenericArguments()[0];
+                if (propertiesClassType.GetTypeInfo().IsClass)
                 {
                     // ... then add the indexes for all the descendant interfaces of IIndexableGrain<TProperties>; these interfaces are defined by end-users.
-                    foreach (Type userDefinedIGrain in interfaces.Where(itf => iIndexableGrain != itf && iIndexableGrain.IsAssignableFrom(itf) && !registry.ContainsKey(itf)))
+                    foreach (Type userDefinedIGrain in interfaces.Where(
+                                itf => !indexableInterfaces.Contains(itf) && iIndexableGrain.IsAssignableFrom(itf) && !registry.ContainsKey(itf)))
                     {
-                        grainIndexesAreEager = await CreateIndexesForASingleInterface(loader, registry, propertiesArgType, userDefinedIGrain, grainType, grainIndexesAreEager);
+                        grainIndexesAreEager = await CreateIndexesForASingleInterface(loader, registry, propertiesClassType, userDefinedIGrain,
+                                                                                      grainClassType, isFaultTolerant, grainIndexesAreEager);
+                        indexedInterfaces.Add(userDefinedIGrain);
                     }
                 }
             }
+
+            registry.SetGrainIndexes(grainClassType, indexedInterfaces.ToArray());
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private async static Task<bool?> CreateIndexesForASingleInterface(ApplicationPartsIndexableGrainLoader loader, IndexRegistry registry, Type propertiesArgType,
-                                                                                      Type userDefinedIGrain, Type userDefinedGrainImpl, bool? grainIndexesAreEager)
+        private async static Task<bool?> CreateIndexesForASingleInterface(ApplicationPartsIndexableGrainLoader loader, IndexRegistry registry,
+                                                                          Type propertiesClassType, Type userDefinedIGrain, Type userDefinedGrainImpl,
+                                                                          bool isFaultTolerant, bool? grainIndexesAreEager)
         {
             // All the properties in TProperties are scanned for Index annotation.
             // If found, the index is created using the information provided in the annotation.
-            NamedIndexMap indexesOnInterface = new NamedIndexMap();
+            var indexesOnInterface = new NamedIndexMap(propertiesClassType);
             var interfaceHasLazyIndex = false;  // Use a separate value from grainIndexesAreEager in case we change to allow mixing eager and lazy on a single grain.
-            foreach (PropertyInfo propInfo in propertiesArgType.GetProperties())
+            foreach (var propInfo in propertiesClassType.GetProperties())
             {
                 var indexAttrs = propInfo.GetCustomAttributes<IndexAttribute>(inherit:false);
                 foreach (var indexAttr in indexAttrs)
                 {
-                    string indexName = IndexUtils.PropertyNameToIndexName(propInfo.Name);
+                    var indexName = IndexUtils.PropertyNameToIndexName(propInfo.Name);
                     if (indexesOnInterface.ContainsKey(indexName))
                     {
                         throw new InvalidOperationException($"An index named {indexName} already exists for user-defined grain interface {userDefinedIGrain.Name}");
                     }
 
-                    Type indexType = (Type)indexTypeProperty.GetValue(indexAttr);
+                    var indexType = (Type)indexTypeProperty.GetValue(indexAttr);
                     if (indexType.IsGenericTypeDefinition)
                     {
                         indexType = indexType.MakeGenericType(propInfo.PropertyType, userDefinedIGrain);
                     }
 
                     // If it's not eager, then it's configured to be lazily updated
-                    bool isEager = (bool)isEagerProperty.GetValue(indexAttr);
+                    var isEager = (bool)isEagerProperty.GetValue(indexAttr);
                     if (!isEager) interfaceHasLazyIndex = true;
                     if (!grainIndexesAreEager.HasValue) grainIndexesAreEager = isEager;
-                    bool isUnique = (bool)isUniqueProperty.GetValue(indexAttr);
+                    var isUnique = (bool)isUniqueProperty.GetValue(indexAttr);
 
-                    ValidateSingleIndex(indexAttr, userDefinedIGrain, userDefinedGrainImpl, propertiesArgType, propInfo, grainIndexesAreEager, isEager, isUnique);
+                    ValidateSingleIndex(indexAttr, userDefinedIGrain, userDefinedGrainImpl, propertiesClassType, propInfo, grainIndexesAreEager, isEager, isUnique);
 
-                    int maxEntriesPerBucket = (int)maxEntriesPerBucketProperty.GetValue(indexAttr);
+                    var maxEntriesPerBucket = (int)maxEntriesPerBucketProperty.GetValue(indexAttr);
                     if (loader != null)
                     {
-                        await loader.CreateIndex(propertiesArgType, userDefinedIGrain, indexesOnInterface, propInfo, indexName, indexType, isEager, isUnique, maxEntriesPerBucket);
+                        await loader.CreateIndex(propertiesClassType, userDefinedIGrain, indexesOnInterface, propInfo, indexName, indexType, isEager, isUnique, maxEntriesPerBucket);
+                    }
+                    else
+                    {
+                        IndexFactory.ValidateIndexType(indexType, propInfo, out _, out _);
                     }
                 }
             }
             registry[userDefinedIGrain] = indexesOnInterface;
             if (interfaceHasLazyIndex && loader != null)
             {
-                await loader.RegisterWorkflowQueues(userDefinedIGrain, userDefinedGrainImpl);
+                await loader.RegisterWorkflowQueues(userDefinedIGrain, userDefinedGrainImpl, isFaultTolerant);
             }
             return grainIndexesAreEager;
+        }
+
+        private static bool IsFaultTolerantGrain(Type grainClassType)
+        {
+            bool isFaultTolerant = typeof(IIndexableGrainFaultTolerant).IsAssignableFrom(grainClassType);
+            if (!isFaultTolerant)   // TODO transfer to index pre-check and pass as param here
+            {
+                bool? facetIsFT = null;
+
+                void setFacetIsFT(bool currentFacetIsFT)
+                {
+                    if (facetIsFT.HasValue && facetIsFT.Value != currentFacetIsFT)
+                    {
+                        throw new IndexConfigurationException($"Grain type {grainClassType.Name} has a conflict between" +
+                                                               " Fault Tolerant and Non Fault Tolerant Indexing facet ctor parameters");
+                    }
+                    facetIsFT = currentFacetIsFT;
+                }
+
+                foreach (var ctor in grainClassType.GetConstructors())
+                {
+                    var ctorHasFacet = false;
+                    foreach (var attr in ctor.GetParameters().SelectMany(p => p.GetCustomAttributes<Attribute>()))
+                    {
+                        if (ctorHasFacet)
+                        {
+                            throw new IndexConfigurationException($"Grain type {grainClassType.Name}: a ctor cannot have two Indexing facet specifications");
+                        }
+                        ctorHasFacet = true;
+                        if (attr is IFaultTolerantWorkflowIndexWriterAttribute)
+                        {
+                            setFacetIsFT(true);
+                        }
+                        else if (attr is INonFaultTolerantWorkflowIndexWriterAttribute)
+                        {
+                            setFacetIsFT(false);
+                        }
+                        // TODO: Transactional
+                    }
+                }
+                isFaultTolerant = facetIsFT.GetValueOrDefault();    // TODO: check that this is set for any IIndexableGrain when replacing inheritance
+            }
+            return isFaultTolerant;
         }
 
         private async Task CreateIndex(Type propertiesArg, Type userDefinedIGrain, NamedIndexMap indexesOnGrain, PropertyInfo property,
@@ -135,21 +202,21 @@ namespace Orleans.Indexing
             this.logger.Info($"Index created: Interface = {userDefinedIGrain.Name}, property = {propertiesArg.Name}, index = {indexName}");
         }
 
-        private async Task RegisterWorkflowQueues(Type userDefinedIGrain, Type userDefinedGrainImpl)
+        private async Task RegisterWorkflowQueues(Type userDefinedIGrain, Type userDefinedGrainImpl, bool isFaultTolerant)
         {
             if (this.IsInSilo)
             {
-                await IndexFactory.RegisterIndexWorkflowQueues(this.siloIndexManager, userDefinedIGrain, userDefinedGrainImpl);
+                await IndexFactory.RegisterIndexWorkflowQueues(this.siloIndexManager, userDefinedIGrain, userDefinedGrainImpl, isFaultTolerant);
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ValidateSingleIndex(IndexAttribute indexAttr, Type userDefinedIGrain, Type userDefinedGrainImpl, Type propertiesArgType, PropertyInfo propInfo,
-                                                bool? grainIndexesAreEager, bool isEager, bool isUnique)
+        private static void ValidateSingleIndex(IndexAttribute indexAttr, Type userDefinedIGrain, Type userDefinedGrainImpl, Type propertiesArgType,
+                                                PropertyInfo propInfo, bool? grainIndexesAreEager, bool isEager, bool isUnique)
         {
-            bool isFaultTolerant = IsSubclassOfRawGenericType(typeof(IndexableGrain<,>), userDefinedGrainImpl);
-            Type indexType = (Type)indexTypeProperty.GetValue(indexAttr);
-            bool isTotalIndex = typeof(ITotalIndex).IsAssignableFrom(indexType);
+            var isFaultTolerant = IsSubclassOfRawGenericType(typeof(IndexableGrain<,>), userDefinedGrainImpl);
+            var indexType = (Type)indexTypeProperty.GetValue(indexAttr);
+            var isTotalIndex = typeof(ITotalIndex).IsAssignableFrom(indexType);
 
             if (indexAttr is ActiveIndexAttribute && isUnique)
             {

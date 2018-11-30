@@ -73,8 +73,6 @@ namespace Orleans.Indexing
 
         public const int BATCH_SIZE = int.MaxValue;
 
-        public static int NUM_AVAILABLE_INDEX_WORKFLOW_QUEUES => Environment.ProcessorCount;
-
         private SiloAddress _silo;
         private SiloIndexManager _siloIndexManager;
         private Lazy<GrainReference> _lazyParent;
@@ -328,7 +326,7 @@ namespace Orleans.Indexing
 
         public static IIndexWorkflowQueue GetIndexWorkflowQueueFromGrainHashCode(SiloIndexManager siloIndexManager, Type grainInterfaceType, int grainHashCode, SiloAddress siloAddress)
         {
-            int queueSeqNum = StorageProviderUtils.PositiveHash(grainHashCode, NUM_AVAILABLE_INDEX_WORKFLOW_QUEUES);
+            int queueSeqNum = StorageProviderUtils.PositiveHash(grainHashCode, siloIndexManager.NumWorkflowQueuesPerInterface);
             var grainReference = CreateGrainServiceGrainReference(siloIndexManager, grainInterfaceType, queueSeqNum, siloAddress);
             return siloIndexManager.GetGrainService<IIndexWorkflowQueue>(grainReference);
         }

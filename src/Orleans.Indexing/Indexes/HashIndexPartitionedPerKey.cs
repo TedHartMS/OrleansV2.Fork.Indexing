@@ -94,28 +94,12 @@ namespace Orleans.Indexing
         /// <param name="g">target grain</param>
         /// <param name="bucket">the bucket index</param>
         /// <param name="update">the update to be added</param>
-        private void AddUpdateToBucket(IDictionary<int, IDictionary<IIndexableGrain, IList<IMemberUpdate>>> bucketUpdates, IIndexableGrain g, int bucket, IMemberUpdate update)
+        private void AddUpdateToBucket(IDictionary<int, IDictionary<IIndexableGrain, IList<IMemberUpdate>>> bucketUpdates, IIndexableGrain g,
+                                       int bucket, IMemberUpdate update)
         {
-            if (bucketUpdates.TryGetValue(bucket, out IDictionary<IIndexableGrain, IList<IMemberUpdate>> tmpBucketUpdatesMap))
-            {
-                if (!tmpBucketUpdatesMap.TryGetValue(g, out IList<IMemberUpdate> tmpUpdateList))
-                {
-                    tmpUpdateList = new List<IMemberUpdate>(new[] { update });
-                    tmpBucketUpdatesMap.Add(g, tmpUpdateList);
-                }
-                else
-                {
-                    tmpUpdateList.Add(update);
-                }
-            }
-            else
-            {
-                tmpBucketUpdatesMap = new Dictionary<IIndexableGrain, IList<IMemberUpdate>>
-                {
-                    { g, new List<IMemberUpdate>(new[] { update }) }
-                };
-                bucketUpdates.Add(bucket, tmpBucketUpdatesMap);
-            }
+            var bucketUpdatesMap = bucketUpdates.GetOrAdd(bucket, () => new Dictionary<IIndexableGrain, IList<IMemberUpdate>>());
+            var bucketUpdatesList = bucketUpdatesMap.GetOrAdd(g, () => new List<IMemberUpdate>());
+            bucketUpdatesList.Add(update);
         }
 
         public async Task<bool> DirectApplyIndexUpdate(IIndexableGrain g, Immutable<IMemberUpdate> iUpdate, bool isUniqueIndex, IndexMetaData idxMetaData, SiloAddress siloAddress)

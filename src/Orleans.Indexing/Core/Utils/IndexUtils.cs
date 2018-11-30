@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -62,7 +63,10 @@ namespace Orleans.Indexing
 
         // The ILoggerFactory implementation creates the category without generic type arguments.
         internal static ILogger CreateLoggerWithFullCategoryName<T>(this ILoggerFactory lf) where T: class
-            => lf.CreateLogger(GetFullTypeName(typeof(T), expandArgNames:true));
+            => lf.CreateLoggerWithFullCategoryName(typeof(T));
+
+        internal static ILogger CreateLoggerWithFullCategoryName(this ILoggerFactory lf, Type t)
+            => lf.CreateLogger(GetFullTypeName(t, expandArgNames: true));
 
         internal static string GetFullTypeName(Type type, bool expandArgNames = false)
         {
@@ -80,9 +84,9 @@ namespace Orleans.Indexing
             return !type.IsValueType || Nullable.GetUnderlyingType(type) != null;
         }
 
-        internal static void SetNullValues<TObjectProperties>(TObjectProperties state)
+        internal static TGrainState SetNullValues<TGrainState>(TGrainState state)
         {
-            foreach (PropertyInfo propInfo in typeof(TObjectProperties).GetProperties())
+            foreach (var propInfo in typeof(TGrainState).GetProperties())
             {
                 var nullValue = GetNullValue(propInfo);
                 if (nullValue != null)
@@ -90,6 +94,7 @@ namespace Orleans.Indexing
                     propInfo.SetValue(state, nullValue);
                 }
             }
+            return state;
         }
 
         internal static object GetNullValue(PropertyInfo propInfo)
@@ -110,6 +115,38 @@ namespace Orleans.Indexing
             return propertyType == typeof(DateTime)
                 ? DateTime.ParseExact(value, "o", CultureInfo.InvariantCulture)
                 : Convert.ChangeType(value, propertyType, CultureInfo.InvariantCulture);
+        }
+
+        internal static void Mutate<T>(this IEnumerable<T> enumerable, Action<T> mutator)
+        {
+            // Simple but allows chaining
+            foreach (var item in enumerable)
+            {
+                mutator(item);
+            }
+        }
+
+        internal static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, Func<TValue> creatorFunc)
+        {
+            if (!dict.TryGetValue(key, out TValue value))
+            {
+                value = creatorFunc();
+                dict[key] = value;
+            }
+            return value;
+        }
+
+        internal static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key) where TValue : new()
+            => GetOrAdd(dict, key, () => new TValue());
+
+
+        internal static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, TValue value) where TValue : new()
+            => GetOrAdd(dict, key, () => value);
+
+        internal static void Deconstruct<TKey, TValue>(this KeyValuePair<TKey, TValue> kvp, out TKey key, out TValue value)
+        {
+            key = kvp.Key;
+            value = kvp.Value;
         }
     }
 }

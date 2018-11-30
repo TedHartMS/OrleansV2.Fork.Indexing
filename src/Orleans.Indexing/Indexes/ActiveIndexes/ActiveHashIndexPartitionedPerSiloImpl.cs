@@ -104,7 +104,7 @@ namespace Orleans.Indexing
                 //query each silo
                 queriesToSilos.Add(this.SiloIndexManager.GetGrainService<IActiveHashIndexPartitionedPerSiloBucket>(
                     GetGrainReference(this.SiloIndexManager, indexName, siloAddress
-                )).Lookup(/*result, */key)); //TODO: because of a bug in OrleansStream, a GrainService cannot work with streams. It should be fixed later.
+                )).Lookup(/*result, */key)); //TODO: a bug in OrleansStream currently prevents a GrainService from working with streams.
                 ++i;
             }
 
