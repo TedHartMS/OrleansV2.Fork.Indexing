@@ -37,9 +37,9 @@ namespace Orleans.Indexing
 
         #region TODO: Maybe obsolete
         /// <summary>
-        /// This method returns the list of active work-flow IDs for a Total Index
+        /// This method returns the set of active work-flow IDs for a Total Index
         /// </summary>
-        Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsList();
+        Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsSet();
 
         /// <summary>
         /// This method removes a work-flow ID from the list of active work-flow IDs for a Total Index

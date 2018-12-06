@@ -15,6 +15,7 @@ namespace Orleans.Indexing.Facets
                 IIndexWriterConfiguration config
             ) : base(sp, config)
         {
+            base.getWorkflowIdFunc = () => Guid.NewGuid();
         }
 
         /// <summary>
@@ -75,19 +76,16 @@ namespace Orleans.Indexing.Facets
 
                 if (updateIndexTypes != UpdateIndexType.None || writeStateIfConstraintsAreNotViolated)
                 {
-                    var tasks = new List<Task>();
-
-                    if (updateIndexTypes != UpdateIndexType.None)
-                        tasks.Add(base.ApplyIndexUpdatesEagerly(updatesByInterface, updateIndexTypes, updateIndexesTentatively: false));
-                    if (writeStateIfConstraintsAreNotViolated)
-                        tasks.Add(base.writeGrainStateFunc());
-
-                    await Task.WhenAll(tasks);
+                    await Task.WhenAll(new[]
+                    {
+                        updateIndexTypes != UpdateIndexType.None ? base.ApplyIndexUpdatesEagerly(updatesByInterface, updateIndexTypes, isTentative: false) : null,
+                        writeStateIfConstraintsAreNotViolated ? base.writeGrainStateFunc() : null
+                    }.Coalesce());
                 }
             }
             else // !updateIndexesEagerly
             {
-                this.ApplyIndexUpdatesLazilyWithoutWait(updatesByInterface, Guid.NewGuid());
+                this.ApplyIndexUpdatesLazilyWithoutWait(updatesByInterface);
                 if (writeStateIfConstraintsAreNotViolated)
                 {
                     await base.writeGrainStateFunc();
@@ -99,11 +97,8 @@ namespace Orleans.Indexing.Facets
         }
 
         private Task UndoTentativeChangesToUniqueIndexesEagerly(InterfaceToUpdatesMap updatesByInterface)
-        {
-            return Task.WhenAll(updatesByInterface.Select(kvp =>
-                            base.ApplyIndexUpdatesEagerly(kvp.Key, MemberUpdateReverseTentative.Reverse(kvp.Value),
-                                                          UpdateIndexType.Unique, updateIndexesTentatively: false)));
-        }
+            => Task.WhenAll(updatesByInterface.Select(kvp => base.ApplyIndexUpdatesEagerly(kvp.Key, MemberUpdateReverseTentative.Reverse(kvp.Value),
+                                                                                           UpdateIndexType.Unique, isTentative: false)));
 
         /// <summary>
         /// Lazily Applies updates to the indexes defined on this grain
@@ -111,11 +106,8 @@ namespace Orleans.Indexing.Facets
         /// The lazy update involves adding a work-flow record to the corresponding IIndexWorkflowQueue for this grain.
         /// </summary>
         /// <param name="updatesByInterface">the dictionary of updates for each index by interface</param>
-        /// <param name="workflowID">the workflow identifier</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ApplyIndexUpdatesLazilyWithoutWait(InterfaceToUpdatesMap updatesByInterface, Guid workflowID)
-        {
-            base.ApplyIndexUpdatesLazily(updatesByInterface, workflowID).Ignore();
-        }
+        private void ApplyIndexUpdatesLazilyWithoutWait(InterfaceToUpdatesMap updatesByInterface)
+            => base.ApplyIndexUpdatesLazily(updatesByInterface).Ignore();
     }
 }

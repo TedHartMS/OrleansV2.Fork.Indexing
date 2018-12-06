@@ -91,7 +91,7 @@ namespace Orleans.Indexing
         /// <param name="interfaceToUpdatesMap">the member updates that were successfully applied to the current indexes</param>
         internal void UpdateBeforeImages(InterfaceToUpdatesMap interfaceToUpdatesMap)
         {
-            void updateBeforeImages(InterfaceIndexes indexes, IDictionary<string, IMemberUpdate> updates)
+            void updateBeforeImages(InterfaceIndexes indexes, IReadOnlyDictionary<string, IMemberUpdate> updates)
             {
                 IDictionary<string, object> befImgs = new Dictionary<string, object>(indexes.BeforeImages.Value);
                 foreach ((var indexName, var opType) in updates.Select(u => (u.Key, u.Value.OperationType)))

@@ -148,5 +148,20 @@ namespace Orleans.Indexing
             key = kvp.Key;
             value = kvp.Value;
         }
+
+        internal static void AddRange<T>(this HashSet<T> set, IEnumerable<T> values)
+        {
+            foreach (var value in values)
+            {
+                set.Add(value);
+            }
+        }
+
+        internal static IEnumerable<T> Coalesce<T>(this IEnumerable<T> items)
+        {
+            return items == null
+                ? Enumerable.Empty<T>()
+                : from item in items where item != null select item;
+        }
     }
 }

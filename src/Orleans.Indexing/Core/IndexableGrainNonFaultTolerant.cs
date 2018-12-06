@@ -170,7 +170,7 @@ namespace Orleans.Indexing
             bool onlyUniqueIndexesWereUpdated = this._isThereAnyUniqueIndex;
 
             // Gather the dictionary of indexes to their corresponding updates
-            IDictionary<string, IMemberUpdate> updates =
+            IReadOnlyDictionary<string, IMemberUpdate> updates =
                 GenerateMemberUpdates(indexableProperties, isOnActivate, onlyUpdateActiveIndexes,
                 out bool updateIndexesEagerly, ref onlyUniqueIndexesWereUpdated, out int numberOfUniqueIndexesUpdated);
 
@@ -188,7 +188,7 @@ namespace Orleans.Indexing
         /// <param name="numberOfUniqueIndexesUpdated">determine the number of updated unique indexes</param>
         /// <param name="writeStateIfConstraintsAreNotViolated">whether writing back
         ///             the state to the storage should be done if no constraint is violated</param>
-        protected virtual async Task ApplyIndexUpdates(IDictionary<string, IMemberUpdate> updates,
+        protected virtual async Task ApplyIndexUpdates(IReadOnlyDictionary<string, IMemberUpdate> updates,
                                                        bool updateIndexesEagerly,
                                                        bool onlyUniqueIndexesWereUpdated,
                                                        int numberOfUniqueIndexesUpdated,
@@ -264,9 +264,8 @@ namespace Orleans.Indexing
             }
         }
 
-        private Task UndoTentativeChangesToUniqueIndexesEagerly(IList<Type> iGrainTypes,
-                                                       IIndexableGrain thisGrain,
-                                                       IDictionary<string, IMemberUpdate> updates)
+        private Task UndoTentativeChangesToUniqueIndexesEagerly(IList<Type> iGrainTypes, IIndexableGrain thisGrain,
+                                                                IReadOnlyDictionary<string, IMemberUpdate> updates)
         {
             return ApplyIndexUpdatesEagerly(iGrainTypes, thisGrain, MemberUpdateReverseTentative.Reverse(updates), UpdateIndexType.Unique, updateIndexesTentatively:false);
         }
@@ -281,7 +280,7 @@ namespace Orleans.Indexing
         /// <param name="thisGrain">the grain reference for the current grain</param>
         /// <param name="workflowID">the workflow identifier</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ApplyIndexUpdatesLazilyWithoutWait(IDictionary<string, IMemberUpdate> updates,
+        private void ApplyIndexUpdatesLazilyWithoutWait(IReadOnlyDictionary<string, IMemberUpdate> updates,
                                              IList<Type> iGrainTypes,
                                              IIndexableGrain thisGrain,
                                              Guid workflowID)
@@ -299,7 +298,7 @@ namespace Orleans.Indexing
         /// <param name="thisGrain">the grain reference for the current grain</param>
         /// <param name="workflowID">the workflow identifier</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected Task ApplyIndexUpdatesLazily(IDictionary<string, IMemberUpdate> updates,
+        protected Task ApplyIndexUpdatesLazily(IReadOnlyDictionary<string, IMemberUpdate> updates,
                                              IList<Type> iGrainTypes,
                                              IIndexableGrain thisGrain,
                                              Guid workflowID)
@@ -322,7 +321,7 @@ namespace Orleans.Indexing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected async Task ApplyIndexUpdatesEagerly(IList<Type> iGrainTypes,
                                                     IIndexableGrain updatedGrain,
-                                                    IDictionary<string, IMemberUpdate> updates,
+                                                    IReadOnlyDictionary<string, IMemberUpdate> updates,
                                                     UpdateIndexType updateIndexTypes,
                                                     bool updateIndexesTentatively = false)
         {
@@ -345,7 +344,7 @@ namespace Orleans.Indexing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Task ApplyIndexUpdatesEagerly(Type iGrainType,
                                               IIndexableGrain updatedGrain,
-                                              IDictionary<string, IMemberUpdate> updates,
+                                              IReadOnlyDictionary<string, IMemberUpdate> updates,
                                               UpdateIndexType updateIndexTypes,
                                               bool updateIndexesTentatively)
         {
@@ -380,13 +379,14 @@ namespace Orleans.Indexing
         /// <param name="numberOfUniqueIndexesUpdated">determine the number of updated unique indexes</param>
         /// <returns>a dictionary of index name mapped to the update information</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private IDictionary<string, IMemberUpdate> GenerateMemberUpdates(TProperties indexableProperties, bool isOnActivate, bool onlyUpdateActiveIndexes, out bool updateIndexesEagerly,
-                                                                         ref bool onlyUniqueIndexesWereUpdated, out int numberOfUniqueIndexesUpdated)
+        private IReadOnlyDictionary<string, IMemberUpdate> GenerateMemberUpdates(TProperties indexableProperties, bool isOnActivate,
+                                                                        bool onlyUpdateActiveIndexes, out bool updateIndexesEagerly,
+                                                                        ref bool onlyUniqueIndexesWereUpdated, out int numberOfUniqueIndexesUpdated)
         {
             KeyValuePair<string, IndexInfo>? kvpFirstIndex = null;
             numberOfUniqueIndexesUpdated = 0;
 
-            IDictionary<string, IMemberUpdate> updates = new Dictionary<string, IMemberUpdate>();
+            var updates = new Dictionary<string, IMemberUpdate>();
             {
                 IDictionary<string, object> befImgs = this._beforeImages.Value;
                 foreach (var kvp in this._grainIndexes)
@@ -470,7 +470,7 @@ namespace Orleans.Indexing
         /// with after-images produced by the update.
         /// </summary>
         /// <param name="updates">the member updates that were successfully applied to the current indexes</param>
-        protected void UpdateBeforeImages(IDictionary<string, IMemberUpdate> updates)
+        protected void UpdateBeforeImages(IReadOnlyDictionary<string, IMemberUpdate> updates)
         {
             IDictionary<string, object> befImgs = new Dictionary<string, object>(this._beforeImages.Value);
             foreach (KeyValuePair<string, IMemberUpdate> updt in updates)
@@ -524,7 +524,7 @@ namespace Orleans.Indexing
         Task<object> IIndexableGrain.ExtractIndexImage(IIndexUpdateGenerator iUpdateGen)
             => Task.FromResult(iUpdateGen.ExtractIndexImage(this.Properties));
 
-        public virtual Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsList()
+        public virtual Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsSet()
             => throw new NotSupportedException();
 
         public virtual Task RemoveFromActiveWorkflowIds(HashSet<Guid> removedWorkflowId)

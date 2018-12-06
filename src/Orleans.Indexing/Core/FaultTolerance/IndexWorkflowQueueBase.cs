@@ -176,7 +176,7 @@ namespace Orleans.Indexing
             if (_workflowRecordsTail == null) throw new WorkflowIndexException("Adding a punctuation to an empty work-flow queue is not possible.");
 
             var punctuationHead = queueState.State.WorkflowRecordsHead;
-            if (punctuationHead.IsPunctuation()) throw new WorkflowIndexException("The element at the head of work-flow queue cannot be a punctuation.");
+            if (punctuationHead.IsPunctuation) throw new WorkflowIndexException("The element at the head of work-flow queue cannot be a punctuation.");
 
             if (batchSize == int.MaxValue)
             {
@@ -196,13 +196,13 @@ namespace Orleans.Indexing
         private List<IndexWorkflowRecord> RemoveFromQueueUntilPunctuation(IndexWorkflowRecordNode from)
         {
             List<IndexWorkflowRecord> workflowRecords = new List<IndexWorkflowRecord>();
-            if (from != null && !from.IsPunctuation())
+            if (from != null && !from.IsPunctuation)
             {
                 workflowRecords.Add(from.WorkflowRecord);
             }
 
             IndexWorkflowRecordNode tmp = from?.Next;
-            while (tmp != null && !tmp.IsPunctuation())
+            while (tmp != null && !tmp.IsPunctuation)
             {
                 workflowRecords.Add(tmp.WorkflowRecord);
                 tmp = tmp.Next;
