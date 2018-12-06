@@ -79,17 +79,14 @@ namespace Orleans.Indexing
                 : $"{name.Substring(0, name.IndexOf("`"))}<{string.Join(",", genericArgs.Select(arg => GetFullTypeName(arg, true)))}>";
         }
 
-        internal static bool IsNullable(this Type type)
-        {
-            return !type.IsValueType || Nullable.GetUnderlyingType(type) != null;
-        }
+        internal static bool IsNullable(this Type type) => !type.IsValueType || Nullable.GetUnderlyingType(type) != null;
 
-        internal static TGrainState SetNullValues<TGrainState>(TGrainState state)
+        internal static TGrainState SetNullValues<TGrainState>(TGrainState state, IReadOnlyDictionary<string, object> propertyNullValues)
         {
             foreach (var propInfo in typeof(TGrainState).GetProperties())
             {
                 var nullValue = GetNullValue(propInfo);
-                if (nullValue != null)
+                if (nullValue != null || propertyNullValues.TryGetValue(propInfo.Name, out nullValue))
                 {
                     propInfo.SetValue(state, nullValue);
                 }

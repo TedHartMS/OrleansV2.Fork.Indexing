@@ -16,19 +16,21 @@ namespace Orleans.Indexing
         private IDictionary<Type, InterfaceIndexes> interfaceToIndexMap = new Dictionary<Type, InterfaceIndexes>();
         internal InterfaceIndexes this[Type interfaceType] => this.interfaceToIndexMap[interfaceType];
         internal bool ContainsInterface(Type interfaceType) => this.interfaceToIndexMap.ContainsKey(interfaceType);
+        internal IReadOnlyDictionary<string, object> PropertyNullValues { get; }
 
         private IndexRegistry indexRegistry;
 
-        internal GrainIndexes(IndexRegistry registry, IEnumerable<Type> indexedInterfaceTypes)
+        private GrainIndexes(IndexRegistry registry, IEnumerable<Type> indexedInterfaceTypes, IReadOnlyDictionary<string, object> propertyNullValues)
         {
             this.indexRegistry = registry;
+            this.PropertyNullValues = propertyNullValues;
             this.interfaceToIndexMap = indexedInterfaceTypes.ToDictionary(itf => itf, itf => new InterfaceIndexes(registry[itf]));
         }
 
         internal static bool CreateInstance(IndexRegistry registry, Type grainType, out GrainIndexes grainIndexes)
         {
             grainIndexes = registry.TryGetGrainIndexes(grainType, out Type[] indexedInterfaces)
-                            ? new GrainIndexes(registry, indexedInterfaces)
+                            ? new GrainIndexes(registry, indexedInterfaces, registry.GetNullPropertyValuesForGrain(grainType))
                             : null;
             return grainIndexes != null;
         }

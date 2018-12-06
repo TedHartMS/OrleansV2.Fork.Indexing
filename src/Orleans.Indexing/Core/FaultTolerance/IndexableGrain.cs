@@ -327,7 +327,7 @@ namespace Orleans.Indexing
         }
 
         protected override void SetStateToNullValues()
-            => IndexUtils.SetNullValues(base.State.UserState);
+            => IndexUtils.SetNullValues(base.State.UserState, this.SiloIndexManager.IndexRegistry.GetNullPropertyValuesForGrain(this.GetType()));
     }
 
     /// <summary>
