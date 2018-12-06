@@ -19,9 +19,9 @@ namespace Orleans.Indexing
         /// <summary>
         /// The list of updated values to all updated indexed properties of the Grain
         /// </summary>
-        internal IDictionary<string, IMemberUpdate> MemberUpdates { get; }
+        internal IReadOnlyDictionary<string, IMemberUpdate> MemberUpdates { get; }
 
-        internal IndexWorkflowRecord(Guid workflowId, IIndexableGrain grain, IDictionary<string, IMemberUpdate> memberUpdates)
+        internal IndexWorkflowRecord(Guid workflowId, IIndexableGrain grain, IReadOnlyDictionary<string, IMemberUpdate> memberUpdates)
         {
             Grain = grain;
             WorkflowId = workflowId;

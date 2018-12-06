@@ -66,7 +66,7 @@ namespace Orleans.Indexing
         /// <param name="numberOfUniqueIndexesUpdated">determine the number of updated unique indexes</param>
         /// <param name="writeStateIfConstraintsAreNotViolated">whether writing back
         ///     the state to the storage should be done if no constraint is violated</param>
-        protected override async Task ApplyIndexUpdates(IDictionary<string, IMemberUpdate> updates,
+        protected override async Task ApplyIndexUpdates(IReadOnlyDictionary<string, IMemberUpdate> updates,
                                                        bool updateIndexesEagerly,
                                                        bool onlyUniqueIndexesWereUpdated,
                                                        int numberOfUniqueIndexesUpdated,
@@ -235,7 +235,7 @@ namespace Orleans.Indexing
             }
         }
 
-        public override Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsList()
+        public override Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsSet()
         {
             var workflowIds = base.State.ActiveWorkflowsSet;
 

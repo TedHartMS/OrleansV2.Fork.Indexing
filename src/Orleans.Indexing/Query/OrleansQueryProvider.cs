@@ -65,7 +65,7 @@ namespace Orleans.Indexing
         }
 
         private bool IsWhereClause(MethodCallExpression call)
-            => call.Arguments.Count() == 2 && call.Method.ReflectedType.Equals(typeof(Queryable)) && call.Method.Name == "Where";
+            => call.Arguments.Count == 2 && call.Method.ReflectedType.Equals(typeof(Queryable)) && call.Method.Name == "Where";
 
         /// <summary>
         /// This method tries to pull out the index name and lookup value from the given expression tree.

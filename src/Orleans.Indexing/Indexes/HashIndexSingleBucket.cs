@@ -181,7 +181,6 @@ namespace Orleans.Indexing
             }
             if (this.State.IndexMap.TryGetValue(key, out HashIndexSingleBucketEntry<V> entry))
             {
-                System.Diagnostics.Debug.Assert(!entry.IsTentative, "TODO IsTentative in Lookup(); for current tests this indicates a race condition");
                 if (!entry.IsTentative)
                 {
                     await result.OnNextBatchAsync(entry.Values);
@@ -206,10 +205,9 @@ namespace Orleans.Indexing
             }
             if (this.State.IndexMap.TryGetValue(key, out HashIndexSingleBucketEntry<V> entry))
             {
-                System.Diagnostics.Debug.Assert(!entry.IsTentative, "TODO IsTentative in LookupUnique(); for current tests this indicates a race condition");
-                return (entry.Values.Count() == 1 && !entry.IsTentative)
+                return (entry.Values.Count == 1 && !entry.IsTentative)
                     ? entry.Values.GetEnumerator().Current
-                    : throw LogException($"There are {entry.Values.Count()} values for the unique lookup key \"{key}\" on index" +
+                    : throw LogException($"There are {entry.Values.Count} values for the unique lookup key \"{key}\" on index" +
                                          $" \"{IndexUtils.GetIndexNameFromIndexGrain(this)}\", and the entry is{(entry.IsTentative ? "" : " not")} tentative.",
                                         IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainBucket3);
             }

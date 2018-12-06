@@ -164,19 +164,19 @@ namespace Orleans.Indexing.Tests
 
         internal static Task<int> GetPersonLocationCount<TIGrain, TProperties>(this IndexingTestRunnerBase runner, string location, int delayInMilliseconds = 0)
             where TIGrain : IPersonGrain, IIndexableGrain where TProperties : IPersonProperties
-            => runner.CountItemsStreamingIn((r, v) => r.QueryByPersonLocation<TIGrain, TProperties>(v), nameof(IPlayerProperties.Location), location, delayInMilliseconds);
+            => runner.CountItemsStreamingIn((r, v) => r.QueryByPersonLocation<TIGrain, TProperties>(v), nameof(IPersonProperties.Location), location, delayInMilliseconds);
 
         internal static Task<int> GetPersonAgeCount<TIGrain, TProperties>(this IndexingTestRunnerBase runner, int age, int delayInMilliseconds = 0)
             where TIGrain : IPersonGrain, IIndexableGrain where TProperties : IPersonProperties
-            => runner.CountItemsStreamingIn((r, v) => r.QueryByPersonAge<TIGrain, TProperties>(v), nameof(IPlayerProperties.Location), age, delayInMilliseconds);
+            => runner.CountItemsStreamingIn((r, v) => r.QueryByPersonAge<TIGrain, TProperties>(v), nameof(IPersonProperties.Age), age, delayInMilliseconds);
 
         internal static Task<int> GetJobTitleCount<TIGrain, TProperties>(this IndexingTestRunnerBase runner, string title, int delayInMilliseconds = 0)
             where TIGrain : IJobGrain, IIndexableGrain where TProperties : IJobProperties
-            => runner.CountItemsStreamingIn((r, v) => r.QueryByJobTitle<TIGrain, TProperties>(v), nameof(IPlayerProperties.Location), title, delayInMilliseconds);
+            => runner.CountItemsStreamingIn((r, v) => r.QueryByJobTitle<TIGrain, TProperties>(v), nameof(IJobProperties.Title), title, delayInMilliseconds);
 
         internal static Task<int> GetJobDepartmentCount<TIGrain, TProperties>(this IndexingTestRunnerBase runner, string department, int delayInMilliseconds = 0)
             where TIGrain : IJobGrain, IIndexableGrain where TProperties : IJobProperties
-            => runner.CountItemsStreamingIn((r, v) => r.QueryByJobDepartment<TIGrain, TProperties>(v), nameof(IPlayerProperties.Location), department, delayInMilliseconds);
+            => runner.CountItemsStreamingIn((r, v) => r.QueryByJobDepartment<TIGrain, TProperties>(v), nameof(IJobProperties.Department), department, delayInMilliseconds);
 
         #endregion MultiInterface
     }

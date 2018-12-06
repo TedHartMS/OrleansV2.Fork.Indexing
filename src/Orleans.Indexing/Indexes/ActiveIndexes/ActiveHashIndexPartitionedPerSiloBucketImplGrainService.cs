@@ -121,9 +121,9 @@ namespace Orleans.Indexing
             }
             if (state.IndexMap.TryGetValue(key, out HashIndexSingleBucketEntry<V> entry) && !entry.IsTentative)
             {
-                return (entry.Values.Count() == 1)
+                return (entry.Values.Count == 1)
                     ? Task.FromResult(entry.Values.GetEnumerator().Current)
-                    : throw LogException($"ParentIndex {_parentIndexName}: There are {entry.Values.Count()} values for the unique lookup key \"{key}\" on index \"{IndexUtils.GetIndexNameFromIndexGrain(this)}\".",
+                    : throw LogException($"ParentIndex {_parentIndexName}: There are {entry.Values.Count} values for the unique lookup key \"{key}\" on index \"{IndexUtils.GetIndexNameFromIndexGrain(this)}\".",
                                       IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainServiceBucket4);
             }
             throw LogException($"ParentIndex {_parentIndexName}The lookup key \"{key}\" does not exist on index \"{IndexUtils.GetIndexNameFromIndexGrain(this)}\".",

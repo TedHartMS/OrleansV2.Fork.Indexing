@@ -53,7 +53,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public Task<object> ExtractIndexImage(IIndexUpdateGenerator iUpdateGen) => throw new NotImplementedException();
 
         // TODO: try to remove this shim from the user-visible grain
-        public Task<Concurrency.Immutable<System.Collections.Generic.HashSet<Guid>>> GetActiveWorkflowIdsList() => this.indexWriter.GetActiveWorkflowIdsList();
+        public Task<Concurrency.Immutable<System.Collections.Generic.HashSet<Guid>>> GetActiveWorkflowIdsSet() => this.indexWriter.GetActiveWorkflowIdsSet();
         public Task RemoveFromActiveWorkflowIds(System.Collections.Generic.HashSet<Guid> removedWorkflowId) => this.indexWriter.RemoveFromActiveWorkflowIds(removedWorkflowId);
     }
 }

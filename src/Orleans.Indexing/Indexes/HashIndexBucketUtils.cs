@@ -43,12 +43,65 @@ namespace Orleans.Indexing
             bool isTentativeUpdate = isUniqueIndex && (update is MemberUpdateTentative);
             IndexOperationType opType = update.OperationType;
             HashIndexSingleBucketEntry<V> aftEntry;
+
+            // Insert is done for both IndexOperationType.Update and IndexOperationType.Update, so use a local function.
+            bool doInsert(K afterImage, out bool uniquenessViolation)
+            {
+                uniquenessViolation = false;
+                if (state.IndexMap.TryGetValue(afterImage, out aftEntry))
+                {
+                    if (!aftEntry.Values.Contains(updatedGrain))
+                    {
+                        if (isUniqueIndex && aftEntry.Values.Count > 0)
+                        {
+                            uniquenessViolation = true;
+                            return false;
+                        }
+
+                        aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
+
+                        if (isUniqueIndex && aftEntry.Values.Count > 1)
+                        {
+                            // TODO: diagnose and better fix for a possible race condition; Test_MultiInterface_All occasionally returns
+                            // a count of 2 when edited to allow duplicate values for "title_2" (Title has a unique index) when this
+                            // check does not fire (this one didn't fire either, but that could be part of the race).
+                            aftEntry.Remove(updatedGrain, isTentativeUpdate, isUniqueIndex);
+                            uniquenessViolation = true;
+                            return false;
+                        }
+                    }
+                    else if (isTentativeUpdate)
+                    {
+                        aftEntry.SetTentativeInsert();
+                    }
+                    else
+                    {
+                        aftEntry.ClearTentativeFlag();
+                    }
+                    return true;
+                }
+
+                // Add a new entry
+                if (idxMetaData.IsCreatingANewBucketNecessary(state.IndexMap.Count))
+                {
+                    return false;  // the bucket is full
+                }
+
+                aftEntry = new HashIndexSingleBucketEntry<V>();
+                aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
+
+                // TODO One Add() could be lost if there is a race condition where two threads simultaneously found no aftEntry
+                state.IndexMap.Add(afterImage, aftEntry);
+                return true;
+            }
+
             if (opType == IndexOperationType.Update)
             {
                 befImg = (K)update.GetBeforeImage();
                 K aftImg = (K)update.GetAfterImage();
                 if (state.IndexMap.TryGetValue(befImg, out befEntry) && befEntry.Values.Contains(updatedGrain))
-                {   //Delete and Insert
+                {
+                    // Delete and Insert
                     if (state.IndexMap.TryGetValue(aftImg, out aftEntry))
                     {
                         if (aftEntry.Values.Contains(updatedGrain))
@@ -71,7 +124,8 @@ namespace Orleans.Indexing
                                         $"The uniqueness property of index {idxMetaData.IndexName} is would be violated for an update operation" +
                                         $" for before-image = {befImg}, after-image = {aftImg} and grain = {updatedGrain.GetPrimaryKey()}");
                             }
-                            // TODO: Possible race condition as in Insert below (recovery would have to restore to befEntry).
+
+                            // TODO: Possible race condition as in Insert (recovery would have to restore to befEntry).
                             befEntry.Remove(updatedGrain, isTentativeUpdate, isUniqueIndex);
                             aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
                         }
@@ -86,94 +140,39 @@ namespace Orleans.Indexing
                 }
                 else
                 {
+                    // Insert only
                     if (idxMetaData.IsChainedBuckets)
                     {
-                        return false; //not found in this bucket
+                        return false; // not found in this bucket
                     }
-                    //Insert
-                    if (state.IndexMap.TryGetValue(aftImg, out aftEntry))
+
+                    if (!doInsert(aftImg, out bool uniquenessViolation))
                     {
-                        if (!aftEntry.Values.Contains(updatedGrain))
+                        if (uniquenessViolation)
                         {
-                            if (isUniqueIndex && aftEntry.Values.Count > 0)
-                            {
-                                throw new UniquenessConstraintViolatedException(
-                                        $"The uniqueness property of index {idxMetaData.IndexName} would be violated for an update operation" +
-                                        $" for (not found before-image = {befImg}), after-image = {aftImg} and grain = {updatedGrain.GetPrimaryKey()}");
-                            }
-                            // TODO Possible race condition as in Insert below
-                            aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
+                            throw new UniquenessConstraintViolatedException(
+                                    $"The uniqueness property of index {idxMetaData.IndexName} would be violated for an update operation" +
+                                    $" for (not found before-image = {befImg}), after-image = {aftImg} and grain = {updatedGrain.GetPrimaryKey()}");
                         }
-                        else if (isTentativeUpdate)
-                        {
-                            aftEntry.SetTentativeInsert();
-                        }
-                        else
-                        {
-                            aftEntry.ClearTentativeFlag();
-                        }
-                    }
-                    else
-                    {
-                        if (idxMetaData.IsCreatingANewBucketNecessary(state.IndexMap.Count()))
-                        {
-                            return false;
-                        }
-                        aftEntry = new HashIndexSingleBucketEntry<V>();
-                        aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
-                        state.IndexMap.Add(aftImg, aftEntry);
+                        return false;
                     }
                 }
             }
             else if (opType == IndexOperationType.Insert)
-            { // Insert
-                K aftImg = (K)update.GetAfterImage();
-                if (state.IndexMap.TryGetValue(aftImg, out aftEntry))
+            {
+                if (!doInsert((K)update.GetAfterImage(), out bool uniquenessViolation))
                 {
-                    if (!aftEntry.Values.Contains(updatedGrain))
+                    if (uniquenessViolation)
                     {
-                        if (isUniqueIndex && aftEntry.Values.Count > 0)
-                        {
-                            throw new UniquenessConstraintViolatedException(
-                                    $"The uniqueness property of index {idxMetaData.IndexName} would be violated for an insert operation" +
-                                    $" for after-image = {aftImg} and grain = {updatedGrain.GetPrimaryKey()}");
-                        }
-                        aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
-                        if (isUniqueIndex && aftEntry.Values.Count > 1)
-                        {
-                            // TODO: diagnose and better fix for a possible race condition; Test_MultiInterface_All occasionally returns
-                            // a count of 2 when edited to allow duplicate values for "title_2" (Title has a unique index) when this
-                            // check does not fire (this one didn't fire either, but that could be part of the race).
-                            aftEntry.Remove(updatedGrain, isTentativeUpdate, isUniqueIndex);
-                            throw new UniquenessConstraintViolatedException(
-                                    $"The uniqueness property of index {idxMetaData.IndexName} has been violated after an insert operation" +
-                                    $" for after-image = {aftImg} and grain = {updatedGrain.GetPrimaryKey()}");
-                        }
+                        throw new UniquenessConstraintViolatedException(
+                            $"The uniqueness property of index {idxMetaData.IndexName} would be violated for an insert operation" +
+                            $" for after-image = {(K)update.GetAfterImage()} and grain = {updatedGrain.GetPrimaryKey()}");
                     }
-                    else if (isTentativeUpdate)
-                    {
-                        aftEntry.SetTentativeInsert();
-                    }
-                    else
-                    {
-                        aftEntry.ClearTentativeFlag();
-                    }
-                }
-                else
-                {
-                    if (idxMetaData.IsCreatingANewBucketNecessary(state.IndexMap.Count()))
-                    {
-                        return false;  //the bucket is full
-                    }
-                    aftEntry = new HashIndexSingleBucketEntry<V>();
-                    aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
-
-                    // TODO One Add() could be lost if two threads simultaneously found no aftEntry
-                    state.IndexMap.Add(aftImg, aftEntry);
+                    return false;
                 }
             }
             else if (opType == IndexOperationType.Delete)
-            { // Delete
+            {
                 befImg = (K)update.GetBeforeImage();
 
                 if (state.IndexMap.TryGetValue(befImg, out befEntry) && befEntry.Values.Contains(updatedGrain))

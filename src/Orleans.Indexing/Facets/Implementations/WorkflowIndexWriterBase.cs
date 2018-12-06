@@ -9,21 +9,23 @@ using Orleans.Runtime;
 
 namespace Orleans.Indexing.Facets
 {
-    public abstract class WorkflowIndexWriterBase<TGrainState>: IIndexWriter<TGrainState> where TGrainState : class, new()
+    public abstract class WorkflowIndexWriterBase<TGrainState> : IIndexWriter<TGrainState> where TGrainState : class, new()
     {
-        protected readonly IServiceProvider ServiceProvider;
-        protected readonly IIndexWriterConfiguration WriterConfig;  // TODO use this
+        private protected readonly IServiceProvider ServiceProvider;
+        private protected readonly IIndexWriterConfiguration WriterConfig;  // TODO use this
 
-        protected Grain grain;  // TODO review these "protected" for changing to "private"
-        protected IIndexableGrain iIndexableGrain;
-        protected IndexableGrainStateWrapper<TGrainState> wrappedState;
-        protected Func<Task> writeGrainStateFunc;
+        private protected Grain grain;  // TODO review these "protected" for changing to "private"
+        private protected IIndexableGrain iIndexableGrain;
+        private protected IndexableGrainStateWrapper<TGrainState> wrappedState;
+        private protected Func<Task> writeGrainStateFunc;
+
+        private protected Func<Guid> getWorkflowIdFunc;
 
         /// <summary>
         /// Indicates whether an update should apply exclusively to unique or non-unique indexes.
         /// </summary>
         [Flags]
-        protected enum UpdateIndexType
+        private protected enum UpdateIndexType
         {
             None = 0,
             Unique,
@@ -33,7 +35,7 @@ namespace Orleans.Indexing.Facets
         /// <summary>
         /// Indicates whether an index update is happening due to activation, deactivation, or while remaining active.
         /// </summary>
-        protected enum ActivationMode
+        private protected enum ActivationMode
         {
             OnActivate,
             Active,
@@ -41,7 +43,7 @@ namespace Orleans.Indexing.Facets
         }
 
         internal GrainIndexes _grainIndexes;
-        protected bool _hasAnyUniqueIndex;
+        private protected bool _hasAnyUniqueIndex;
 
         public WorkflowIndexWriterBase(IServiceProvider sp, IIndexWriterConfiguration config)
         {
@@ -154,7 +156,7 @@ namespace Orleans.Indexing.Facets
         /// <param name="activationMode">Determines whether this method is called upon activation, deactivation, or still-active state of this grain</param>
         /// <param name="onlyUpdateActiveIndexes">whether only active indexes should be updated</param>
         /// <param name="writeStateIfConstraintsAreNotViolated">whether to write back the state to the storage if no constraint is violated</param>
-        protected Task UpdateIndexes(ActivationMode activationMode, bool onlyUpdateActiveIndexes, bool writeStateIfConstraintsAreNotViolated)
+        private protected Task UpdateIndexes(ActivationMode activationMode, bool onlyUpdateActiveIndexes, bool writeStateIfConstraintsAreNotViolated)
         {
             // If there are no indexes defined on this grain, then only the grain state
             // should be written back to the storage (if requested, otherwise nothing should be done)
@@ -194,24 +196,22 @@ namespace Orleans.Indexing.Facets
         /// The lazy update involves adding a work-flow record to the corresponding IIndexWorkflowQueue for this grain.
         /// </summary>
         /// <param name="updatesByInterface">the dictionary of updates for each index by interface</param>
-        /// <param name="workflowID">the workflow identifier</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private protected Task ApplyIndexUpdatesLazily(InterfaceToUpdatesMap updatesByInterface, Guid workflowID)
-            => Task.WhenAll(updatesByInterface.Select(kvp =>
-                            this.GetWorkflowQueue(kvp.Key).AddToQueue(new IndexWorkflowRecord(workflowID, this.iIndexableGrain, kvp.Value).AsImmutable())));
+        private protected Task ApplyIndexUpdatesLazily(InterfaceToUpdatesMap updatesByInterface)
+            => Task.WhenAll(updatesByInterface.Select(kvp => this.GetWorkflowQueue(kvp.Key).AddToQueue(new IndexWorkflowRecord(updatesByInterface.WorkflowIds[kvp.Key],
+                                                                                                       this.iIndexableGrain, kvp.Value).AsImmutable())));
 
         /// <summary>
         /// Eagerly Applies updates to the indexes defined on this grain
         /// </summary>
         /// <param name="updatesByInterface">the dictionary of updates for each index of each interface</param>
         /// <param name="updateIndexTypes">indicates whether unique and/or non-unique indexes should be updated</param>
-        /// <param name="updateIndexesTentatively">indicates whether updates to indexes should be tentatively done. That is, the update
+        /// <param name="isTentative">indicates whether updates to indexes should be tentatively done. That is, the update
         ///     won't be visible to readers, but prevents writers from overwriting them an violating constraints</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private protected Task ApplyIndexUpdatesEagerly(InterfaceToUpdatesMap updatesByInterface,
-                                                    UpdateIndexType updateIndexTypes, bool updateIndexesTentatively = false)
-            => Task.WhenAll(updatesByInterface.Select(kvp =>
-                            this.ApplyIndexUpdatesEagerly(kvp.Key, kvp.Value, updateIndexTypes, updateIndexesTentatively)));
+                                                    UpdateIndexType updateIndexTypes, bool isTentative = false)
+            => Task.WhenAll(updatesByInterface.Select(kvp => this.ApplyIndexUpdatesEagerly(kvp.Key, kvp.Value, updateIndexTypes, isTentative)));
 
         /// <summary>
         /// Eagerly Applies updates to the indexes defined on this grain for a single grain interface type implemented by this grain
@@ -219,12 +219,12 @@ namespace Orleans.Indexing.Facets
         /// <param name="iGrainInterfaceType">a single grain interface type implemented by this grain</param>
         /// <param name="updates">the dictionary of updates for each index</param>
         /// <param name="updateIndexTypes">indicates whether unique and/or non-unique indexes should be updated</param>
-        /// <param name="updateIndexesTentatively">indicates whether updates to indexes should be tentatively done. That is, the update
+        /// <param name="isTentative">indicates whether updates to indexes should be tentatively done. That is, the update
         ///     won't be visible to readers, but prevents writers from overwriting them an violating constraints</param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected Task ApplyIndexUpdatesEagerly(Type iGrainInterfaceType, IDictionary<string, IMemberUpdate> updates,
-                                                UpdateIndexType updateIndexTypes, bool updateIndexesTentatively)
+        private protected Task ApplyIndexUpdatesEagerly(Type iGrainInterfaceType, IReadOnlyDictionary<string, IMemberUpdate> updates,
+                                                        UpdateIndexType updateIndexTypes, bool isTentative)
         {
             var indexInterfaces = this._grainIndexes[iGrainInterfaceType];
             IEnumerable<Task<bool>> getUpdateTasks()
@@ -235,7 +235,7 @@ namespace Orleans.Indexing.Facets
                     if (updateIndexTypes.HasFlag(indexInfo.MetaData.IsUniqueIndex ? UpdateIndexType.Unique : UpdateIndexType.NonUnique))
                     {
                         // If the caller asks for the update to be tentative, then it will be wrapped inside a MemberUpdateTentative
-                        var updateToIndex = updateIndexesTentatively ? new MemberUpdateTentative(mu) : mu;
+                        var updateToIndex = isTentative ? new MemberUpdateTentative(mu) : mu;
                         yield return indexInfo.IndexInterface.ApplyIndexUpdate(this.SiloIndexManager,
                                              this.iIndexableGrain, updateToIndex.AsImmutable(), indexInfo.MetaData, this.BaseSiloAddress);
                     }
@@ -293,7 +293,8 @@ namespace Orleans.Indexing.Facets
                 }
             }
 
-            var interfaceToUpdatesMap = new InterfaceToUpdatesMap(this._grainIndexes.Select(kvp => (kvp.Key, generateNamedMemberUpdates(kvp.Key, kvp.Value))));
+            var interfaceToUpdatesMap = new InterfaceToUpdatesMap(this._grainIndexes.Select(kvp => (kvp.Key, generateNamedMemberUpdates(kvp.Key, kvp.Value))),
+                                                                  this.getWorkflowIdFunc);
             updateIndexesEagerly = prevIndexName != null ? prevIndexIsEager : false;
             numberOfUniqueIndexesUpdated = numUniqueIndexes;
             onlyUniqueIndexesWereUpdated = onlyUniqueIndexes;
@@ -319,7 +320,7 @@ namespace Orleans.Indexing.Facets
 
         // TODO: old IIndexableGrain methods; try to find a cleaner way that doesn't require the grain to shim it.
         //       These are overridden by FTWIW.
-        public virtual Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsList() => throw new NotImplementedException("GetActiveWorkflowIdsList");
+        public virtual Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsSet() => throw new NotImplementedException("GetActiveWorkflowIdsSet");
         public virtual Task RemoveFromActiveWorkflowIds(HashSet<Guid> removedWorkflowIds) => throw new NotImplementedException("RemoveFromActiveWorkflowIds");
 
     }

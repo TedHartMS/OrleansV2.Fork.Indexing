@@ -18,6 +18,7 @@ namespace Orleans.Indexing.Facets
             ) : base(sp, config)
         {
             this._grainFactory = grainFactory;
+            base.getWorkflowIdFunc = () => this.GenerateUniqueWorkflowId();
         }
 
         private bool _hasAnyTotalIndex;
@@ -91,11 +92,9 @@ namespace Orleans.Indexing.Facets
                                                     " been detected on silo startup. Check ApplicationPartsIndexableGrainLoader for the reason.");
             }
 
-            var workflowId = this.GenerateUniqueWorkflowId();
-
             // Update the indexes lazily. This is the first step, because its workflow record should be persisted in the workflow-queue first.
             // The reason for waiting here is to make sure that the workflow record in the workflow queue is correctly persisted.
-            await base.ApplyIndexUpdatesLazily(updatesByInterface, workflowId);
+            await base.ApplyIndexUpdatesLazily(updatesByInterface);
 
             // Apply any unique index updates eagerly.
             if (numberOfUniqueIndexesUpdated > 0)
@@ -103,15 +102,16 @@ namespace Orleans.Indexing.Facets
                 // If there is more than one unique index to update, then updates to the unique indexes should be tentative
                 // so they are not visible to readers before making sure that all uniqueness constraints are satisfied.
                 // UniquenessConstraintViolatedExceptions propagate; any tentative records will be removed by WorkflowQueueHandler.
-                await base.ApplyIndexUpdatesEagerly(updatesByInterface, UpdateIndexType.Unique, updateIndexesTentatively: true);
+                await base.ApplyIndexUpdatesEagerly(updatesByInterface, UpdateIndexType.Unique, isTentative: true);
             }
 
             // Finally, the grain state is persisted if requested.
             if (writeStateIfConstraintsAreNotViolated)
             {
-                // There is no constraint violation and the workflow ID can be a part of the list of active workflows.
-                // Here, we add the work-flow to the list of committed/in-flight work-flows
-                this.AddWorkflowIdToActiveWorkflows(workflowId);
+                // There is no constraint violation, so add the workflow ID to the list of active (committed/in-flight) workflows.
+                // Note that there is no race condition allowing the lazy update to sneak in before we add these, because grain
+                // access is single-threaded, so the queue handler call to GetActiveWorkflowIdsSet blocks until this method exits.
+                this.AddWorkflowIdsToActiveWorkflows(updatesByInterface.Select(kvp => updatesByInterface.WorkflowIds[kvp.Key]).ToArray());
                 await base.writeGrainStateFunc();
             }
 
@@ -218,7 +218,7 @@ namespace Orleans.Indexing.Facets
             this.WorkflowQueues = oldQueues.Where(kvp => base._grainIndexes.ContainsInterface(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
 
-        public override Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsList()
+        public override Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsSet()
         {
             var workflowIds = this.ActiveWorkflowsSet;
 
@@ -232,7 +232,7 @@ namespace Orleans.Indexing.Facets
 
         public override Task RemoveFromActiveWorkflowIds(HashSet<Guid> removedWorkflowIds)
         {
-            if (this.ActiveWorkflowsSet != null && this.ActiveWorkflowsSet.RemoveWhere(g => removedWorkflowIds.Contains(g)) > 0)
+            if (this.ActiveWorkflowsSet != null && this.ActiveWorkflowsSet.RemoveWhere(removedWorkflowIds.Contains) > 0)
             {
                 // TODO: decide whether we need to actually write the state back to the storage or we can leave it for the next WriteStateAsync
                 // on the grain itself.
@@ -246,14 +246,15 @@ namespace Orleans.Indexing.Facets
         /// Adds a workflow ID to the list of active workflows
         /// for this fault-tolerant indexable grain
         /// </summary>
-        /// <param name="workflowId">the workflow ID to be added</param>
-        private void AddWorkflowIdToActiveWorkflows(Guid workflowId)
+        /// <param name="workflowIds">the workflow IDs to be added</param>
+        private void AddWorkflowIdsToActiveWorkflows(Guid[] workflowIds)
         {
             if (this.ActiveWorkflowsSet == null)
             {
-                this.ActiveWorkflowsSet = new HashSet<Guid>();
+                this.ActiveWorkflowsSet = new HashSet<Guid>(workflowIds);
+                return;
             }
-            this.ActiveWorkflowsSet.Add(workflowId);
+            this.ActiveWorkflowsSet.AddRange(workflowIds);
         }
 
         /// <summary>
