@@ -42,7 +42,7 @@ namespace Orleans.Indexing.Facets
             OnDeactivate
         }
 
-        internal GrainIndexes _grainIndexes;
+        private protected GrainIndexes _grainIndexes;
         private protected bool _hasAnyUniqueIndex;
 
         public WorkflowIndexWriterBase(IServiceProvider sp, IIndexWriterConfiguration config)
@@ -106,14 +106,14 @@ namespace Orleans.Indexing.Facets
             this.wrappedState = wrappedState;
             this.writeGrainStateFunc = writeGrainStateFunc;
 
-            if (!this.wrappedState.IsPersisted)
-            {
-                IndexUtils.SetNullValues(this.wrappedState.UserState);
-            }
-
             if (!GrainIndexes.CreateInstance(this.SiloIndexManager.IndexRegistry, this.grain.GetType(), out this._grainIndexes))
             {
                 throw new InvalidOperationException("IndexWriter should not be called for a Grain class with no indexes");
+            }
+
+            if (!this.wrappedState.IsPersisted)
+            {
+                IndexUtils.SetNullValues(this.wrappedState.UserState, this._grainIndexes.PropertyNullValues);
             }
 
             this._hasAnyUniqueIndex = this._grainIndexes.HasAnyUniqueIndex;

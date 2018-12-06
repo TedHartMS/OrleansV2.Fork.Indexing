@@ -96,7 +96,37 @@ namespace Orleans.Indexing
                 }
             }
 
-            registry.SetGrainIndexes(grainClassType, indexedInterfaces.ToArray());
+            IReadOnlyDictionary<string, object> getNullValuesDictionary()
+            {
+                IEnumerable<(string propName, (string itfName, object nullValue))> getNullPropertyValuesForInterface(Type interfaceType)
+                    => registry[interfaceType].PropertiesClassType.GetProperties()
+                                              .Select(info => (name: info.Name, nullSpec: (itfname: interfaceType.Name, nullValue: IndexUtils.GetNullValue(info))))
+                                              .Where(p => p.nullSpec.nullValue != null);
+
+                Dictionary<string, (string, object)> addToDict(Dictionary<string, (string, object)> dict, (string propName, (string itfName, object nullValue) nullSpec) current)
+                {
+                    bool isInDict(string propName)
+                    {
+                        return dict.TryGetValue(propName, out (string itfName, object nullValue) prevNullSpec)
+                            ? (prevNullSpec.nullValue.Equals(current.nullSpec.nullValue)
+                                ? true
+                                : throw new IndexConfigurationException($"Property {propName} has conflicting NullValues defined on interfaces {prevNullSpec.itfName} and {current.nullSpec.itfName}"))
+                            : false;
+                    }
+
+                    if (!isInDict(current.propName))
+                    {
+                        dict[current.propName] = current.nullSpec;
+                    }
+                    return dict;
+                }
+
+                return indexedInterfaces.SelectMany(itf => getNullPropertyValuesForInterface(itf))
+                                        .Aggregate(new Dictionary<string, (string itfName, object nullValue)>(), (dict, pair) => addToDict(dict, pair))
+                                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.nullValue);
+            }
+
+            registry.SetGrainIndexes(grainClassType, indexedInterfaces.ToArray(), getNullValuesDictionary());
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

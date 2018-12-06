@@ -9,6 +9,10 @@ namespace Orleans.Indexing
 
         private IDictionary<Type, Type[]> IndexesByGrainType = new Dictionary<Type, Type[]>();
 
+        private IDictionary<Type, IReadOnlyDictionary<string, object>> GrainsToPropertyNullValues = new Dictionary<Type, IReadOnlyDictionary<string, object>>();
+
+        internal static IReadOnlyDictionary<string, object> EmptyPropertyNullValues { get; } = new Dictionary<string, object>();
+
         internal NamedIndexMap this[Type interfaceType]
         {
             get => this.IndexesByInterfaceType[interfaceType];
@@ -20,11 +24,17 @@ namespace Orleans.Indexing
 
         internal bool ContainsKey(Type interfaceType) => this.IndexesByInterfaceType.ContainsKey(interfaceType);
 
-        internal void SetGrainIndexes(Type grainClassType, Type[] indexedInterfaces)
-            => this.IndexesByGrainType[grainClassType] = indexedInterfaces;
+        internal void SetGrainIndexes(Type grainClassType, Type[] indexedInterfaces, IReadOnlyDictionary<string, object> nullValuesDictionary)
+        { 
+            this.IndexesByGrainType[grainClassType] = indexedInterfaces;
+            this.GrainsToPropertyNullValues[grainClassType] = nullValuesDictionary;
+        }
 
         internal bool TryGetGrainIndexes(Type grainClassType, out Type[] indexedInterfaces)
             => this.IndexesByGrainType.TryGetValue(grainClassType, out indexedInterfaces);
+
+        internal IReadOnlyDictionary<string, object> GetNullPropertyValuesForGrain(Type grainClassType)
+            => this.GrainsToPropertyNullValues.TryGetValue(grainClassType, out var nullValuesDict) ? nullValuesDict : EmptyPropertyNullValues;
 
         internal bool ContainsGrainType(Type grainClassType) => this.IndexesByGrainType.ContainsKey(grainClassType);
     }

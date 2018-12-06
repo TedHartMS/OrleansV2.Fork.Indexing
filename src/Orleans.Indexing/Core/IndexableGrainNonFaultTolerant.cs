@@ -437,7 +437,7 @@ namespace Orleans.Indexing
             if (this._iGrainTypes == null)
             {
                 Type iIndexableT = typeof(IIndexableGrain<TProperties>);
-                this._iGrainTypes = GetType().GetInterfaces().Where(iOtherT => iIndexableT != iOtherT && iIndexableT.IsAssignableFrom(iOtherT)).ToArray();
+                this._iGrainTypes = this.GetType().GetInterfaces().Where(iOtherT => iIndexableT != iOtherT && iIndexableT.IsAssignableFrom(iOtherT)).ToArray();
             }
             return this._iGrainTypes;
         }
@@ -512,7 +512,7 @@ namespace Orleans.Indexing
         }
 
         protected virtual void SetStateToNullValues()
-            => IndexUtils.SetNullValues(base.State);
+            => IndexUtils.SetNullValues(base.State, this.SiloIndexManager.IndexRegistry.GetNullPropertyValuesForGrain(this.GetType()));
 
         /// <summary>
         /// Writes the state of the grain back to the storage without updating the indexes (which is done separately)

@@ -26,19 +26,12 @@ namespace Orleans.Indexing.Tests
         public string NonUniqueString { get; set; }
     }
 
-    [Serializable]
-    public class NFT_State_UIUSNINS_AI_EG_PK : NFT_Props_UIUSNINS_AI_EG_PK, ITestMultiIndexState
-    {
-        public string UnIndexedString { get; set; }
-    }
-
     public interface INFT_Grain_UIUSNINS_AI_EG_PK : ITestMultiIndexGrain, IIndexableGrain<NFT_Props_UIUSNINS_AI_EG_PK>
     {
     }
 
     [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
-    public class NFT_Grain_UIUSNINS_AI_EG_PK : TestMultiIndexGrainNonFaultTolerant<NFT_State_UIUSNINS_AI_EG_PK, NFT_Props_UIUSNINS_AI_EG_PK>,
-                                                 INFT_Grain_UIUSNINS_AI_EG_PK
+    public class NFT_Grain_UIUSNINS_AI_EG_PK : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState, NFT_Props_UIUSNINS_AI_EG_PK>, INFT_Grain_UIUSNINS_AI_EG_PK
     {
     }
     #endregion // PartitionedPerKey
@@ -63,19 +56,12 @@ namespace Orleans.Indexing.Tests
         public string NonUniqueString { get; set; }
     }
 
-    [Serializable]
-    public class NFT_State_UIUSNINS_AI_EG_PS : NFT_Props_UIUSNINS_AI_EG_PS, ITestMultiIndexState
-    {
-        public string UnIndexedString { get; set; }
-    }
-
     public interface INFT_Grain_UIUSNINS_AI_EG_PS : ITestMultiIndexGrain, IIndexableGrain<NFT_Props_UIUSNINS_AI_EG_PS>
     {
     }
 
     [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
-    public class NFT_Grain_UIUSNINS_AI_EG_PS : TestMultiIndexGrainNonFaultTolerant<NFT_State_UIUSNINS_AI_EG_PS, NFT_Props_UIUSNINS_AI_EG_PS>,
-                                                 INFT_Grain_UIUSNINS_AI_EG_PS
+    public class NFT_Grain_UIUSNINS_AI_EG_PS : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState, NFT_Props_UIUSNINS_AI_EG_PS>, INFT_Grain_UIUSNINS_AI_EG_PS
     {
     }
     #endregion // PartitionedPerSilo
@@ -100,19 +86,12 @@ namespace Orleans.Indexing.Tests
         public string NonUniqueString { get; set; }
     }
 
-    [Serializable]
-    public class NFT_State_UIUSNINS_AI_EG_SB : NFT_Props_UIUSNINS_AI_EG_SB, ITestMultiIndexState
-    {
-        public string UnIndexedString { get; set; }
-    }
-
     public interface INFT_Grain_UIUSNINS_AI_EG_SB : ITestMultiIndexGrain, IIndexableGrain<NFT_Props_UIUSNINS_AI_EG_SB>
     {
     }
 
     [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
-    public class NFT_Grain_UIUSNINS_AI_EG_SB : TestMultiIndexGrainNonFaultTolerant<NFT_State_UIUSNINS_AI_EG_SB, NFT_Props_UIUSNINS_AI_EG_SB>,
-                                                 INFT_Grain_UIUSNINS_AI_EG_SB
+    public class NFT_Grain_UIUSNINS_AI_EG_SB : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState, NFT_Props_UIUSNINS_AI_EG_SB>, INFT_Grain_UIUSNINS_AI_EG_SB
     {
     }
     #endregion // SingleBucket

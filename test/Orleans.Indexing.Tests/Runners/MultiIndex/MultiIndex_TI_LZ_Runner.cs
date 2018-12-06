@@ -1,4 +1,4 @@
-﻿using Orleans.Providers;
+using Orleans.Providers;
 using System;
 using System.Threading.Tasks;
 using Xunit;
@@ -39,18 +39,6 @@ namespace Orleans.Indexing.Tests
         public string NonUniqueString { get; set; }
     }
 
-    [Serializable]
-    public class FT_State_UIUSNINS_TI_LZ_PK : FT_Props_UIUSNINS_TI_LZ_PK, ITestMultiIndexState
-    {
-        public string UnIndexedString { get; set; }
-    }
-
-    [Serializable]
-    public class NFT_State_UIUSNINS_TI_LZ_PK : NFT_Props_UIUSNINS_TI_LZ_PK, ITestMultiIndexState
-    {
-        public string UnIndexedString { get; set; }
-    }
-
     // TODO: Indexes are based on InterfaceType but not ClassType, so currently, unique index tests run in parallel must have 
     // distinct interfaces, which percolates to state and properties as well.
     public interface IFT_Grain_UIUSNINS_TI_LZ_PK : ITestMultiIndexGrain, IIndexableGrain<FT_Props_UIUSNINS_TI_LZ_PK>
@@ -62,14 +50,12 @@ namespace Orleans.Indexing.Tests
     }
 
     [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
-    public class FT_Grain_UIUSNINS_TI_LZ_PK : TestMultiIndexGrain<FT_State_UIUSNINS_TI_LZ_PK, FT_Props_UIUSNINS_TI_LZ_PK>,
-                                                 IFT_Grain_UIUSNINS_TI_LZ_PK
+    public class FT_Grain_UIUSNINS_TI_LZ_PK : TestMultiIndexGrain<TestMultiIndexState, FT_Props_UIUSNINS_TI_LZ_PK>, IFT_Grain_UIUSNINS_TI_LZ_PK
     {
     }
 
     [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
-    public class NFT_Grain_UIUSNINS_TI_LZ_PK : TestMultiIndexGrainNonFaultTolerant<NFT_State_UIUSNINS_TI_LZ_PK, NFT_Props_UIUSNINS_TI_LZ_PK>,
-                                                 INFT_Grain_UIUSNINS_TI_LZ_PK
+    public class NFT_Grain_UIUSNINS_TI_LZ_PK : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState, NFT_Props_UIUSNINS_TI_LZ_PK>, INFT_Grain_UIUSNINS_TI_LZ_PK
     {
     }
     #endregion // PartitionedPerKey
@@ -113,18 +99,6 @@ namespace Orleans.Indexing.Tests
         public string NonUniqueString { get; set; }
     }
 
-    [Serializable]
-    public class FT_State_UIUSNINS_TI_LZ_SB : FT_Props_UIUSNINS_TI_LZ_SB, ITestMultiIndexState
-    {
-        public string UnIndexedString { get; set; }
-    }
-
-    [Serializable]
-    public class NFT_State_UIUSNINS_TI_LZ_SB : NFT_Props_UIUSNINS_TI_LZ_SB, ITestMultiIndexState
-    {
-        public string UnIndexedString { get; set; }
-    }
-
     // TODO: Indexes are based on InterfaceType but not ClassType, so currently, unique index tests run in parallel must have 
     // distinct interfaces, which percolates to state and properties as well.
     public interface IFT_Grain_UIUSNINS_TI_LZ_SB : ITestMultiIndexGrain, IIndexableGrain<FT_Props_UIUSNINS_TI_LZ_SB>
@@ -136,14 +110,12 @@ namespace Orleans.Indexing.Tests
     }
 
     [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
-    public class FT_Grain_UIUSNINS_TI_LZ_SB : TestMultiIndexGrain<FT_State_UIUSNINS_TI_LZ_SB, FT_Props_UIUSNINS_TI_LZ_SB>,
-                                                 IFT_Grain_UIUSNINS_TI_LZ_SB
+    public class FT_Grain_UIUSNINS_TI_LZ_SB : TestMultiIndexGrain<TestMultiIndexState, FT_Props_UIUSNINS_TI_LZ_SB>, IFT_Grain_UIUSNINS_TI_LZ_SB
     {
     }
 
     [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
-    public class NFT_Grain_UIUSNINS_TI_LZ_SB : TestMultiIndexGrainNonFaultTolerant<NFT_State_UIUSNINS_TI_LZ_SB, NFT_Props_UIUSNINS_TI_LZ_SB>,
-                                                 INFT_Grain_UIUSNINS_TI_LZ_SB
+    public class NFT_Grain_UIUSNINS_TI_LZ_SB : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState, NFT_Props_UIUSNINS_TI_LZ_SB>, INFT_Grain_UIUSNINS_TI_LZ_SB
     {
     }
     #endregion // SingleBucket
