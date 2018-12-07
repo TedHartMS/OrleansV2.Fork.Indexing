@@ -41,6 +41,6 @@ namespace Orleans.Indexing
         /// <param name="updates">the dictionary of updates to be reverse</param>
         /// <returns>the reversed dictionary of updates</returns>
         internal static IReadOnlyDictionary<string, IMemberUpdate> Reverse(IReadOnlyDictionary<string, IMemberUpdate> updates)
-            => updates.ToDictionary(kvp => kvp.Key, kvp => new MemberUpdateReverseTentative(kvp.Value)) as IReadOnlyDictionary<string, IMemberUpdate>;
+            => (IReadOnlyDictionary<string, IMemberUpdate>)updates.ToDictionary(kvp => kvp.Key, kvp => new MemberUpdateReverseTentative(kvp.Value) as IMemberUpdate);
     }
 }

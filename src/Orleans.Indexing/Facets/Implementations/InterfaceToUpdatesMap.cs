@@ -17,8 +17,8 @@ namespace Orleans.Indexing.Facets
         {
             this.updatesByInterface = updateEnumerator.Select(x => (itf: x.interfaceType, dict: x.namedUpdates.ToDictionary(upd => upd.indexName, upd => upd.mu)))
                                                       .Where(pair => pair.dict.Count > 0)
-                                                      .ToDictionary(pair => pair.itf, pair => pair.dict as IReadOnlyDictionary<string, IMemberUpdate>);
-            this.WorkflowIds = this.updatesByInterface.Keys.ToDictionary(key => key, _ => getWorkflowIdFunc()) as IReadOnlyDictionary<Type, Guid>;
+                                                      .ToDictionary(pair => pair.itf, pair => (IReadOnlyDictionary<string, IMemberUpdate>)pair.dict);
+            this.WorkflowIds = this.updatesByInterface.Keys.ToDictionary(key => key, _ => getWorkflowIdFunc());
          }
 
         internal bool IsEmpty => this.updatesByInterface.Count == 0;
