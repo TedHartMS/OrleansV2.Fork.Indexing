@@ -4,8 +4,8 @@ namespace Orleans.Indexing.Tests.MultiInterface
 {
     public interface IPersonGrain
     {
-        Task<string> GetLocation();
-        Task SetLocation(string value);
+        Task<string> GetName();
+        Task SetName(string value);
 
         Task<int> GetAge();
         Task SetAge(int value);

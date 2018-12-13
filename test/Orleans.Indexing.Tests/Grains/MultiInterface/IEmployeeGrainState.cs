@@ -1,7 +1,8 @@
 namespace Orleans.Indexing.Tests.MultiInterface
 {
-    public interface IEmployeeGrainState : IPersonProperties, IJobProperties
+    public interface IEmployeeGrainState : IPersonProperties, IJobProperties, IEmployeeProperties
     {
-        int Tenure { get; set; }
+        // Not indexed
+        int Salary { get; set; }
     }
 }

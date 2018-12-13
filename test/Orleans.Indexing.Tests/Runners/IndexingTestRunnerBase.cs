@@ -76,12 +76,13 @@ namespace Orleans.Indexing.Tests
             return indexes;
         }
 
-        internal async Task TestIndexesWithDeactivations<TIGrain, TProperties>(int intAdjust = 0)
+        internal async Task TestIndexesWithDeactivations<TIGrain, TProperties>(int intAdjustBase = 0)
             where TIGrain : ITestMultiIndexGrain, IIndexableGrain where TProperties : ITestMultiIndexProperties
         {
             using (var tw = new TestConsoleOutputWriter(this.Output, $"start test: TIGrain = {nameof(TIGrain)}, TProperties = {nameof(TProperties)}"))
             {
                 // Use intAdjust to test that different values for the same grain type are handled correctly; see MultiIndex_All.
+                var intAdjust = intAdjustBase * 1000000;
                 var adj1 = intAdjust + 1;
                 var adj11 = intAdjust + 11;
                 var adj111 = intAdjust + 111;
@@ -100,6 +101,7 @@ namespace Orleans.Indexing.Tests
                 var adj1k = "1k" + intAdjust;
                 var adj2k = "2k" + intAdjust;
                 var adj3k = "3k" + intAdjust;
+                const string unindexedString = "unindexed_";
 
                 async Task<TIGrain> makeGrain(int uInt, string uString, int nuInt, string nuString)
                 {
@@ -108,6 +110,7 @@ namespace Orleans.Indexing.Tests
                     await grain.SetUniqueString(uString);
                     await grain.SetNonUniqueInt(nuInt);
                     await grain.SetNonUniqueString(nuString);
+                    await grain.SetUnIndexedString(unindexedString + uString);
                     return grain;
                 }
                 var p1 = await makeGrain(adj1, adjOne, adj1000, adj1k);
@@ -161,26 +164,32 @@ namespace Orleans.Indexing.Tests
                 Console.WriteLine("*** GetGrain ***");
                 p11 = this.GetGrain<TIGrain>(p11.GetPrimaryKeyLong());
                 Assert.Equal(adj1000, await p11.GetNonUniqueInt());
+                Assert.Equal(unindexedString + adjEleven, await p11.GetUnIndexedString());
+
                 Console.WriteLine("*** Fourth Verify ***");
                 await verifyCount(1, 1, ignoreDeactivate ? 4 : 2);
             }
         }
 
-        internal async Task TestEmployeeIndexesWithDeactivations<TIPersonGrain, TPersonProperties, TIJobGrain, TJobProperties>(int intAdjust = 0)
+        internal async Task TestEmployeeIndexesWithDeactivations<TIPersonGrain, TPersonProperties, TIJobGrain, TJobProperties, TIEmployeeGrain, TEmployeeProperties>(int intAdjustBase = 0)
             where TIPersonGrain : IIndexableGrain, IPersonGrain, IGrainWithIntegerKey
             where TPersonProperties: IPersonProperties
             where TIJobGrain : IIndexableGrain, IJobGrain, IGrainWithIntegerKey
             where TJobProperties : IJobProperties
+            where TIEmployeeGrain : IIndexableGrain, IEmployeeGrain, IGrainWithIntegerKey
+            where TEmployeeProperties : IEmployeeProperties
         {
-            using (var tw = new TestConsoleOutputWriter(this.Output, $"start test: TIPersonGrain = {nameof(TIPersonGrain)}, TIJobGrain = {nameof(TIJobGrain)}"))
+            using (var tw = new TestConsoleOutputWriter(this.Output, $"start test: TIPersonGrain = {nameof(TIPersonGrain)}, TIJobGrain = {nameof(TIJobGrain)}, TIEmployeeGrain = {nameof(TIEmployeeGrain)}"))
             {
                 // Use intAdjust to test that different values for the same grain type are handled correctly; see MultiInterface_All.
-                var loc1 = $"location_{intAdjust + 1}";
-                var loc11 = $"location_{intAdjust + 11}";
-                var loc111 = $"location_{intAdjust + 111}";
-                var loc1111 = $"location_{intAdjust + 1111}";
-                var loc2 = $"location2_{intAdjust}";
-                var loc3 = $"location3_{intAdjust}";
+                const int grainIdBase = 1000000;
+                var intAdjust = intAdjustBase * grainIdBase;
+                var name1 = $"name_{intAdjust + 1}";
+                var name11 = $"name__{intAdjust + 11}";
+                var name111 = $"name__{intAdjust + 111}";
+                var name1111 = $"name__{intAdjust + 1111}";
+                var name2 = $"name_2_{intAdjust}";
+                var name3 = $"name_3_{intAdjust}";
                 var age1 = intAdjust + 1;
                 var age2 = intAdjust + 2;
                 var age3 = intAdjust + 3;
@@ -195,38 +204,52 @@ namespace Orleans.Indexing.Tests
                 var dept2 = $"department_{intAdjust + 2}";
                 var dept3 = $"department_{intAdjust + 3}";
 
-                int id = intAdjust * 1000000;
-                async Task<(TIPersonGrain person, TIJobGrain job)> makeGrain(string location, int age, string title, string dept)
+                const int employeeIdBase = grainIdBase * 100;
+                int id = intAdjust;
+                async Task<(TIPersonGrain person, TIJobGrain job, IEmployeeGrain employee)> makeGrain(string name, int age, string title, string dept)
                 {
                     var personGrain = this.GetGrain<TIPersonGrain>(GrainPkFromUniqueInt(++id));
-                    await personGrain.SetLocation(location);
+                    await personGrain.SetName(name);
                     await personGrain.SetAge(age);
                     var jobGrain = personGrain.Cast<TIJobGrain>();
                     await jobGrain.SetTitle(title);
                     await jobGrain.SetDepartment(dept);
 
-                    await ((id & 0x1) == 0 ? personGrain.WriteState() : jobGrain.WriteState());
-                    return (personGrain, jobGrain);
+                    var employeeGrain = personGrain.Cast<TIEmployeeGrain>();
+                    await employeeGrain.SetEmployeeId(id + employeeIdBase);
+                    await employeeGrain.SetSalary(id);  // not indexed
+                    await jobGrain.SetDepartment(dept);
+
+                    Task writeGrainAsync()
+                    {
+                        var selector = id % 3;
+                        return selector == 0
+                            ? personGrain.WriteState()
+                            : (selector == 1) ? jobGrain.WriteState() : employeeGrain.WriteState();
+                    }
+                    await writeGrainAsync();
+                    return (personGrain, jobGrain, employeeGrain);
                 }
-                var p1 = await makeGrain(loc1, age1, title1, dept1);
-                var p11 = await makeGrain(loc11, age1, title11, dept1);
-                var p111 = await makeGrain(loc111, age1, title111, dept1);
-                var p1111 = await makeGrain(loc1111, age1, title1111, dept1);
-                var p2 = await makeGrain(loc2, age2, title2, dept2);
-                var p3 = await makeGrain(loc3, age3, title3, dept3);
+                var p1 = await makeGrain(name1, age1, title1, dept1);
+                var p11 = await makeGrain(name11, age1, title11, dept1);
+                var p111 = await makeGrain(name111, age1, title111, dept1);
+                var p1111 = await makeGrain(name1111, age1, title1111, dept1);
+                var p2 = await makeGrain(name2, age2, title2, dept2);
+                var p3 = await makeGrain(name3, age3, title3, dept3);
 
                 // Age and Department may have multiple entries; additionally, they may or may not be of a type that
                 // is "Total" -- either TotalIndex or DSMI, in which case deactivations do not really deactivate them.
-                await this.GetAndWaitForIndex<string, TIPersonGrain>(ITC.LocationProperty);
+                await this.GetAndWaitForIndex<string, TIPersonGrain>(ITC.NameProperty);
                 var ageIndex = await this.GetAndWaitForIndex<int, TIPersonGrain>(ITC.AgeProperty);
                 var ignoreDeactivate = this.ShouldIgnoreDeactivate(ageIndex.GetType());
                 var jobIndexes = await this.GetAndWaitForIndexes<string, TIJobGrain>(ITC.TitleProperty, ITC.DepartmentProperty);
                 Assert.Equal(ignoreDeactivate, this.ShouldIgnoreDeactivate(jobIndexes[1].GetType()));
+                await this.GetAndWaitForIndex<int, TIEmployeeGrain>(ITC.EmployeeIdProperty);
 
-                Assert.Equal(1, await this.GetPersonLocationCount<TIPersonGrain, TPersonProperties>(loc1));
-                Assert.Equal(1, await this.GetPersonLocationCount<TIPersonGrain, TPersonProperties>(loc11));
-                Assert.Equal(1, await this.GetPersonLocationCount<TIPersonGrain, TPersonProperties>(loc2));
-                Assert.Equal(1, await this.GetPersonLocationCount<TIPersonGrain, TPersonProperties>(loc3));
+                Assert.Equal(1, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name1));
+                Assert.Equal(1, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name11));
+                Assert.Equal(1, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name2));
+                Assert.Equal(1, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name3));
                 Assert.Equal(1, await this.GetPersonAgeCount<TIPersonGrain, TPersonProperties>(age2));
                 Assert.Equal(1, await this.GetPersonAgeCount<TIPersonGrain, TPersonProperties>(age3));
 
@@ -246,11 +269,11 @@ namespace Orleans.Indexing.Tests
                     }
 
                     // Verify the duplicated count as well as sanity-checking for some of the non-duplicated ones.
-                    Assert.Equal(1, await this.GetPersonLocationCount<TIPersonGrain, TPersonProperties>(loc1));
-                    Assert.Equal(expected11, await this.GetPersonLocationCount<TIPersonGrain, TPersonProperties>(loc11));
-                    Assert.Equal(expected111, await this.GetPersonLocationCount<TIPersonGrain, TPersonProperties>(loc111));
-                    Assert.Equal(expected1111, await this.GetPersonLocationCount<TIPersonGrain, TPersonProperties>(loc1111));
-                    Assert.Equal(1, await this.GetPersonLocationCount<TIPersonGrain, TPersonProperties>(loc2));
+                    Assert.Equal(1, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name1));
+                    Assert.Equal(expected11, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name11));
+                    Assert.Equal(expected111, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name111));
+                    Assert.Equal(expected1111, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name1111));
+                    Assert.Equal(1, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name2));
                     Assert.Equal(expectedDups, await this.GetPersonAgeCount<TIPersonGrain, TPersonProperties>(age1));
                     Assert.Equal(1, await this.GetPersonAgeCount<TIPersonGrain, TPersonProperties>(age2));
 
@@ -261,6 +284,13 @@ namespace Orleans.Indexing.Tests
                     Assert.Equal(1, await this.GetJobTitleCount<TIJobGrain, TJobProperties>(title2));
                     Assert.Equal(expectedDups, await this.GetJobDepartmentCount<TIJobGrain, TJobProperties>(dept1));
                     Assert.Equal(1, await this.GetJobDepartmentCount<TIJobGrain, TJobProperties>(dept2));
+
+                    // EmployeeId is in parallel with expected11(1(1))
+                    var employeeId0 = employeeIdBase + intAdjust;
+                    Assert.Equal(1, await this.GetEmployeeIdCount<TIEmployeeGrain, TEmployeeProperties>(employeeId0 + 1));
+                    Assert.Equal(expected11, await this.GetEmployeeIdCount<TIEmployeeGrain, TEmployeeProperties>(employeeId0 + 2));
+                    Assert.Equal(expected111, await this.GetEmployeeIdCount<TIEmployeeGrain, TEmployeeProperties>(employeeId0 + 3));
+                    Assert.Equal(expected1111, await this.GetEmployeeIdCount<TIEmployeeGrain, TEmployeeProperties>(employeeId0 + 4));
                 }
 
                 Console.WriteLine("*** First Verify ***");
@@ -283,9 +313,13 @@ namespace Orleans.Indexing.Tests
 
                 Console.WriteLine("*** GetGrain ***");
                 var p11person = this.GetGrain<TIPersonGrain>(p11.person.GetPrimaryKeyLong());
-                Assert.Equal(loc11, await p11person.GetLocation());
+                Assert.Equal(name11, await p11person.GetName());
                 var p11job = p11person.Cast<TIJobGrain>();
                 Assert.Equal(title11, await p11job.GetTitle());
+                var p11employee = p11job.Cast<TIEmployeeGrain>();
+                // EmployeeId is incremented in parallel with intAdjust
+                Assert.Equal(intAdjust + 2, await p11employee.GetSalary());
+
                 Console.WriteLine("*** Fourth Verify ***");
                 await verifyCount(2, 1, 0, 0);
             }

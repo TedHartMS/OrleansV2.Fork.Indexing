@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit.Abstractions;
 
@@ -15,7 +16,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
 
         // None; Total Index cannot be Eager.
 
-        internal static Func<IndexingTestRunnerBase, int, Task>[] GetAllTestTasks()
+        internal static IEnumerable<Func<IndexingTestRunnerBase, int, Task>> GetAllTestTasks(TestIndexPartitionType _)
         {
             return new Func<IndexingTestRunnerBase, int, Task>[]
             {
