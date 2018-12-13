@@ -18,16 +18,8 @@ namespace Orleans.Indexing.Tests
         public async Task Test_MultiIndex_All()
         {
             const int NumRepsPerTest = 3;
-            IEnumerable<Task> getTasks(Func<IndexingTestRunnerBase, int, Task>[] getTasksFunc)
-            {
-                for (int ii = 0; ii < NumRepsPerTest; ++ii)
-                {
-                    foreach (var task in getTasksFunc.Select(lambda => lambda(this, ii * 1000000)))
-                    {
-                        yield return task;
-                    }
-                }
-            }
+            IEnumerable<Task> getTasks(IEnumerable<Func<IndexingTestRunnerBase, int, Task>> getTasksFuncs)
+                => Enumerable.Range(0, NumRepsPerTest).SelectMany(ii => getTasksFuncs.Select(lambda => lambda(this, ii)));
 
             await Task.WhenAll(getTasks(MultiIndex_AI_EG_Runner.GetAllTestTasks())
                     .Concat(getTasks(MultiIndex_AI_LZ_Runner.GetAllTestTasks()))

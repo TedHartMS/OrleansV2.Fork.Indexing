@@ -66,14 +66,11 @@ namespace Orleans.Indexing
         }
 
         public Task<bool> DirectApplyIndexUpdate(V updatedGrain, Immutable<IMemberUpdate> iUpdate, bool isUniqueIndex, IndexMetaData idxMetaData, SiloAddress siloAddress)
-            => DirectApplyIndexUpdate(updatedGrain, iUpdate.Value, isUniqueIndex, idxMetaData, siloAddress);
+            => this.DirectApplyIndexUpdate(updatedGrain, iUpdate.Value, isUniqueIndex, idxMetaData, siloAddress);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Task<bool> DirectApplyIndexUpdate(V updatedGrain, IMemberUpdate updt, bool isUniqueIndex, IndexMetaData idxMetaData, SiloAddress siloAddress)
-        {
-            HashIndexBucketUtils.UpdateBucket(updatedGrain, updt, state, isUniqueIndex, idxMetaData);
-            return Task.FromResult(true);
-        }
+            => Task.FromResult(HashIndexBucketUtils.UpdateBucket(updatedGrain, updt, state, isUniqueIndex, idxMetaData));
 
         private Exception LogException(string message, IndexingErrorCode errorCode)
         {

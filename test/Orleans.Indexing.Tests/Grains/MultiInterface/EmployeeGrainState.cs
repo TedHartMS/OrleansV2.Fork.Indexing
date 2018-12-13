@@ -6,7 +6,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     public class EmployeeGrainState : IEmployeeGrainState
     {
         #region IPersonProperties
-        public string Location { get; set; }
+        public string Name { get; set; }
         public int Age { get; set; }
         #endregion IPersonProperties
 
@@ -15,8 +15,12 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public string Department { get; set; }
         #endregion IJobProperties
 
-        #region Not Indexed
-        public int Tenure { get; set; }
-        #endregion Not Indexed
+        #region IEmployeeProperties
+        public int EmployeeId { get; set; }
+        #endregion IJobProperties
+
+        #region IEmployeeGrainState - not indexed
+        public int Salary { get; set; }
+        #endregion IEmployeeGrainState - not indexed
     }
 }

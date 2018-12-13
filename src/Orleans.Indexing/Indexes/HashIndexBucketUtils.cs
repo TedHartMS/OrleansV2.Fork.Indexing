@@ -63,7 +63,7 @@ namespace Orleans.Indexing
                         if (isUniqueIndex && aftEntry.Values.Count > 1)
                         {
                             // TODO: diagnose and better fix for a possible race condition; Test_MultiInterface_All occasionally returns
-                            // a count of 2 when edited to allow duplicate values for "title_2" (Title has a unique index) when this
+                            // a count of 2 when edited to allow duplicate values for "title_2" (Title has a unique index) when the foregoing
                             // check does not fire (this one didn't fire either, but that could be part of the race).
                             aftEntry.Remove(updatedGrain, isTentativeUpdate, isUniqueIndex);
                             uniquenessViolation = true;
@@ -148,13 +148,11 @@ namespace Orleans.Indexing
 
                     if (!doInsert(aftImg, out bool uniquenessViolation))
                     {
-                        if (uniquenessViolation)
-                        {
-                            throw new UniquenessConstraintViolatedException(
+                        return uniquenessViolation
+                            ? throw new UniquenessConstraintViolatedException(
                                     $"The uniqueness property of index {idxMetaData.IndexName} would be violated for an update operation" +
-                                    $" for (not found before-image = {befImg}), after-image = {aftImg} and grain = {updatedGrain.GetPrimaryKey()}");
-                        }
-                        return false;
+                                    $" for (not found before-image = {befImg}), after-image = {aftImg} and grain = {updatedGrain.GetPrimaryKey()}")
+                            : false;
                     }
                 }
             }
@@ -162,13 +160,11 @@ namespace Orleans.Indexing
             {
                 if (!doInsert((K)update.GetAfterImage(), out bool uniquenessViolation))
                 {
-                    if (uniquenessViolation)
-                    {
-                        throw new UniquenessConstraintViolatedException(
-                            $"The uniqueness property of index {idxMetaData.IndexName} would be violated for an insert operation" +
-                            $" for after-image = {(K)update.GetAfterImage()} and grain = {updatedGrain.GetPrimaryKey()}");
-                    }
-                    return false;
+                    return uniquenessViolation
+                        ? throw new UniquenessConstraintViolatedException(
+                                $"The uniqueness property of index {idxMetaData.IndexName} would be violated for an insert operation" +
+                                $" for after-image = {(K)update.GetAfterImage()} and grain = {updatedGrain.GetPrimaryKey()}")
+                        : false;
                 }
             }
             else if (opType == IndexOperationType.Delete)

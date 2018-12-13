@@ -17,8 +17,8 @@ namespace Orleans.Indexing.Tests.MultiInterface
 
         // This illustrates implementing the Grain interfaces to get and set the properties.
         #region IPersonInterface
-        public Task<string> GetLocation() => Task.FromResult(this.UnwrappedState.Location);
-        public Task SetLocation(string value) { this.UnwrappedState.Location = value; return Task.CompletedTask; }
+        public Task<string> GetName() => Task.FromResult(this.UnwrappedState.Name);
+        public Task SetName(string value) { this.UnwrappedState.Name = value; return Task.CompletedTask; }
 
         public Task<int> GetAge() => Task.FromResult(this.UnwrappedState.Age);
         public Task SetAge(int value) { this.UnwrappedState.Age = value; return Task.CompletedTask; }
@@ -32,10 +32,15 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public Task SetDepartment(string value) { this.UnwrappedState.Department = value; return Task.CompletedTask; }
         #endregion IJobInterface
 
-        #region IEmployeeState
-        public Task<int> GetTenure() => Task.FromResult(this.UnwrappedState.Tenure);
-        public Task SetTenure(int value) { this.UnwrappedState.Tenure = value; return Task.CompletedTask; }
-        #endregion IEmployeeState
+        #region IEmployeeProperties
+        public Task<int> GetEmployeeId() => Task.FromResult(this.UnwrappedState.EmployeeId);
+        public Task SetEmployeeId(int value) { this.UnwrappedState.EmployeeId = value; return Task.CompletedTask; }
+        #endregion IEmployeeProperties
+
+        #region IEmployeeGrainState - not indexed
+        public Task<int> GetSalary() => Task.FromResult(this.UnwrappedState.Salary);
+        public Task SetSalary(int value) { this.UnwrappedState.Salary = value; return Task.CompletedTask; }
+        #endregion IEmployeeGrainState - not indexed
 
         public Task WriteState() => this.WriteStateAsync();
 

@@ -18,21 +18,16 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public async Task Test_MultiInterface_All()
         {
             const int NumRepsPerTest = 3;
-            IEnumerable<Task> getTasks(Func<IndexingTestRunnerBase, int, Task>[] getTasksFunc)
-            {
-                for (int ii = 0; ii < NumRepsPerTest; ++ii)
-                {
-                    foreach (var task in getTasksFunc.Select(lambda => lambda(this, ii * 1000000)))
-                    {
-                        yield return task;
-                    }
-                }
-            }
+            IEnumerable<Task> getTasks(IEnumerable<Func<IndexingTestRunnerBase, int, Task>> getTasksFuncs)
+                => Enumerable.Range(0, NumRepsPerTest).SelectMany(ii => getTasksFuncs.Select(lambda => lambda(this, ii)));
 
-            await Task.WhenAll(getTasks(MultiInterface_AI_EG_Runner.GetAllTestTasks())
-                    .Concat(getTasks(MultiInterface_AI_LZ_Runner.GetAllTestTasks()))
-                    .Concat(getTasks(MultiInterface_TI_EG_Runner.GetAllTestTasks()))
-                    .Concat(getTasks(MultiInterface_TI_LZ_Runner.GetAllTestTasks())));
+            // Flags for bug diagnosing
+            var testIndexTypes = TestIndexPartitionType.All;
+            //var testIndexTypes = TestIndexPartitionType.PerSilo;
+            await Task.WhenAll(getTasks(MultiInterface_AI_EG_Runner.GetAllTestTasks(testIndexTypes))
+                    .Concat(getTasks(MultiInterface_AI_LZ_Runner.GetAllTestTasks(testIndexTypes)))
+                    .Concat(getTasks(MultiInterface_TI_EG_Runner.GetAllTestTasks(testIndexTypes)))
+                    .Concat(getTasks(MultiInterface_TI_LZ_Runner.GetAllTestTasks(testIndexTypes))));
         }
     }
 }

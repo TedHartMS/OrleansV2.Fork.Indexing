@@ -133,12 +133,12 @@ namespace Orleans.Indexing.Tests
 
         #region MultiInterface
 
-        internal static Tuple<IOrleansQueryable<TIGrain, TProperties>, Func<TIGrain, Task<string>>> QueryByPersonLocation<TIGrain, TProperties>(
+        internal static Tuple<IOrleansQueryable<TIGrain, TProperties>, Func<TIGrain, Task<string>>> QueryByPersonName<TIGrain, TProperties>(
                         this IndexingTestRunnerBase runner, string queryValue)
             where TIGrain : IPersonGrain, IIndexableGrain where TProperties : IPersonProperties
             => Tuple.Create<IOrleansQueryable<TIGrain, TProperties>, Func<TIGrain, Task<string>>>(
-                            from item in QueryActiveGrains<TIGrain, TProperties>(runner) where item.Location == queryValue select item,
-                            entry => entry.GetLocation());
+                            from item in QueryActiveGrains<TIGrain, TProperties>(runner) where item.Name == queryValue select item,
+                            entry => entry.GetName());
 
         internal static Tuple<IOrleansQueryable<TIGrain, TProperties>, Func<TIGrain, Task<int>>> QueryByPersonAge<TIGrain, TProperties>(
                         this IndexingTestRunnerBase runner, int queryValue)
@@ -147,7 +147,7 @@ namespace Orleans.Indexing.Tests
                             from item in QueryActiveGrains<TIGrain, TProperties>(runner) where item.Age == queryValue select item,
                             entry => entry.GetAge());
 
-        // Note: Queries for Job reverse the order of the comparison so that both variations are tested.
+        // Note: Queries for Job and Employee reverse the order of the comparison so that both variations are tested.
         internal static Tuple<IOrleansQueryable<TIGrain, TProperties>, Func<TIGrain, Task<string>>> QueryByJobTitle<TIGrain, TProperties>(
                         this IndexingTestRunnerBase runner, string queryValue)
             where TIGrain : IJobGrain, IIndexableGrain where TProperties : IJobProperties
@@ -162,9 +162,16 @@ namespace Orleans.Indexing.Tests
                             from item in QueryActiveGrains<TIGrain, TProperties>(runner) where queryValue == item.Department select item,
                             entry => entry.GetDepartment());
 
-        internal static Task<int> GetPersonLocationCount<TIGrain, TProperties>(this IndexingTestRunnerBase runner, string location, int delayInMilliseconds = 0)
+        internal static Tuple<IOrleansQueryable<TIGrain, TProperties>, Func<TIGrain, Task<int>>> QueryByEmployeeId<TIGrain, TProperties>(
+                        this IndexingTestRunnerBase runner, int queryValue)
+            where TIGrain : IEmployeeGrain, IIndexableGrain where TProperties : IEmployeeProperties
+            => Tuple.Create<IOrleansQueryable<TIGrain, TProperties>, Func<TIGrain, Task<int>>>(
+                            from item in QueryActiveGrains<TIGrain, TProperties>(runner) where item.EmployeeId == queryValue select item,
+                            entry => entry.GetEmployeeId());
+
+        internal static Task<int> GetNameCount<TIGrain, TProperties>(this IndexingTestRunnerBase runner, string name, int delayInMilliseconds = 0)
             where TIGrain : IPersonGrain, IIndexableGrain where TProperties : IPersonProperties
-            => runner.CountItemsStreamingIn((r, v) => r.QueryByPersonLocation<TIGrain, TProperties>(v), nameof(IPersonProperties.Location), location, delayInMilliseconds);
+            => runner.CountItemsStreamingIn((r, v) => r.QueryByPersonName<TIGrain, TProperties>(v), nameof(IPersonProperties.Name), name, delayInMilliseconds);
 
         internal static Task<int> GetPersonAgeCount<TIGrain, TProperties>(this IndexingTestRunnerBase runner, int age, int delayInMilliseconds = 0)
             where TIGrain : IPersonGrain, IIndexableGrain where TProperties : IPersonProperties
@@ -177,6 +184,10 @@ namespace Orleans.Indexing.Tests
         internal static Task<int> GetJobDepartmentCount<TIGrain, TProperties>(this IndexingTestRunnerBase runner, string department, int delayInMilliseconds = 0)
             where TIGrain : IJobGrain, IIndexableGrain where TProperties : IJobProperties
             => runner.CountItemsStreamingIn((r, v) => r.QueryByJobDepartment<TIGrain, TProperties>(v), nameof(IJobProperties.Department), department, delayInMilliseconds);
+
+        internal static Task<int> GetEmployeeIdCount<TIGrain, TProperties>(this IndexingTestRunnerBase runner, int id, int delayInMilliseconds = 0)
+            where TIGrain : IEmployeeGrain, IIndexableGrain where TProperties : IEmployeeProperties
+            => runner.CountItemsStreamingIn((r, v) => r.QueryByEmployeeId<TIGrain, TProperties>(v), nameof(IEmployeeProperties.EmployeeId), id, delayInMilliseconds);
 
         #endregion MultiInterface
     }

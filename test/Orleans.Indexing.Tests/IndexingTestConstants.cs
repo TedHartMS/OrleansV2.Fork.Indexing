@@ -1,3 +1,5 @@
+using Orleans.Indexing.Tests.MultiInterface;
+
 namespace Orleans.Indexing.Tests
 {
     public static class IndexingTestConstants
@@ -16,10 +18,12 @@ namespace Orleans.Indexing.Tests
         public const string Tehran = "Tehran";
         public const string Yazd = "Yazd";
 
-        public const string LocationProperty = "Location";
-        public const string AgeProperty = "Age";
-        public const string TitleProperty = "Title";
-        public const string DepartmentProperty = "Department";
+        public const string LocationProperty = nameof(IPlayerProperties.Location);
+        public const string NameProperty = nameof(IPersonProperties.Name);
+        public const string AgeProperty = nameof(IPersonProperties.Age);
+        public const string TitleProperty = nameof(IJobProperties.Title);
+        public const string DepartmentProperty = nameof(IJobProperties.Department);
+        public const string EmployeeIdProperty = nameof(IEmployeeProperties.EmployeeId);
 
         public const string UniqueIntProperty = "UniqueInt";
         public const string UniqueStringProperty = "UniqueString";
