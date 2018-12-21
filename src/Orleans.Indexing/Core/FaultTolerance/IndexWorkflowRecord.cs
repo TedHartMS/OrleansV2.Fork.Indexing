@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Orleans.Indexing
@@ -31,7 +31,7 @@ namespace Orleans.Indexing
         public override bool Equals(object other)
             => other is IndexWorkflowRecord otherW ? WorkflowId.Equals(otherW.WorkflowId) : false;
 
-        public override int GetHashCode() => WorkflowId.GetHashCode();
+        public override int GetHashCode() => WorkflowId.GetInvariantHashCode();
 
         public override string ToString() => string.Format("<Grain: {0}, WorkflowId: {1}>", Grain, WorkflowId);
     }

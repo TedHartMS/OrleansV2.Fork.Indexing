@@ -12,7 +12,7 @@ namespace Orleans.Indexing.Tests
     /// <summary>
     /// A simple grain that represent a player in a game
     /// </summary>
-    [StorageProvider(ProviderName = "GrainStore")]
+    [StorageProvider(ProviderName = IndexingTestConstants.GrainStore)]
     public class Player4Grain : PlayerGrain<Player4GrainState, Player4Properties>, IPlayer4Grain
     {
     }

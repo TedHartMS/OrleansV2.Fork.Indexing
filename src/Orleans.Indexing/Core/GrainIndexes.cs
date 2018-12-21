@@ -29,7 +29,7 @@ namespace Orleans.Indexing
 
         internal static bool CreateInstance(IndexRegistry registry, Type grainType, out GrainIndexes grainIndexes)
         {
-            grainIndexes = registry.TryGetGrainIndexes(grainType, out Type[] indexedInterfaces)
+            grainIndexes = registry.TryGetGrainIndexedInterfaces(grainType, out Type[] indexedInterfaces)
                             ? new GrainIndexes(registry, indexedInterfaces, registry.GetNullPropertyValuesForGrain(grainType))
                             : null;
             return grainIndexes != null;

@@ -52,16 +52,14 @@ namespace Orleans.Indexing.Facets
         /// </remarks>
         Task WriteAsync();
 
-        #region TODO obsolete; remove
         /// <summary>
-        /// This method returns the set of active work-flow IDs for a Total Index
+        /// This method returns the set of active work-flow IDs for a fault-tolerant Total Index
         /// </summary>
         Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsSet();
 
         /// <summary>
-        /// This method removes a work-flow ID from the list of active work-flow IDs for a Total Index
+        /// This method removes a work-flow ID from the list of active work-flow IDs for a fault-tolerant Total Index
         /// </summary>
         Task RemoveFromActiveWorkflowIds(HashSet<Guid> removedWorkflowId);
-        #endregion TODO obsolete; remove
     }
 }

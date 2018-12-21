@@ -70,7 +70,7 @@ namespace Orleans.Indexing
             Type[] interfaces = grainClassType.GetInterfaces();
             bool? grainIndexesAreEager = null;
 
-            // If there is an interface that directly extends IIndexableGrain<TProperties>...
+            // If there is an interface that directly extends IIndexableGrain<TProperties>... TODO: Add support for stateless grains
             var indexableInterfaces = interfaces.Where(itf => itf.IsGenericType && itf.GetGenericTypeDefinition() == typeof(IIndexableGrain<>)).ToArray();
             if (indexableInterfaces.Length == 0)
             {
@@ -152,6 +152,8 @@ namespace Orleans.Indexing
                     var indexType = (Type)indexTypeProperty.GetValue(indexAttr);
                     if (indexType.IsGenericTypeDefinition)
                     {
+                        // For the (Active|Total) constructors that take (Active|Total)IndexType parameters, leaving the indexType's key type and interface type
+                        // generic arguments as "<,>", this fills them in.
                         indexType = indexType.MakeGenericType(propInfo.PropertyType, userDefinedIGrain);
                     }
 
@@ -299,9 +301,9 @@ namespace Orleans.Indexing
                 return true;
             }
 
-            if (isUnique && indexAttrs.Length == 0)
+            if (indexAttrs.Length == 0)
             {
-                errorMessage = $"Must specify a NullValue attribute for non-nullable property {propInfo.Name} that participates in a unique index";
+                errorMessage = $"Must specify a NullValue attribute for non-nullable property {propInfo.Name}";
                 return false;
             }
 

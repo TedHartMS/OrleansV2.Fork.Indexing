@@ -6,7 +6,7 @@ namespace Orleans.Indexing.Tests
     [Serializable]
     public class PlayerChain1Properties : IPlayerProperties
     {
-        [Index(IsEager = true)]
+        [Index(IsEager = true, NullValue = "0")]
         public int Score { get; set; }
         
         [ActiveIndex(ActiveIndexType.HashIndexSingleBucket, IsEager = true, MaxEntriesPerBucket = 5)]

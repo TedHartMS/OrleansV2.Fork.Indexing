@@ -29,11 +29,7 @@ namespace Orleans.Indexing.Tests
             }
 
             hostBuilder.AddMemoryGrainStorage(IndexingTestConstants.GrainStore)
-                       .AddMemoryGrainStorage(IndexingTestConstants.MemoryStore)
-                       .AddMemoryGrainStorage("PubSubStore") // PubSubStore service is run for silo startup
-                       .AddMemoryGrainStorage(IndexingConstants.INDEXING_WORKFLOWQUEUE_STORAGE_PROVIDER_NAME)
-                       .AddMemoryGrainStorage(IndexingConstants.INDEXING_STORAGE_PROVIDER_NAME)
-                       .AddSimpleMessageStreamProvider(IndexingConstants.INDEXING_STREAM_PROVIDER_NAME)
+                       .AddMemoryGrainStorage("PubSubStore") // PubSubStore service is needed for the streams underlying OrleansQueryResults
                        .ConfigureLogging(loggingBuilder =>
                        {
                            loggingBuilder.SetMinimumLevel(LogLevel.Information);
@@ -64,8 +60,7 @@ namespace Orleans.Indexing.Tests
 
         internal static IClientBuilder Configure(IClientBuilder clientBuilder)
         {
-            return clientBuilder.AddSimpleMessageStreamProvider(IndexingConstants.INDEXING_STREAM_PROVIDER_NAME)
-                                .ConfigureLogging(loggingBuilder =>
+            return clientBuilder.ConfigureLogging(loggingBuilder =>
                                 {
                                     loggingBuilder.SetMinimumLevel(LogLevel.Information);
                                     loggingBuilder.AddDebug();
