@@ -6,7 +6,6 @@ namespace Orleans.Indexing.Tests
     {
         // storage providers
         public const string GrainStore = "GrainStore";
-        public const string MemoryStore = "MemoryStore";
         public const string CosmosDBGrainStorage = "CosmosDBGrainStorage";
 
         public const string Seattle = "Seattle";

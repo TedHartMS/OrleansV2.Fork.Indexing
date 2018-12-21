@@ -1,5 +1,6 @@
 using Orleans.Providers;
 using System.Threading.Tasks;
+using Orleans.Concurrency;
 using Orleans.Indexing.Facets;
 using System;
 
@@ -54,11 +55,10 @@ namespace Orleans.Indexing.Tests.MultiInterface
         protected override Task WriteStateAsync() => this.indexWriter.WriteAsync();
         #endregion Facet methods - required overrides of Grain<TGrainState>
 
-        // TODO remove when facetization complete; for now it just makes the compiler happy
+        // TODO remove when facetization is complete; for now it just makes the compiler happy
         public Task<object> ExtractIndexImage(IIndexUpdateGenerator iUpdateGen) => throw new NotImplementedException();
 
-        // TODO: try to remove this shim from the user-visible grain
-        public Task<Concurrency.Immutable<System.Collections.Generic.HashSet<Guid>>> GetActiveWorkflowIdsSet() => this.indexWriter.GetActiveWorkflowIdsSet();
+        public Task<Immutable<System.Collections.Generic.HashSet<Guid>>> GetActiveWorkflowIdsSet() => this.indexWriter.GetActiveWorkflowIdsSet();
         public Task RemoveFromActiveWorkflowIds(System.Collections.Generic.HashSet<Guid> removedWorkflowId) => this.indexWriter.RemoveFromActiveWorkflowIds(removedWorkflowId);
     }
 }

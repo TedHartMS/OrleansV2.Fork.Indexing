@@ -1,15 +1,16 @@
 using System;
 using System.Net;
 using System.Threading.Tasks;
-using HelloWorld.Grains;
+using SportsTeamIndexing.Grains;
 using Microsoft.Extensions.Logging;
 using Orleans;
 using Orleans.Configuration;
 using Orleans.Hosting;
+using Orleans.Indexing;
 
 namespace OrleansSiloHost
 {
-    public class Program
+    public class SiloProgram
     {
         public static int Main(string[] args)
         {
@@ -25,7 +26,6 @@ namespace OrleansSiloHost
                 Console.ReadLine();
 
                 await host.StopAsync();
-
                 return 0;
             }
             catch (Exception ex)
@@ -39,16 +39,20 @@ namespace OrleansSiloHost
         {
             // define the cluster configuration
             var builder = new SiloHostBuilder()
-                .AddMemoryGrainStorage("MemoryStorage")
-                .UseLocalhostClustering(gatewayPort: 30001)
+                .AddMemoryGrainStorage(SportsTeamGrain.GrainStore)
+                .AddMemoryGrainStorage("PubSubStore") // PubSubStore service is needed for the streams underlying OrleansQueryResults
+                .UseLocalhostClustering(gatewayPort: 30002)
                 .Configure<ClusterOptions>(options =>
                 {
                     options.ClusterId = "dev";
-                    options.ServiceId = "HelloWorldApp";
+                    options.ServiceId = "SportsTeamIndexingApp";
                 })
                 .Configure<EndpointOptions>(options => options.AdvertisedIPAddress = IPAddress.Loopback)
-                .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(HelloGrain).Assembly).WithReferences())
-                .ConfigureLogging(logging => logging.AddConsole());
+                .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(SportsTeamGrain).Assembly).WithReferences())
+                .ConfigureLogging(logging => logging.AddConsole())
+                .UseIndexing();
+
+            var pid = System.Diagnostics.Process.GetCurrentProcess().Id;
 
             var host = builder.Build();
             await host.StartAsync();

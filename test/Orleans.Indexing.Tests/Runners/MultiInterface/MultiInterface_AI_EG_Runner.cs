@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 using Orleans.Indexing.Facets;
-using System.Linq;
 using System.Collections.Generic;
 
 namespace Orleans.Indexing.Tests.MultiInterface

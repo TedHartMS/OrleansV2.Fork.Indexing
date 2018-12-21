@@ -13,17 +13,18 @@ namespace Orleans.Indexing
         /// Configure silo to use indexing using a configure action.
         /// </summary>
         public static ISiloHostBuilder UseIndexing(this ISiloHostBuilder builder, Action<IndexingOptions> configureOptions)
-        {
-            return builder.ConfigureServices(services => services.UseIndexing(ob => ob.Configure(configureOptions)))
-                .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(SiloBuilderExtensions).Assembly));
-        }
+            => UseIndexing(builder, ob => ob.Configure(configureOptions));
 
         /// <summary>
         /// Configure silo to use indexing using a configuration builder.
         /// </summary>
         public static ISiloHostBuilder UseIndexing(this ISiloHostBuilder builder, Action<OptionsBuilder<IndexingOptions>> configureAction = null)
         {
-            return builder.ConfigureServices(services => services.UseIndexing(configureAction))
+            return builder.AddSimpleMessageStreamProvider(IndexingConstants.INDEXING_STREAM_PROVIDER_NAME)
+                .AddMemoryGrainStorage(IndexingConstants.INDEXING_WORKFLOWQUEUE_STORAGE_PROVIDER_NAME)
+                .AddMemoryGrainStorage(IndexingConstants.INDEXING_STORAGE_PROVIDER_NAME)
+                .AddMemoryGrainStorage(IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)
+                .ConfigureServices(services => services.UseIndexing(configureAction))
                 .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(SiloBuilderExtensions).Assembly));
         }
 

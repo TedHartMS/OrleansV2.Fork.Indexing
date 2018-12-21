@@ -160,5 +160,30 @@ namespace Orleans.Indexing
                 ? Enumerable.Empty<T>()
                 : from item in items where item != null select item;
         }
+
+        internal static int GetInvariantHashCode(this object item)
+            => (item is string stringItem) ? GetInvariantStringHashCode(stringItem) : item.GetHashCode();
+
+        internal static int GetInvariantStringHashCode(this string item)
+        {
+            // NetCore randomizes string.GetHashCode() per-appdomain, to prevent hash flooding.
+            // Therefore it's important to verify for each call site that this isn't a concern.
+            // This is a non-unsafe/unchecked version of (internal) string.GetLegacyNonRandomizedHashCode().
+            unchecked
+            {
+                int hash1 = (5381 << 16) + 5381;
+                int hash2 = hash1;
+
+                for (var ii = 0; ii < item.Length; ii += 2)
+                {
+                    hash1 = ((hash1 << 5) + hash1) ^ item[ii];
+                    if (ii < item.Length - 1)
+                    {
+                        hash2 = ((hash2 << 5) + hash2) ^ item[ii + 1];
+                    }
+                }
+                return hash1 + (hash2 * 1566083941);
+            }
+        }
     }
 }
