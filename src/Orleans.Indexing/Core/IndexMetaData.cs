@@ -30,27 +30,6 @@ namespace Orleans.Indexing
             this._maxEntriesPerBucket = maxEntriesPerBucket;
         }
 
-#if false // TODO not used? IsStatelessWorker
-        /// <summary>
-        /// Determines whether the index grain is a stateless worker or not. This piece of information can impact the relationship
-        /// between index handlers and the index. 
-        /// </summary>
-        /// <returns>the result of whether the current index is
-        /// a stateless worker or not</returns>
-        public bool IsIndexStatelessWorker => IsStatelessWorker(Type.GetType(TypeCodeMapper.GetImplementation(this._indexType).GrainClass));
-
-        /// <summary>
-        /// A helper function that determines whether a given grain type is annotated with StatelessWorker annotation or not.
-        /// </summary>
-        /// <param name="grainType">the grain type to be tested</param>
-        /// <returns>true if the grain type has StatelessWorker annotation, otherwise false.</returns>
-        private static bool IsStatelessWorker(Type grainType)
-        {
-            bool hasStatelessWorkerAttribute(Type t) => t.GetCustomAttributes(typeof(StatelessWorkerAttribute), true).Length > 0;
-            return hasStatelessWorkerAttribute(grainType) || grainType.GetInterfaces().Any(i => hasStatelessWorkerAttribute(i));
-        }
-#endif
-
         internal string IndexName { get; }
 
         public bool IsUniqueIndex { get; }
