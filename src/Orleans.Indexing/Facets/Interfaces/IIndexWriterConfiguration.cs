@@ -1,4 +1,4 @@
-namespace Orleans.Indexing.Facets
+namespace Orleans.Indexing.Facet
 {
     /// <summary>
     /// Per-instance configuration information. The <see cref="FaultTolerantWorkflowIndexWriterAttribute"/>

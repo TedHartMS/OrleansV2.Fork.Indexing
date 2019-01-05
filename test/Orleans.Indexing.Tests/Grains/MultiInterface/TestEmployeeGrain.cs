@@ -1,7 +1,7 @@
 using Orleans.Providers;
 using System.Threading.Tasks;
 using Orleans.Concurrency;
-using Orleans.Indexing.Facets;
+using Orleans.Indexing.Facet;
 using System;
 
 namespace Orleans.Indexing.Tests.MultiInterface

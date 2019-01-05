@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Orleans.Concurrency;
 
-namespace Orleans.Indexing.Facets
+namespace Orleans.Indexing.Facet
 {
     /// <summary>
     /// The base interface definition for a class that implements the indexing facet of a grain.
@@ -53,12 +53,12 @@ namespace Orleans.Indexing.Facets
         Task WriteAsync();
 
         /// <summary>
-        /// This method returns the set of active work-flow IDs for a fault-tolerant Total Index
+        /// This method returns the set of active workflow IDs for a fault-tolerant Total Index
         /// </summary>
         Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsSet();
 
         /// <summary>
-        /// This method removes a work-flow ID from the list of active work-flow IDs for a fault-tolerant Total Index
+        /// This method removes a workflow ID from the list of active workflow IDs for a fault-tolerant Total Index
         /// </summary>
         Task RemoveFromActiveWorkflowIds(HashSet<Guid> removedWorkflowId);
     }

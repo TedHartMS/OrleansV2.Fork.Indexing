@@ -38,7 +38,7 @@ namespace Orleans.Indexing
         private IGrainStorage StorageProvider => __grainStorage ?? GetGrainStorage();
 
         private int _queueSeqNum;
-        private Type _iGrainType;
+        private Type _grainInterfaceType;
 
         private bool HasAnyTotalIndex => GetHasAnyTotalIndex();
         private bool? __hasAnyTotalIndex = null;
@@ -81,7 +81,7 @@ namespace Orleans.Indexing
                                         bool isDefinedAsFaultTolerantGrain, Func<GrainReference> parentFunc)
         {
             queueState = new IndexWorkflowQueueState(silo);
-            _iGrainType = grainInterfaceType;
+            _grainInterfaceType = grainInterfaceType;
             _queueSeqNum = queueSequenceNumber;
 
             _workflowRecordsTail = null;
@@ -103,8 +103,8 @@ namespace Orleans.Indexing
         private IIndexWorkflowQueueHandler InitWorkflowQueueHandler() 
             => __handler = _lazyParent.Value.IsGrainService
                 ? _siloIndexManager.GetGrainService<IIndexWorkflowQueueHandler>(
-                        IndexWorkflowQueueHandlerBase.CreateIndexWorkflowQueueHandlerGrainReference(_siloIndexManager, _iGrainType, _queueSeqNum, _silo))
-                : _siloIndexManager.GrainFactory.GetGrain<IIndexWorkflowQueueHandler>(CreateIndexWorkflowQueuePrimaryKey(_iGrainType, _queueSeqNum));
+                        IndexWorkflowQueueHandlerBase.CreateIndexWorkflowQueueHandlerGrainReference(_siloIndexManager, _grainInterfaceType, _queueSeqNum, _silo))
+                : _siloIndexManager.GrainFactory.GetGrain<IIndexWorkflowQueueHandler>(CreateIndexWorkflowQueuePrimaryKey(_grainInterfaceType, _queueSeqNum));
 
         public Task AddAllToQueue(Immutable<List<IndexWorkflowRecord>> workflowRecords)
         {
@@ -173,10 +173,10 @@ namespace Orleans.Indexing
 
         private IndexWorkflowRecordNode AddPunctuationAt(int batchSize)
         {
-            if (_workflowRecordsTail == null) throw new WorkflowIndexException("Adding a punctuation to an empty work-flow queue is not possible.");
+            if (_workflowRecordsTail == null) throw new WorkflowIndexException("Adding a punctuation to an empty workflow queue is not possible.");
 
             var punctuationHead = queueState.State.WorkflowRecordsHead;
-            if (punctuationHead.IsPunctuation) throw new WorkflowIndexException("The element at the head of work-flow queue cannot be a punctuation.");
+            if (punctuationHead.IsPunctuation) throw new WorkflowIndexException("The element at the head of workflow queue cannot be a punctuation.");
 
             if (batchSize == int.MaxValue)
             {
@@ -239,7 +239,7 @@ namespace Orleans.Indexing
                     _pendingWriteRequests.Clear();
 
                     //write the state back to the storage
-                    string grainType = "Orleans.Indexing.IndexWorkflowQueue-" + IndexUtils.GetFullTypeName(_iGrainType);
+                    string grainType = "Orleans.Indexing.IndexWorkflowQueue-" + IndexUtils.GetFullTypeName(_grainInterfaceType);
                     var saveETag = this.queueState.ETag;
                     try
                     {
@@ -262,11 +262,11 @@ namespace Orleans.Indexing
             List<IndexWorkflowRecord> removedWorkflows = RemoveFromQueueUntilPunctuation(queueState.State.WorkflowRecordsHead);
             if (IsFaultTolerant)
             {
-                //The task of removing the work-flow record IDs from the grain runs in parallel with persisting the state. At this point, there
-                //is a possibility that some work-flow record IDs do not get removed from the indexable grains while the work-flow record is removed
-                //from the queue. This is fine, because having some dangling work-flow IDs in some indexable grains is harmless.
-                //TODO: add a garbage collector that runs once in a while and removes the dangling work-flow IDs (i.e., the work-flow IDs that exist in the
-                //      indexable grain, but its corresponding work-flow record does not exist in the work-flow queue.
+                //The task of removing the workflow record IDs from the grain runs in parallel with persisting the state. At this point, there
+                //is a possibility that some workflow record IDs do not get removed from the indexable grains while the workflow record is removed
+                //from the queue. This is fine, because having some dangling workflow IDs in some indexable grains is harmless.
+                //TODO: add a garbage collector that runs once in a while and removes the dangling workflow IDs (i.e., the workflow IDs that exist in the
+                //      indexable grain, but its corresponding workflow record does not exist in the workflow queue.
                 //Task.WhenAll(
                 //    RemoveWorkflowRecordsFromIndexableGrains(removedWorkflows),
                 PersistState(//)
@@ -289,7 +289,7 @@ namespace Orleans.Indexing
         {
             if (!__hasAnyTotalIndex.HasValue)
             {
-                __hasAnyTotalIndex = _siloIndexManager.IndexFactory.GetGrainIndexes(_iGrainType).HasAnyTotalIndex;
+                __hasAnyTotalIndex = _siloIndexManager.IndexFactory.GetGrainIndexes(_grainInterfaceType).HasAnyTotalIndex;
             }
             return __hasAnyTotalIndex.Value;
         }

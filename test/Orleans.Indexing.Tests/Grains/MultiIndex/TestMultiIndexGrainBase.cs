@@ -21,7 +21,7 @@ namespace Orleans.Indexing.Tests
             this.writeStateFunc = wsf;
             this.readStateFunc = rsf;
 
-            Type propertiesType = typeof(TProps);
+            var propertiesType = typeof(TProps);
             Assert.True(propertiesType.IsClass);
 
             bool isIndexed(string propertyName)
@@ -40,13 +40,7 @@ namespace Orleans.Indexing.Tests
 
         internal async Task SetProperty<T>(Action<T> setter, T value, bool retry)
         {
-            await IndexingTestUtils.SetProperty(setter, value, this.writeStateFunc, this.readStateFunc, retry);
-        }
-
-        internal Task SetPropertyWithoutWrite<T>(Action<T> setter, T value)
-        {
-            setter(value);
-            return Task.CompletedTask;
+            await IndexingTestUtils.SetPropertyAndWriteStateAsync(setter, value, this.writeStateFunc, this.readStateFunc, retry);
         }
     }
 }

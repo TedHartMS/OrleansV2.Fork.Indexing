@@ -2,7 +2,6 @@ using Xunit.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Orleans.TestingHost;
-using Orleans.Indexing.Facets;
 using Orleans.Indexing.Tests.MultiInterface;
 using System.Threading.Tasks;
 using System.Linq;

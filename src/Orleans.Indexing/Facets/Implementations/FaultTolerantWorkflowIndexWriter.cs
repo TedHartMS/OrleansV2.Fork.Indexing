@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Orleans.Concurrency;
 
-namespace Orleans.Indexing.Facets
+namespace Orleans.Indexing.Facet
 {
     public class FaultTolerantWorkflowIndexWriter<TGrainState> : NonFaultTolerantWorkflowIndexWriter<TGrainState>,
                                                                  IFaultTolerantWorkflowIndexWriter<TGrainState> where TGrainState : class, new()
@@ -120,9 +120,9 @@ namespace Orleans.Indexing.Facets
         }
 
         /// <summary>
-        /// Handles the remaining work-flows of the grain 
+        /// Handles the remaining workflows of the grain 
         /// </summary>
-        /// <returns>the actual list of work-flow record IDs that were available in the queue(s)</returns>
+        /// <returns>the actual list of workflow record IDs that were available in the queue(s)</returns>
         private Task<IEnumerable<Guid>> HandleRemainingWorkflows()
         {
             // A copy of WorkflowQueues is required, because we want to iterate over it and add/remove elements from/to it.
@@ -132,25 +132,25 @@ namespace Orleans.Indexing.Facets
         }
 
         /// <summary>
-        /// Handles the remaining work-flows of a specific grain interface of the grain
+        /// Handles the remaining workflows of a specific grain interface of the grain
         /// </summary>
-        /// <param name="iGrainType">the grain interface type being indexed</param>
-        /// <param name="oldWorkflowQ">the previous work-flow queue responsible for handling the updates</param>
-        /// <returns>the actual list of work-flow record IDs that were available in this queue</returns>
-        private async Task<IEnumerable<Guid>> HandleRemainingWorkflows(Type iGrainType, IIndexWorkflowQueue oldWorkflowQ)
+        /// <param name="grainInterfaceType">the grain interface type being indexed</param>
+        /// <param name="oldWorkflowQ">the previous workflow queue responsible for handling the updates</param>
+        /// <returns>the actual list of workflow record IDs that were available in this queue</returns>
+        private async Task<IEnumerable<Guid>> HandleRemainingWorkflows(Type grainInterfaceType, IIndexWorkflowQueue oldWorkflowQ)
         {
-            // Keeps the reference to the reincarnated work-flow queue, if the original work-flow queue (GrainService) did not respond.
+            // Keeps the reference to the reincarnated workflow queue, if the original workflow queue (GrainService) did not respond.
             IIndexWorkflowQueue reincarnatedOldWorkflowQ = null;
 
-            // Keeps the list of work-flow records from the old work-flow queue.
+            // Keeps the list of workflow records from the old workflow queue.
             Immutable<List<IndexWorkflowRecord>> remainingWorkflows;
 
-            // First, we remove the work-flow queue associated with iGrainType (i.e., oldWorkflowQ) so that another call to get the
-            // workflow queue for iGrainType gets the new work-flow queue responsible for iGrainType (otherwise oldWorkflowQ is returned).
-            this.WorkflowQueues.Remove(iGrainType);
-            var newWorkflowQ = this.GetWorkflowQueue(iGrainType);
+            // First, we remove the workflow queue associated with grainInterfaceType (i.e., oldWorkflowQ) so that another call to get the
+            // workflow queue for grainInterfaceType gets the new workflow queue responsible for grainInterfaceType (otherwise oldWorkflowQ is returned).
+            this.WorkflowQueues.Remove(grainInterfaceType);
+            var newWorkflowQ = this.GetWorkflowQueue(grainInterfaceType);
 
-            // If the same work-flow queue is responsible we just check what work-flow records are still in process
+            // If the same workflow queue is responsible we just check what workflow records are still in process
             if (newWorkflowQ.Equals(oldWorkflowQ))
             {
                 remainingWorkflows = await oldWorkflowQ.GetRemainingWorkflowsIn(this.ActiveWorkflowsSet);
@@ -159,29 +159,29 @@ namespace Orleans.Indexing.Facets
                     return remainingWorkflows.Value.Select(w => w.WorkflowId);
                 }
             }
-            else //the work-flow queue responsible for iGrainType has changed
+            else //the workflow queue responsible for grainInterfaceType has changed
             {
                 try
                 {
-                    // We try to contact the original oldWorkflowQ to get the list of remaining work-flow records
+                    // We try to contact the original oldWorkflowQ to get the list of remaining workflow records
                     // in order to pass their responsibility to newWorkflowQ.
                     remainingWorkflows = await oldWorkflowQ.GetRemainingWorkflowsIn(this.ActiveWorkflowsSet);
                 }
                 catch //the corresponding workflowQ is down, we should ask its reincarnated version
                 {
                     // If anything bad happened, it means that oldWorkflowQ is not reachable.
-                    // Then we get our hands to reincarnatedOldWorkflowQ to get the list of remaining work-flow records.
+                    // Then we get our hands to reincarnatedOldWorkflowQ to get the list of remaining workflow records.
                     reincarnatedOldWorkflowQ = await this.GetReincarnatedWorkflowQueue(oldWorkflowQ);
                     remainingWorkflows = await reincarnatedOldWorkflowQ.GetRemainingWorkflowsIn(this.ActiveWorkflowsSet);
                 }
 
-                // If any work-flow is remaining unprocessed...
+                // If any workflow is remaining unprocessed...
                 if (remainingWorkflows.Value != null && remainingWorkflows.Value.Count > 0)
                 {
                     // Give the responsibility of handling the remaining workflow records to the newWorkflowQ.
                     await newWorkflowQ.AddAllToQueue(remainingWorkflows);
 
-                    // Check which was the target old work-flow queue that responded to our request.
+                    // Check which was the target old workflow queue that responded to our request.
                     var targetOldWorkflowQueue = reincarnatedOldWorkflowQ ?? oldWorkflowQ;
 
                     // It's good that we remove the workflows from the queue, but we really don't have to wait for them.
@@ -190,7 +190,7 @@ namespace Orleans.Indexing.Facets
                     return remainingWorkflows.Value.Select(w => w.WorkflowId);
                 }
             }
-            // If there are no remaining work-flow records, an empty Enumerable is returned.
+            // If there are no remaining workflow records, an empty Enumerable is returned.
             return Enumerable.Empty<Guid>();
         }
 

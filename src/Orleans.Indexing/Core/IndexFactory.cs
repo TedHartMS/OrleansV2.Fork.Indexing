@@ -5,7 +5,7 @@ using Orleans.Streams;
 using System.Threading.Tasks;
 using System.Linq.Expressions;
 using System.Linq;
-using Orleans.Indexing.Facets;
+using Orleans.Indexing.Facet;
 
 namespace Orleans.Indexing
 {
@@ -34,7 +34,7 @@ namespace Orleans.Indexing
         /// This method queries the active grains for the given grain interface and the filter expression. The filter
         /// expression should contain an indexed field.
         /// </summary>
-        /// <typeparam name="TIGrain">the given grain interface type to query over its active instances</typeparam>
+        /// <typeparam name="TIGrain">the given indexable grain interface type to query over its active instances</typeparam>
         /// <typeparam name="TProperties">the property type to query over</typeparam>
         /// <param name="filterExpr">the filter expression of the query</param>
         /// <param name="queryResultObserver">the observer object to be called on every grain found for the query</param>
@@ -47,7 +47,7 @@ namespace Orleans.Indexing
         /// This method queries the active grains for the given grain interface and the filter expression. The filter
         /// expression should contain an indexed field.
         /// </summary>
-        /// <typeparam name="TIGrain">the given grain interface type to query over its active instances</typeparam>
+        /// <typeparam name="TIGrain">the given indexable grain interface type to query over its active instances</typeparam>
         /// <typeparam name="TProperties">the property type to query over</typeparam>
         /// <param name="streamProvider">the stream provider for the query results</param>
         /// <param name="filterExpr">the filter expression of the query</param>
@@ -60,7 +60,7 @@ namespace Orleans.Indexing
         /// <summary>
         /// This method queries the active grains for the given grain interface.
         /// </summary>
-        /// <typeparam name="TIGrain">the given grain interface type to query over its active instances</typeparam>
+        /// <typeparam name="TIGrain">the given indexable grain interface type to query over its active instances</typeparam>
         /// <typeparam name="TProperty">the property type to query over</typeparam>
         /// <returns>the query to lookup all active grains of a given type</returns>
         public IOrleansQueryable<TIGrain, TProperty> GetActiveGrains<TIGrain, TProperty>() where TIGrain : IIndexableGrain
@@ -69,7 +69,7 @@ namespace Orleans.Indexing
         /// <summary>
         /// This method queries the active grains for the given grain interface.
         /// </summary>
-        /// <typeparam name="TIGrain">the given grain interface type to query over its active instances</typeparam>
+        /// <typeparam name="TIGrain">the given indexable grain interface type to query over its active instances</typeparam>
         /// <typeparam name="TProperty">the property type to query over</typeparam>
         /// <param name="streamProvider">the stream provider for the query results</param>
         /// <returns>the query to lookup all active grains of a given type</returns>

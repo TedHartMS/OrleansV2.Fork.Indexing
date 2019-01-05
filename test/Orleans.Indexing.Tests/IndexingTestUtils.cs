@@ -39,14 +39,7 @@ namespace Orleans.Indexing.Tests
             return observedCount;
         }
 
-        internal static async Task Deactivate(this ITestMultiIndexGrain grain, int delayMs = 0)
-        {
-            // Task.Delay cannot be in the ITestIndexGrain implementation class because Deactivate() is codegen'd to a different thread.
-            await grain.Deactivate();
-            await (delayMs > 0 ? Task.Delay(delayMs) : Task.CompletedTask);
-        }
-
-        internal static async Task SetProperty<T>(Action<T> setter, T value, Func<Task> writeStateFunc, Func<Task>readStateFunc, bool retry)
+        internal static async Task SetPropertyAndWriteStateAsync<T>(Action<T> setter, T value, Func<Task> writeStateFunc, Func<Task>readStateFunc, bool retry)
         {
             const int MaxRetries = 10;
             int retries = 0;

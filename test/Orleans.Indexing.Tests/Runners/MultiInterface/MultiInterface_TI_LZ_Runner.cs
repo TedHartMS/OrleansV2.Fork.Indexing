@@ -3,7 +3,7 @@ using System;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
-using Orleans.Indexing.Facets;
+using Orleans.Indexing.Facet;
 using System.Linq;
 using System.Collections.Generic;
 

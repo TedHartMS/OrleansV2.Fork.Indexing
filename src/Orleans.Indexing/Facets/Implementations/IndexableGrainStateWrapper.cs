@@ -1,6 +1,6 @@
 using System;
 
-namespace Orleans.Indexing.Facets
+namespace Orleans.Indexing.Facet
 {
     /// <summary>
     /// A wrapper around a user-defined state, TState, which indicates whether the grain has been persisted.

@@ -2,7 +2,7 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using Orleans.Runtime;
 
-namespace Orleans.Indexing.Facets
+namespace Orleans.Indexing.Facet
 {
     public class IndexWriterFactory : IIndexWriterFactory
     {
