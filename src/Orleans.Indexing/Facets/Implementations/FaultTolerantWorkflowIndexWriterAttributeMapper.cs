@@ -1,7 +1,7 @@
 using System.Reflection;
 using Orleans.Runtime;
 
-namespace Orleans.Indexing.Facets
+namespace Orleans.Indexing.Facet
 {
     internal class FaultTolerantWorkflowIndexWriterAttributeMapper : IndexWriterAttributeMapperBase,
                                                                      IAttributeToFactoryMapper<FaultTolerantWorkflowIndexWriterAttribute>

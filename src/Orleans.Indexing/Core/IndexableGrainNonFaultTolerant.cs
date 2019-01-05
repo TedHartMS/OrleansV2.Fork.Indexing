@@ -81,7 +81,7 @@ namespace Orleans.Indexing
             return this._props;
         }
 
-        // A cache for the work-flow queues, one for each grain interface type that the current IndexableGrain implements
+        // A cache for the workflow queues, one for each grain interface type that the current IndexableGrain implements
         internal virtual IDictionary<Type, IIndexWorkflowQueue> WorkflowQueues { get; set; }
 
         /// <summary>
@@ -273,7 +273,7 @@ namespace Orleans.Indexing
         /// <summary>
         /// Lazily Applies updates to the indexes defined on this grain
         /// 
-        /// The lazy update involves adding a work-flow record to the corresponding IIndexWorkflowQueue for this grain.
+        /// The lazy update involves adding a workflow record to the corresponding IIndexWorkflowQueue for this grain.
         /// </summary>
         /// <param name="updates">the dictionary of updates for each index</param>
         /// <param name="iGrainTypes">the grain interface type implemented by this grain</param>
@@ -291,7 +291,7 @@ namespace Orleans.Indexing
         /// <summary>
         /// Lazily applies updates to the indexes defined on this grain
         /// 
-        /// The lazy update involves adding a work-flow record to the corresponding IIndexWorkflowQueue for this grain.
+        /// The lazy update involves adding a workflow record to the corresponding IIndexWorkflowQueue for this grain.
         /// </summary>
         /// <param name="updates">the dictionary of updates for each index</param>
         /// <param name="iGrainTypes">the grain interface type implemented by this grain</param>
@@ -531,10 +531,10 @@ namespace Orleans.Indexing
             => throw new NotSupportedException();
 
         /// <summary>
-        /// Find the corresponding work-flow queue for a given grain interface type that the current IndexableGrain implements
+        /// Find the corresponding workflow queue for a given grain interface type that the current IndexableGrain implements
         /// </summary>
         /// <param name="iGrainType">the given grain interface type</param>
-        /// <returns>the work-flow queue corresponding to the iGrainType</returns>
+        /// <returns>the workflow queue corresponding to the iGrainType</returns>
         internal IIndexWorkflowQueue GetWorkflowQueue(Type iGrainType)
         {
             if (this.WorkflowQueues == null)

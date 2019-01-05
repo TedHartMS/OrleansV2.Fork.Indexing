@@ -1,6 +1,6 @@
 using System;
 
-namespace Orleans.Indexing.Facets
+namespace Orleans.Indexing.Facet
 {
     /// <summary>
     /// Marker interface for non-fault-tolerant index writer.

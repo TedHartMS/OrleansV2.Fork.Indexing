@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Orleans.Runtime;
 
-namespace Orleans.Indexing.Facets
+namespace Orleans.Indexing.Facet
 {
     public class NonFaultTolerantWorkflowIndexWriter<TGrainState> : WorkflowIndexWriterBase<TGrainState>,
                                                                     INonFaultTolerantWorkflowIndexWriter<TGrainState> where TGrainState : class, new()
@@ -103,7 +103,7 @@ namespace Orleans.Indexing.Facets
         /// <summary>
         /// Lazily Applies updates to the indexes defined on this grain
         /// 
-        /// The lazy update involves adding a work-flow record to the corresponding IIndexWorkflowQueue for this grain.
+        /// The lazy update involves adding a workflow record to the corresponding IIndexWorkflowQueue for this grain.
         /// </summary>
         /// <param name="updatesByInterface">the dictionary of updates for each index by interface</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

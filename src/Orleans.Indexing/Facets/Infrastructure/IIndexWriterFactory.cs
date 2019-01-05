@@ -1,4 +1,4 @@
-namespace Orleans.Indexing.Facets
+namespace Orleans.Indexing.Facet
 {
     public interface IIndexWriterFactory
     {

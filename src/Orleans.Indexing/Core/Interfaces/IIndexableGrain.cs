@@ -8,7 +8,7 @@ namespace Orleans.Indexing
     /// <summary>
     /// Interface for a grain interface that will "contain" indexed properties. This generic form is
     /// primarily used to extract <typeparamref name="TProperties"/> to obtain the property names for
-    /// index naming and to create the TProperties ephemeral instance for index writing. TODO: Move to Orleans.Indexing.Facets\Interfaces
+    /// index naming and to create the TProperties ephemeral instance for index writing. TODO: Move to Orleans.Indexing.Facet\Interfaces
     /// </summary>
     /// <remarks>
     /// The indexed properties of an <see cref="IIndexableGrain{TProperties}"/> are actually
@@ -37,12 +37,12 @@ namespace Orleans.Indexing
         #endregion TODO obsolete; in Facet it's moved elsewhere
 
         /// <summary>
-        /// This method returns the set of active work-flow IDs for a Total Index
+        /// This method returns the set of active workflow IDs for a Total Index
         /// </summary>
         Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsSet();
 
         /// <summary>
-        /// This method removes a work-flow ID from the list of active work-flow IDs for a Total Index
+        /// This method removes a workflow ID from the list of active workflow IDs for a Total Index
         /// </summary>
         Task RemoveFromActiveWorkflowIds(HashSet<Guid> removedWorkflowId);
     }

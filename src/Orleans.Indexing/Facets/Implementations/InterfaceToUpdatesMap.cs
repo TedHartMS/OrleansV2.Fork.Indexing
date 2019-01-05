@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Orleans.Indexing.Facets
+namespace Orleans.Indexing.Facet
 {
     internal class InterfaceToUpdatesMap: IEnumerable<KeyValuePair<Type, IReadOnlyDictionary<string, IMemberUpdate>>>
     {

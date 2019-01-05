@@ -56,13 +56,13 @@
 ## Overview of Indexing
 Indexing is defined at two levels: at the application level as property attributes on application properties classes, and by implementation classes supplied by Orleans to either update the indexes created from these attributes, or to translate LINQ queries into the retrieval of grains keyed by these indexes.
 
-In this discussion, `TProperties` refers to application-level classes containing properties to be indexed (which are marked with `IndexAttribute` or a subclass). `TIProperties` refers to an underlying interface for such a class. `TGrainState` refers to the state parameter of `Grain<TGrainState`, which an indexed grain usually inherits from. `TIIndexableGrain` refers to an interface that has been marked as indexable (details below).
+In this discussion, generic type arguments are prefaced with 'T'. `TProperties` is the type of an application-level class containing properties to be indexed (which are marked with `IndexAttribute` or a subclass). `TIProperties` is the type of an underlying interface for such a class. `TGrainState` is the type of the state parameter of `Grain<TGrainState>`, which an indexed grain inherits from. `TIIndexableGrain` is the type of an interface that has been marked as indexable (details below).
 
 The examples in this discussion use the SportsTeamIndexing sample at Samples\2.1\SportsTeamIndexing. View the readme.md in that directory for instructions on running the sample. The SportsTeamIndexing.Interfaces project defines the grain and properties interfaces (and property classes, because the grain interface definition requires the property class definition), the SportsTeamIndexing.Grains directory defines the Grain (and GrainState) classes, and OrleansClient\ClientProgram.cs creates and queries the indexed grains.
 
-The SportsTeamIndexing sample is intended to be simple, and implements only a single indexed interface on the SportsTeamGrain. More complicated scenarios that implmement multiple indexed interfaces on a single grain are also supported. This discussion will also refer to the Indexing Unit Tests for MultipleInterface, which implement three indexed interfaces on TestEmployeeGrain; those interfaces use TProperties classes that implement IPersonProperties, IJobProperties, and IEmployeeProperties. These classes are defined in test\Orleans.Indexing.Tests\Grains\MultiInterface.
+The SportsTeamIndexing sample is intended to be simple, and implements only a single indexed interface on the SportsTeamGrain. More complicated scenarios that implement multiple indexed interfaces on a single grain are also supported. This discussion will also refer to the Indexing Unit Tests for MultipleInterface, which implement three indexed interfaces on TestEmployeeGrain; those interfaces use TProperties classes that implement IPersonProperties, IJobProperties, and IEmployeeProperties. These classes are defined in test\Orleans.Indexing.Tests\Grains\MultiInterface.
 
-Transactional indexes are not yet defined; some references are here as best-guess placeholders.
+Transactional indexes are not yet defined; some references are here as currently best-guess placeholders.
 ## Application Level
 This section describes the indexing interface that is presented to the application developer.
 ### Application Properties Classes
@@ -77,7 +77,7 @@ Applications define the data classes whose properties are indexed, for example:
     }
 ```
 #### Property Attributes
-As shown above, an index on a property is defined by placing an attribute on it. While we support placing annotations on multiple properties in a `TProperties` class, each annotation is a separate index; we currently do not support true compound indexes (they may be simulated by using computed properties such as QualifiedName in the sample). The name of the index is derived from the property name; e.g., the Location property will result in the creation of an index currently named "__Location", under the interface deriving from `IIndexableGrain<TProperties>`. In the sample, the Interface is ISportsTeamGrain, which implements `IIndexableGrain<SportsTeamIndexedProperties>`. Details of the indexable interface are presented below.
+As shown above, an index on a property is defined by placing an attribute on it. While we support placing annotations on multiple properties in a `TProperties` class, each annotation defines a separate index; we currently do not support true compound indexes (they can be simulated by using computed properties such as QualifiedName in the sample). The name of the index is derived from the property name; e.g., the Location property will result in the creation of an index currently named "__Location", under the interface deriving from `IIndexableGrain<TProperties>`. In the sample, the Interface is ISportsTeamGrain, which implements `IIndexableGrain<SportsTeamIndexedProperties>`. Details of the indexable interface are presented below.
 
 ##### Index type
 The Index attribute may be `Index` or one of the attribute classes inheriting from it; currently these are `ActiveIndex`, `TotalIndex`, or `StorageManagedIndex`.
@@ -199,7 +199,7 @@ In addition to the Task-based property accessors, this interface also defines a 
 ### Facet Specification
 The grain developer specifies which implementation of indexing to use via a Facet: this is done by selecting an attribute on a constructor "index writer" parameter, and selecting an Indexing implementation as the type of that parameter. The Indexing implementation ensures that the selected attribute and implementation are consistent.
 #### Attribute selection
-The attribute determines whether workflow (either fault-tolerant or non-fault-tolerant) or transactional indexing is to be used, and specifies any necessary parameters. The attribute must also implement the Orleans IFacetMetadata marker interface; this keys the Orleans infrastructure to instantiate the facet implementation. The Orleans-supplied attributes are listed here briefly, and are described in detail in the [Index Implementation](#orleans-indexing-implementation-classes) section:
+The attribute determines whether workflow (either fault-tolerant or non-fault-tolerant) or transactional indexing is to be used, and specifies any necessary parameters. The attribute must also implement the Orleans IFacetMetadata marker interface; this tells the Orleans infrastructure to instantiate the facet implementation. The Orleans-supplied attributes are listed here briefly, and are described in detail in the [Index Implementation](#orleans-indexing-implementation-classes) section:
 ```c#
     public class NonFaultTolerantWorkflowIndexWriterAttribute : Attribute, IFacetMetadata, INonFaultTolerantWorkflowIndexWriterAttribute, IIndexWriterConfiguration {...}
 
@@ -258,7 +258,7 @@ Grain classes that implement a `TIIndexableGrain` usually derive (directly or in
         protected override Task WriteStateAsync() => this.indexWriter.WriteAsync();
         #endregion Facet methods - required overrides of Grain<TGrainState>
 
-        #region required implementations of IIndexableGrain methods; they are only called for FaultTolerant index writing
+        #region required implementations of IIndexableGrain methods; they are only called for fault-tolerant index writing
         public Task<Immutable<System.Collections.Generic.HashSet<Guid>>> GetActiveWorkflowIdsSet() => this.indexWriter.GetActiveWorkflowIdsSet();
         public Task RemoveFromActiveWorkflowIds(System.Collections.Generic.HashSet<Guid> removedWorkflowId) => this.indexWriter.RemoveFromActiveWorkflowIds(removedWorkflowId);
         #endregion required implementations of IIndexableGrain methods
@@ -288,9 +288,9 @@ Grain classes may implement multiple `TIIndexableGrain`s. For example:
 #### Indexed Grain Implementation Requirements
 Using the SportsTeamGrain example above, there are a few things the grain implementation must do for indexing to work properly.
 ##### Wrap the `TGrainState`
-Indexing stores some information along with the grain state. For non-FaultTolerant indexing, this is done by wrapping `TGrainState` with `IndexableGrainStateWrapper`, whose additional state simply indicates whether the State was persisted. If it was not, then the `IIndexWriter` implementation will assign the NullValues specified for all `TProperties` used by indexable interfaces of that Grain.
+Indexing stores some information along with the grain state. For non-fault-tolerant indexing, this is done by wrapping `TGrainState` with `IndexableGrainStateWrapper`, whose additional state simply indicates whether the State was persisted. If it was not, then the `IIndexWriter` implementation will assign the NullValues specified for all `TProperties` used by indexable interfaces of that Grain.
 
-FaultTolerant indexing defines `FaultTolerantIndexableGrainStateWrapper`, a subclass of `IndexableGrainStateWrapper` that also stores the in-flight workflow IDs for that Grain.
+Fault-tolerant indexing defines `FaultTolerantIndexableGrainStateWrapper`, a subclass of `IndexableGrainStateWrapper` that also stores the in-flight workflow IDs for that Grain.
 
 This example illustrates using a utility property, TeamState, to obtain the unwrapped `TGrainState` instance.
 ##### Register the Storage Provider
@@ -304,7 +304,7 @@ As shown  above, because indexed Grains no longer inherit from a `Grain` subclas
 - `Grain` methods: `OnActivateAsync()` and `OnDeactivateAsync`. These must add the grain to and remove it from the list of active indexes.
 - `Grain<TProperties>` method: `WriteStateAsync()`. `indexWriter.WriteAsync()` ensures the correct sequence of task executions to preserve our invariants of Grain state and Index persistence.
 ##### Implement IIndexableGrain Methods
-The `IIndexableGrain` methods `GetActiveWorkflowIdsSet()` and `RemoveFromActiveWorkflowIds()` are necessary for the FaultTolerant internal implementation to communicate back to the grain to retrieve and update the set of in-flight workflows. As shown above, these are simply write-throughs to the matching implementation method of the `indexWriter`:
+The `IIndexableGrain` methods `GetActiveWorkflowIdsSet()` and `RemoveFromActiveWorkflowIds()` are necessary for the fault-tolerant internal implementation to communicate back to the grain to retrieve and update the set of in-flight workflows. As shown above, these are simply write-throughs to the matching implementation method of the `indexWriter`:
 ### Querying Indexes
 Querying is done by LINQ:
 ```c#
@@ -319,7 +319,7 @@ Querying is done by LINQ:
         Console.WriteLine($"\n\n{await team.GetName()} location = {await team.GetLocation()}, pk = {team.GetPrimaryKeyLong()}");
     }));
 ```
-Orleans.Indexing reads the ExpressionTrees created by LINQ to determine the property that is being requested and translate this into a read operation on the index.
+Orleans.Indexing reads the ExpressionTrees created by LINQ to determine the property that is being requested and translates this into a read operation on the index.
 
 ## Orleans Level
 This section defines the Indexing implementation within Orleans.Indexing.
@@ -340,12 +340,12 @@ In both the old inheritance-based system and the new Facet system, this not only
     public interface IIndexableGrain : IGrain
     {
         /// <summary>
-        /// This method returns the set of active work-flow IDs for a Total Index
+        /// This method returns the set of active workflow IDs for a Total Index
         /// </summary>
         Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsSet();
 
         /// <summary>
-        /// This method removes a work-flow ID from the list of active work-flow IDs for a Total Index
+        /// This method removes a workflow ID from the list of active workflow IDs for a Total Index
         /// </summary>
         Task RemoveFromActiveWorkflowIds(HashSet<Guid> removedWorkflowId);
     }
@@ -357,7 +357,7 @@ Under the inheritance scheme, each indexed grain must inherit from one of these 
 ##### <a name="indexablegrainnonfaulttolerant"></a>`IndexableGrainNonFaultTolerant<TProperties>`
 An application grain inherits from this if its indexes do not have to be fault-tolerant. This is also the base class for `IndexableGrain<TProperties>`.
 ##### <a name="indexablegrain"></a>`IndexableGrain<TProperties>`
-An application grain inherits from this if its indexes must be fault-tolerant. With fault-tolerant indexing, the in-flight workflows and queues are persisted along with the Grain state (the implementation swaps the base State with a wrapper that includes the original base State as well as the set of in-flight workflow IDs and the active queues). When the grain is reactivated (such as if a server crashed during a previous call), the in-flight workflow state is restored with it, and any pending workflows are re-commenced. 
+An application grain inherits from this if its indexes must be fault-tolerant. With fault-tolerant indexing, the in-flight workflows and queues are persisted along with the Grain state (the implementation swaps the base State with a wrapper that includes the original base State as well as the set of in-flight workflow IDs and the active queues). When the grain is reactivated (such as if a server crashed during a previous call), the in-flight workflow state is restored with it, and any pending workflows resume executing. 
 #### Facets
 ##### Facet Attribute
 The attribute determines whether workflow (fault-tolerant or non-fault-tolerant) or transactional indexing is to be used, and specifies any necessary parameters between the two. See [Facet Specification](#facet-specification) above for more information.
@@ -416,12 +416,12 @@ With the exception of the workflow ID set methods on IIndexedGrain, which an ind
         Task WriteAsync();
 
         /// <summary>
-        /// This method returns the set of active work-flow IDs for a fault-tolerant Total Index
+        /// This method returns the set of active workflow IDs for a fault-tolerant Total Index
         /// </summary>
         Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsSet();
 
         /// <summary>
-        /// This method removes a work-flow ID from the list of active work-flow IDs for a fault-tolerant Total Index
+        /// This method removes a workflow ID from the list of active workflow IDs for a fault-tolerant Total Index
         /// </summary>
         Task RemoveFromActiveWorkflowIds(HashSet<Guid> removedWorkflowId);
     }
@@ -465,7 +465,7 @@ As noted above, the application can hack together its own implementation of comp
 ### <a name="index-conjunctions-"></a>Index Conjunctions (&&)
 As noted above, the application can intersect the returned `GrainReference`s from multiple index queries. Again, this would be much more convenient if done in Orleans.Indexing. To do so, Orleans would have to process the LINQ expression tree to obtain the requested properties, issue multiple index lookups, and intersect the results.
 ### <a name="index-disjunctions-"></a>Index Disjunctions (||)
-As noted above, the application can intersect the returned `GrainReference`s from multiple index queries. Again, this would be much more convenient if done in Orleans.Indexing. To do so, Orleans would have to process the LINQ expression tree to obtain the requested properties, issue multiple index lookups, and union the results.
+As noted above, the application can union the returned `GrainReference`s from multiple index queries. Again, this would be much more convenient if done in Orleans.Indexing. To do so, Orleans would have to process the LINQ expression tree to obtain the requested properties, issue multiple index lookups, and union the results.
 ### Negations and Ranges
 These cannot be done using the current hash-based approach.
 ### Adding Explicit TState-to-TProperties Name Mapping

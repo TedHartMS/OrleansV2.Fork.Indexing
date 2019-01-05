@@ -13,7 +13,7 @@ namespace Orleans.Indexing
         private IIndexWorkflowQueue WorkflowQueue => __workflowQueue ?? InitIndexWorkflowQueue();
 
         private int _queueSeqNum;
-        private Type _iGrainType;
+        private Type _grainInterfaceType;
 
         private bool _isDefinedAsFaultTolerantGrain;
         private bool _hasAnyTotalIndex;
@@ -28,10 +28,10 @@ namespace Orleans.Indexing
         private SiloIndexManager _siloIndexManager;
         private Lazy<GrainReference> _lazyParent;
 
-        internal IndexWorkflowQueueHandlerBase(SiloIndexManager siloIndexManager, Type iGrainType, int queueSeqNum, SiloAddress silo,
+        internal IndexWorkflowQueueHandlerBase(SiloIndexManager siloIndexManager, Type grainInterfaceType, int queueSeqNum, SiloAddress silo,
                                                bool isDefinedAsFaultTolerantGrain, Func<GrainReference> parentFunc)
         {
-            _iGrainType = iGrainType;
+            _grainInterfaceType = grainInterfaceType;
             _queueSeqNum = queueSeqNum;
             _isDefinedAsFaultTolerantGrain = isDefinedAsFaultTolerantGrain;
             _hasAnyTotalIndex = false;
@@ -119,7 +119,7 @@ namespace Orleans.Indexing
                 IIndexableGrain g = record.Grain;
                 if (!activeWorkflowSetTasksByGrain.ContainsKey(g) && record.MemberUpdates.Where(ups => ups.Value.OperationType != IndexOperationType.None).Any())
                 {
-                    activeWorkflowSetTasksByGrain[g] = g.AsReference<IIndexableGrain>(this._siloIndexManager, this._iGrainType).GetActiveWorkflowIdsSet();
+                    activeWorkflowSetTasksByGrain[g] = g.AsReference<IIndexableGrain>(this._siloIndexManager, this._grainInterfaceType).GetActiveWorkflowIdsSet();
                 }
             }
 
@@ -143,7 +143,7 @@ namespace Orleans.Indexing
         {
             if (__grainIndexes == null)
             {
-                __grainIndexes = _siloIndexManager.IndexFactory.GetGrainIndexes(_iGrainType);
+                __grainIndexes = _siloIndexManager.IndexFactory.GetGrainIndexes(_grainInterfaceType);
                 _hasAnyTotalIndex = __grainIndexes.HasAnyTotalIndex;
             }
             return __grainIndexes;
@@ -151,8 +151,8 @@ namespace Orleans.Indexing
 
         private IIndexWorkflowQueue InitIndexWorkflowQueue()
             => __workflowQueue = _lazyParent.Value.IsGrainService
-                    ? _siloIndexManager.GetGrainService<IIndexWorkflowQueue>(IndexWorkflowQueueBase.CreateIndexWorkflowQueueGrainReference(_siloIndexManager, _iGrainType, _queueSeqNum, _silo))
-                    : _siloIndexManager.GrainFactory.GetGrain<IIndexWorkflowQueue>(IndexWorkflowQueueBase.CreateIndexWorkflowQueuePrimaryKey(_iGrainType, _queueSeqNum));
+                    ? _siloIndexManager.GetGrainService<IIndexWorkflowQueue>(IndexWorkflowQueueBase.CreateIndexWorkflowQueueGrainReference(_siloIndexManager, _grainInterfaceType, _queueSeqNum, _silo))
+                    : _siloIndexManager.GrainFactory.GetGrain<IIndexWorkflowQueue>(IndexWorkflowQueueBase.CreateIndexWorkflowQueuePrimaryKey(_grainInterfaceType, _queueSeqNum));
 
         public static GrainReference CreateIndexWorkflowQueueHandlerGrainReference(SiloIndexManager siloIndexManager, Type grainInterfaceType, int queueSeqNum, SiloAddress siloAddress)
             => siloIndexManager.MakeGrainServiceGrainReference(IndexingConstants.INDEX_WORKFLOW_QUEUE_HANDLER_GRAIN_SERVICE_TYPE_CODE,
