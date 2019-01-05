@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Orleans.ApplicationParts;
 using Orleans.Runtime;
@@ -51,8 +51,5 @@ namespace Orleans.Indexing
         internal OutputGrainInterfaceType GetGrain<OutputGrainInterfaceType>(Guid grainPrimaryKey, Type grainInterfaceType)
             where OutputGrainInterfaceType : IGrain
             => this.Silo.GetGrain<OutputGrainInterfaceType>(grainPrimaryKey, grainInterfaceType);
-
-        internal IGrain GetGrain(string grainPrimaryKey, Type grainInterfaceType, Type outputGrainInterfaceType)
-            => this.Silo.GetGrain(grainPrimaryKey, grainInterfaceType, outputGrainInterfaceType);
     }
 }

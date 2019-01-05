@@ -73,72 +73,52 @@ namespace Orleans.Indexing.Tests
                                 });
         }
 
+        // Code below adapted from AppPartsIndexableGrainLoader to identify the necessary fields for the DSMI storage
+        // provider to index.
+
         private static IEnumerable<string> GetStateFieldsToIndex()
         {
-            var grainTypes = typeof(BaseIndexingFixture).Assembly.GetConcreteGrainClasses(logger: null).ToArray();
-            var interfaces = new Dictionary<Type, string[]>();
-            foreach (var grainType in grainTypes)
+            var grainClassTypes = typeof(BaseIndexingFixture).Assembly.GetConcreteGrainClasses(logger: null).ToArray();
+
+            // Orleans.CosmosDB appends the field names to "State."; thus we do not prepend the interface names.
+            var interfacesToIndexedPropertyNames = new Dictionary<Type, string[]>();
+            foreach (var grainClassType in grainClassTypes)
             {
-                bool isFaultTolerant = IsSubclassOfRawGenericType(typeof(IndexableGrain<,>), grainType);
-                GetFieldsForASingleGrainType(grainType, interfaces, isFaultTolerant ? "UserState." : string.Empty);
+                GetFieldsForASingleGrainType(grainClassType, interfacesToIndexedPropertyNames);
             }
-            return new HashSet<string>(interfaces.SelectMany(kvp => kvp.Value));
+            return new HashSet<string>(interfacesToIndexedPropertyNames.Where(kvp => kvp.Value.Length > 0).SelectMany(kvp => kvp.Value));
         }
 
-        private static void GetFieldsForASingleGrainType(Type grainType, Dictionary<Type, string[]> interfaces, string fieldPrefix)
+        private static void GetFieldsForASingleGrainType(Type grainClassType, Dictionary<Type, string[]> interfacesToIndexedPropertyNames)
         {
-            Type[] grainInterfaces = grainType.GetInterfaces();
+            Type[] allInterfaces = grainClassType.GetInterfaces();
 
-            // If there is an interface that directly extends IIndexableGrain<TProperties>...
-            Type iIndexableGrain = grainInterfaces.Where(itf => itf.IsGenericType && itf.GetGenericTypeDefinition() == typeof(IIndexableGrain<>)).FirstOrDefault();
-            if (iIndexableGrain != null)
+            // If there are any interface that directly extends IIndexableGrain<TProperties>...
+            var indexableBaseInterfaces = allInterfaces.Where(itf => itf.IsGenericType && itf.GetGenericTypeDefinition() == typeof(IIndexableGrain<>)).ToArray();
+            if (indexableBaseInterfaces.Length == 0)
+            {
+                return;
+            }
+
+            var fieldPrefix = grainClassType.IsFaultTolerant() ? "UserState." : string.Empty;
+            foreach (var indexableBaseInterface in indexableBaseInterfaces)
             {
                 // ... and its generic argument is a class (TProperties)... 
-                Type propertiesArgType = iIndexableGrain.GetGenericArguments()[0];
-                if (propertiesArgType.GetTypeInfo().IsClass)
+                var propertiesClassType = indexableBaseInterface.GetGenericArguments()[0];
+                if (propertiesClassType.GetTypeInfo().IsClass)
                 {
-                    // ... then examine all indexed fields for all the descendant interfaces of IIndexableGrain<TProperties> (these interfaces are defined by end-users).
-                    foreach (Type userDefinedIGrain in grainInterfaces.Where(itf => iIndexableGrain != itf && iIndexableGrain.IsAssignableFrom(itf)
-                                                                                 && !interfaces.ContainsKey(itf)))
+                    // ... then examine all indexed fields for all the descendant interfaces of IIndexableGrain<TProperties>; these interfaces are defined by end-users.
+                    foreach (var grainInterfaceType in allInterfaces.Where(itf => !indexableBaseInterfaces.Contains(itf)
+                                                                                    && indexableBaseInterface.IsAssignableFrom(itf)
+                                                                                    && !interfacesToIndexedPropertyNames.ContainsKey(itf)))
                     {
-                        GetFieldsForASingleInterface(interfaces, propertiesArgType, userDefinedIGrain, grainType, fieldPrefix);
+                        interfacesToIndexedPropertyNames[grainInterfaceType] = propertiesClassType.GetProperties()
+                                                                                .Where(propInfo => propInfo.GetCustomAttributes<StorageManagedIndexAttribute>(inherit: false).Any())
+                                                                                .Select(propInfo => fieldPrefix + propInfo.Name)
+                                                                                .ToArray();
                     }
                 }
             }
-        }
-
-        private static void GetFieldsForASingleInterface(Dictionary<Type, string[]> interfaces, Type propertiesArgType,
-                                                         Type userDefinedIGrain, Type userDefinedGrainImpl, string fieldPrefix)
-        {
-            // All the properties in TProperties are scanned for StorageManagedIndex annotation.
-            var fields = new List<string>();
-            foreach (PropertyInfo propInfo in propertiesArgType.GetProperties())
-            {
-                var indexAttr = propInfo.GetCustomAttributes<StorageManagedIndexAttribute>(inherit: false).FirstOrDefault();
-                if (indexAttr != null)
-                {
-                    fields.Add(fieldPrefix + propInfo.Name);
-                }
-            }
-
-            if (fields.Count > 0)
-            {
-                interfaces[userDefinedIGrain] = fields.ToArray();
-            }
-        }
-
-        public static bool IsSubclassOfRawGenericType(Type genericType, Type typeToCheck)
-        {
-            // Used to check for IndexableGrain<,> inheritance; IndexableGrain is a fault-tolerant subclass of IndexableGrainNonFaultTolerant,
-            // so we will only see it if the grain's index type is fault tolerant.
-            for (; typeToCheck != null && typeToCheck != typeof(object); typeToCheck = typeToCheck.BaseType)
-            {
-                if (genericType == (typeToCheck.IsGenericType ? typeToCheck.GetGenericTypeDefinition() : typeToCheck))
-                {
-                    return true;
-                }
-            }
-            return false;
         }
     }
 }

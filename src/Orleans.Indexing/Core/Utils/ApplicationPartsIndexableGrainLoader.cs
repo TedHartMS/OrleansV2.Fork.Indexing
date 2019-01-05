@@ -70,7 +70,7 @@ namespace Orleans.Indexing
             Type[] allInterfaces = grainClassType.GetInterfaces();
             bool? grainIndexesAreEager = null;
 
-            // If there is an interface that directly extends IIndexableGrain<TProperties>...
+            // If there are any interface that directly extends IIndexableGrain<TProperties>...
             var indexableBaseInterfaces = allInterfaces.Where(itf => itf.IsGenericType && itf.GetGenericTypeDefinition() == typeof(IIndexableGrain<>)).ToArray();
             if (indexableBaseInterfaces.Length == 0)
             {
@@ -78,7 +78,7 @@ namespace Orleans.Indexing
             }
             var indexedInterfaces = new List<Type>();
 
-            var isFaultTolerant = IsFaultTolerantGrain(grainClassType);
+            var isFaultTolerant = grainClassType.IsFaultTolerant();
             foreach (var indexableBaseInterface in indexableBaseInterfaces)
             {
                 // ... and its generic argument is a class (TProperties)... 
@@ -86,8 +86,9 @@ namespace Orleans.Indexing
                 if (propertiesClassType.GetTypeInfo().IsClass)
                 {
                     // ... then add the indexes for all the descendant interfaces of IIndexableGrain<TProperties>; these interfaces are defined by end-users.
-                    foreach (var grainInterfaceType in allInterfaces.Where(
-                                itf => !indexableBaseInterfaces.Contains(itf) && indexableBaseInterface.IsAssignableFrom(itf) && !registry.ContainsKey(itf)))
+                    foreach (var grainInterfaceType in allInterfaces.Where(itf => !indexableBaseInterfaces.Contains(itf)
+                                                                                    && indexableBaseInterface.IsAssignableFrom(itf)
+                                                                                    && !registry.ContainsKey(itf)))
                     {
                         grainIndexesAreEager = await CreateIndexesForASingleInterface(loader, registry, propertiesClassType, grainInterfaceType,
                                                                                       grainClassType, isFaultTolerant, grainIndexesAreEager);
@@ -183,49 +184,6 @@ namespace Orleans.Indexing
                 await loader.RegisterWorkflowQueues(grainInterfaceType, grainClassType, isFaultTolerant);
             }
             return grainIndexesAreEager;
-        }
-
-        private static bool IsFaultTolerantGrain(Type grainClassType)
-        {
-            bool isFaultTolerant = typeof(IIndexableGrainFaultTolerant).IsAssignableFrom(grainClassType);
-            if (!isFaultTolerant)   // TODO transfer to index pre-check and pass as param here
-            {
-                bool? facetIsFT = null;
-
-                void setFacetIsFT(bool currentFacetIsFT)
-                {
-                    if (facetIsFT.HasValue && facetIsFT.Value != currentFacetIsFT)
-                    {
-                        throw new IndexConfigurationException($"Grain type {grainClassType.Name} has a conflict between" +
-                                                               " Fault Tolerant and Non Fault Tolerant Indexing facet ctor parameters");
-                    }
-                    facetIsFT = currentFacetIsFT;
-                }
-
-                foreach (var ctor in grainClassType.GetConstructors())
-                {
-                    var ctorHasFacet = false;
-                    foreach (var attr in ctor.GetParameters().SelectMany(p => p.GetCustomAttributes<Attribute>()))
-                    {
-                        if (ctorHasFacet)
-                        {
-                            throw new IndexConfigurationException($"Grain type {grainClassType.Name}: a ctor cannot have two Indexing facet specifications");
-                        }
-                        ctorHasFacet = true;
-                        if (attr is IFaultTolerantWorkflowIndexWriterAttribute)
-                        {
-                            setFacetIsFT(true);
-                        }
-                        else if (attr is INonFaultTolerantWorkflowIndexWriterAttribute)
-                        {
-                            setFacetIsFT(false);
-                        }
-                        // TODO: Transactional
-                    }
-                }
-                isFaultTolerant = facetIsFT.GetValueOrDefault();    // TODO: check that this is set for any IIndexableGrain when replacing inheritance
-            }
-            return isFaultTolerant;
         }
 
         private async Task CreateIndex(Type propertiesArg, Type grainInterfaceType, NamedIndexMap indexesOnGrain, PropertyInfo property,

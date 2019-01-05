@@ -21,7 +21,7 @@ namespace Orleans.Indexing
     public class DirectStorageManagedIndexImpl<K, V> : Grain, IDirectStorageManagedIndex<K, V> where V : class, IIndexableGrain
     {
         private IGrainStorage _grainStorage;
-        private string grainImplClass;
+        private string _grainClassName;
 
         private string _indexedField;
         private string _indexedFieldPrefix;
@@ -64,7 +64,7 @@ namespace Orleans.Indexing
             dynamic indexableStorageProvider = _grainStorage;
 
             var qualifiedField = _indexedFieldPrefix + _indexedField;
-            List<GrainReference> resultReferences = await indexableStorageProvider.LookupAsync<K>(grainImplClass, qualifiedField, key);
+            List<GrainReference> resultReferences = await indexableStorageProvider.LookupAsync<K>(_grainClassName, qualifiedField, key);
             return resultReferences.Select(grain => this.SiloIndexManager.Silo.Cast<V>(grain)).ToList();
         }
 
@@ -94,15 +94,14 @@ namespace Orleans.Indexing
             if (_grainStorage == null)
             {
                 var implementation = TypeCodeMapper.GetImplementation(this.SiloIndexManager.GrainTypeResolver, typeof(V));
-                if (implementation == null || (grainImplClass = implementation.GrainClass) == null ||
-                        !this.SiloIndexManager.CachedTypeResolver.TryResolveType(grainImplClass, out Type implType))
+                if (implementation == null || (_grainClassName = implementation.GrainClass) == null ||
+                        !this.SiloIndexManager.CachedTypeResolver.TryResolveType(_grainClassName, out Type grainClassType))
                 {
                     throw new IndexException($"The grain implementation class {implementation.GrainClass} for grain" +
                                              " interface {IndexUtils.GetFullTypeName(typeof(V))} was not resolved.");
                 }
-                _grainStorage = implType.GetGrainStorage(this.SiloIndexManager.ServiceProvider);
-                bool isFaultTolerant = ApplicationPartsIndexableGrainLoader.IsSubclassOfRawGenericType(typeof(IndexableGrain<,>), implType);
-                _indexedFieldPrefix = isFaultTolerant ? "UserState." : string.Empty;
+                _grainStorage = grainClassType.GetGrainStorage(this.SiloIndexManager.ServiceProvider);
+                this._indexedFieldPrefix = grainClassType.IsFaultTolerant() ? "UserState." : string.Empty;
             }
         }
     }

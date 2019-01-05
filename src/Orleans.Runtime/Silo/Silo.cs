@@ -873,13 +873,6 @@ namespace Orleans.Runtime
             where OutputGrainInterfaceType : IGrain
             => this.grainFactory.GetGrain<OutputGrainInterfaceType>(grainPrimaryKey, grainInterfaceType);
 
-        public IGrain GetGrain(string grainPrimaryKey, Type grainInterfaceType, Type outputGrainInterfaceType)
-            => this.grainFactory.GetGrain(grainPrimaryKey, grainInterfaceType, outputGrainInterfaceType);
-
-        public static OutputGrainInterfaceType GetGrain<OutputGrainInterfaceType>(IGrainFactory grainFactory, Guid grainPrimaryKey, Type grainInterfaceType)
-            where OutputGrainInterfaceType : IGrain
-            => ((GrainFactory)grainFactory).GetGrain<OutputGrainInterfaceType>(grainPrimaryKey, grainInterfaceType);
-
         public static IGrain GetGrain(IGrainFactory grainFactory, string grainPrimaryKey, Type grainInterfaceType, Type outputGrainInterfaceType)
             => ((GrainFactory)grainFactory).GetGrain(grainPrimaryKey, grainInterfaceType, outputGrainInterfaceType);
 
