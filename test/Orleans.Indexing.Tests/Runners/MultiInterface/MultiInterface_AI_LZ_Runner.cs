@@ -114,7 +114,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     [Serializable]
     public class FT_Props_Person_AI_LZ_PS : IPersonProperties
     {
-        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, IFT_Grain_Person_AI_LZ_PS>), IsEager = false, IsUnique = true)]
+        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, IFT_Grain_Person_AI_LZ_PS>), IsEager = false, IsUnique = false)]   // PerSilo cannot be Unique
         public string Name { get; set; }
 
         [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, IFT_Grain_Person_AI_LZ_PS>), IsEager = false, IsUnique = false, NullValue = "0")]
@@ -124,7 +124,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     [Serializable]
     public class NFT_Props_Person_AI_LZ_PS : IPersonProperties
     {
-        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_Person_AI_LZ_PS>), IsEager = false, IsUnique = true)]
+        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_Person_AI_LZ_PS>), IsEager = false, IsUnique = false)]  // PerSilo cannot be Unique
         public string Name { get; set; }
 
         [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, INFT_Grain_Person_AI_LZ_PS>), IsEager = false, IsUnique = false, NullValue = "0")]
@@ -134,7 +134,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     [Serializable]
     public class FT_Props_Job_AI_LZ_PS : IJobProperties
     {
-        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, IFT_Grain_Job_AI_LZ_PS>), IsEager = false, IsUnique = true)]
+        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, IFT_Grain_Job_AI_LZ_PS>), IsEager = false, IsUnique = false)]  // PerSilo cannot be Unique
         public string Title { get; set; }
 
         [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, IFT_Grain_Job_AI_LZ_PS>), IsEager = false, IsUnique = false)]
@@ -144,7 +144,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     [Serializable]
     public class NFT_Props_Job_AI_LZ_PS : IJobProperties
     {
-        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_Job_AI_LZ_PS>), IsEager = false, IsUnique = true)]
+        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_Job_AI_LZ_PS>), IsEager = false, IsUnique = false)] // PerSilo cannot be Unique
         public string Title { get; set; }
 
         [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_Job_AI_LZ_PS>), IsEager = false, IsUnique = false)]
@@ -154,14 +154,14 @@ namespace Orleans.Indexing.Tests.MultiInterface
     [Serializable]
     public class FT_Props_Employee_AI_LZ_PS : IEmployeeProperties
     {
-        [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, IFT_Grain_Employee_AI_LZ_PS>), IsEager = false, IsUnique = true, NullValue = "-1")]
+        [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, IFT_Grain_Employee_AI_LZ_PS>), IsEager = false, IsUnique = false, NullValue = "-1")]  // PerSilo cannot be Unique
         public int EmployeeId { get; set; }
     }
 
     [Serializable]
     public class NFT_Props_Employee_AI_LZ_PS : IEmployeeProperties
     {
-        [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, INFT_Grain_Employee_AI_LZ_PS>), IsEager = false, IsUnique = true, NullValue = "-1")]
+        [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, INFT_Grain_Employee_AI_LZ_PS>), IsEager = false, IsUnique = false, NullValue = "-1")] // PerSilo cannot be Unique
         public int EmployeeId { get; set; }
     }
 
@@ -215,7 +215,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     [Serializable]
     public class FT_Props_Person_AI_LZ_SB : IPersonProperties
     {
-        [Index(typeof(IActiveHashIndexSingleBucket<string, IFT_Grain_Person_AI_LZ_SB>), IsEager = false, IsUnique = true)]
+        [Index(typeof(IActiveHashIndexSingleBucket<string, IFT_Grain_Person_AI_LZ_SB>), IsEager = false, IsUnique = false)]  // PerSilo cannot be Unique
         public string Name { get; set; }
 
         [Index(typeof(IActiveHashIndexSingleBucket<int, IFT_Grain_Person_AI_LZ_SB>), IsEager = false, IsUnique = false, NullValue = "0")]

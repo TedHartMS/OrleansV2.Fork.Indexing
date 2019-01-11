@@ -57,18 +57,7 @@ namespace Orleans.Indexing
                             uniquenessViolation = true;
                             return false;
                         }
-
                         aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
-
-                        if (isUniqueIndex && aftEntry.Values.Count > 1)
-                        {
-                            // TODO: diagnose and better fix for a possible race condition; Test_MultiInterface_All occasionally returns
-                            // a count of 2 when edited to allow duplicate values for "title_2" (Title has a unique index) when the foregoing
-                            // check does not fire (this one didn't fire either, but that could be part of the race).
-                            aftEntry.Remove(updatedGrain, isTentativeUpdate, isUniqueIndex);
-                            uniquenessViolation = true;
-                            return false;
-                        }
                     }
                     else if (isTentativeUpdate)
                     {
@@ -89,8 +78,6 @@ namespace Orleans.Indexing
 
                 aftEntry = new HashIndexSingleBucketEntry<V>();
                 aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
-
-                // TODO One Add() could be lost if there is a race condition where two threads simultaneously found no aftEntry
                 state.IndexMap.Add(afterImage, aftEntry);
                 return true;
             }
@@ -124,8 +111,6 @@ namespace Orleans.Indexing
                                         $"The uniqueness property of index {idxMetaData.IndexName} is would be violated for an update operation" +
                                         $" for before-image = {befImg}, after-image = {aftImg} and grain = {updatedGrain.GetPrimaryKey()}");
                             }
-
-                            // TODO: Possible race condition as in Insert (recovery would have to restore to befEntry).
                             befEntry.Remove(updatedGrain, isTentativeUpdate, isUniqueIndex);
                             aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
                         }

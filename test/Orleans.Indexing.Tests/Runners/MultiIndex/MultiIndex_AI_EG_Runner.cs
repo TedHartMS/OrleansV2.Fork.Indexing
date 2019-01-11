@@ -43,10 +43,10 @@ namespace Orleans.Indexing.Tests
     [Serializable]
     public class NFT_Props_UIUSNINS_AI_EG_PS : ITestMultiIndexProperties
     {
-        [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, INFT_Grain_UIUSNINS_AI_EG_PS>), IsEager = true, IsUnique = true, NullValue = "-1")]
+        [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, INFT_Grain_UIUSNINS_AI_EG_PS>), IsEager = true, IsUnique = false, NullValue = "-1")]  // PerSilo cannot be Unique
         public int UniqueInt { get; set; }
 
-        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_UIUSNINS_AI_EG_PS>), IsEager = true, IsUnique = true)]
+        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_UIUSNINS_AI_EG_PS>), IsEager = true, IsUnique = false)] // PerSilo cannot be Unique
         public string UniqueString { get; set; }
 
         [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, INFT_Grain_UIUSNINS_AI_EG_PS>), IsEager = true, IsUnique = false, NullValue = "0")]

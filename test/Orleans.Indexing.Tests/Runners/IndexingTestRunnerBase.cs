@@ -119,6 +119,7 @@ namespace Orleans.Indexing.Tests
                 var p2 = await makeGrain(adj2, adjTwo, adj2000, adj2k);
                 var p3 = await makeGrain(adj3, adjThree, adj3000, adj3k);
 
+                // UniqueInt and UniqueString are defined as Unique for non-PerSilo partitioning only; we do not test duplicates here.
                 var intIndexes = await this.GetAndWaitForIndexes<int, TIGrain>(ITC.UniqueIntProperty, ITC.NonUniqueIntProperty);
                 var ignoreDeactivate = this.ShouldIgnoreDeactivate(intIndexes[1].GetType());
                 var stringIndexes = await this.GetAndWaitForIndexes<string, TIGrain>(ITC.UniqueStringProperty, ITC.NonUniqueStringProperty);
@@ -236,6 +237,7 @@ namespace Orleans.Indexing.Tests
                 var p2 = await makeGrain(name2, age2, title2, dept2);
                 var p3 = await makeGrain(name3, age3, title3, dept3);
 
+                // Name and Title are defined as Unique for non-PerSilo partitioning only; we do not test duplicates here.
                 // Age and Department may have multiple entries; additionally, they may or may not be of a type that
                 // is "Total" -- either TotalIndex or DSMI, in which case deactivations do not really deactivate them.
                 await this.GetAndWaitForIndex<string, TIPersonGrain>(ITC.NameProperty);
@@ -327,8 +329,7 @@ namespace Orleans.Indexing.Tests
         public static long GrainPkFromUniqueInt(int uInt) => uInt + 4200000000000;
 
         bool ShouldIgnoreDeactivate(Type nonUniqueIndexType)
-            => typeof(ITotalIndex).IsAssignableFrom(nonUniqueIndexType)
-                || typeof(IDirectStorageManagedIndex).IsAssignableFrom(nonUniqueIndexType);
+            => nonUniqueIndexType.IsTotalIndex() || typeof(IDirectStorageManagedIndex).IsAssignableFrom(nonUniqueIndexType);
 
         protected Task StartAndWaitForSecondSilo()
         {

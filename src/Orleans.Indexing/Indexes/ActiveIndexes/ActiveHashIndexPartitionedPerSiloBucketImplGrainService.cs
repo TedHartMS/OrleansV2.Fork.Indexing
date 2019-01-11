@@ -70,6 +70,8 @@ namespace Orleans.Indexing
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Task<bool> DirectApplyIndexUpdate(V updatedGrain, IMemberUpdate updt, bool isUniqueIndex, IndexMetaData idxMetaData, SiloAddress siloAddress)
+            // Updates the index bucket synchronously (note that no other thread can run concurrently before we reach an await operation,
+            // when execution is yielded back to the Orleans scheduler, so no concurrency control mechanism (e.g., locking) is required).
             => Task.FromResult(HashIndexBucketUtils.UpdateBucket(updatedGrain, updt, state, isUniqueIndex, idxMetaData));
 
         private Exception LogException(string message, IndexingErrorCode errorCode)
