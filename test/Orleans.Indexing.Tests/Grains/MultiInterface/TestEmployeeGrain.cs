@@ -55,10 +55,12 @@ namespace Orleans.Indexing.Tests.MultiInterface
         protected override Task WriteStateAsync() => this.indexWriter.WriteAsync();
         #endregion Facet methods - required overrides of Grain<TGrainState>
 
-        // TODO remove when facetization is complete; for now it just makes the compiler happy
-        public Task<object> ExtractIndexImage(IIndexUpdateGenerator iUpdateGen) => throw new NotImplementedException();
-
+        #region Required shims for IIndexableGrain methods for fault tolerance
         public Task<Immutable<System.Collections.Generic.HashSet<Guid>>> GetActiveWorkflowIdsSet() => this.indexWriter.GetActiveWorkflowIdsSet();
         public Task RemoveFromActiveWorkflowIds(System.Collections.Generic.HashSet<Guid> removedWorkflowId) => this.indexWriter.RemoveFromActiveWorkflowIds(removedWorkflowId);
+        #endregion Required shims for IIndexableGrain methods for fault tolerance
+
+        // TODO remove when facetization is complete; for now it just makes the compiler happy
+        public Task<object> ExtractIndexImage(IIndexUpdateGenerator iUpdateGen) => throw new NotImplementedException();
     }
 }

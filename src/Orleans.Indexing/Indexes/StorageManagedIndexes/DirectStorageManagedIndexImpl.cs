@@ -101,7 +101,7 @@ namespace Orleans.Indexing
                                              " interface {IndexUtils.GetFullTypeName(typeof(V))} was not resolved.");
                 }
                 _grainStorage = grainClassType.GetGrainStorage(this.SiloIndexManager.ServiceProvider);
-                this._indexedFieldPrefix = grainClassType.IsFaultTolerant() ? "UserState." : string.Empty;
+                this._indexedFieldPrefix = grainClassType.IsFaultTolerant() ? "UserState." : string.Empty;  // TODO: With Facet, always use .UserState now
             }
         }
     }

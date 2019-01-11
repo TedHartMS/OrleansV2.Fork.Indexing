@@ -17,6 +17,7 @@ namespace Orleans.Indexing.Tests
         protected TestClusterBuilder ConfigureTestClusterForIndexing(TestClusterBuilder builder)
         {
             // Currently nothing
+            //builder.Options.InitialSilosCount = 1;    // For debugging if needed
             return builder;
         }
 

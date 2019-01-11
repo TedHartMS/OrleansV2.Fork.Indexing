@@ -69,7 +69,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     [Serializable]
     public class NFT_Props_Person_AI_EG_PS : IPersonProperties
     {
-        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_Person_AI_EG_PS>), IsEager = true, IsUnique = true)]
+        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_Person_AI_EG_PS>), IsEager = true, IsUnique = false)]   // PerSilo cannot be Unique
         public string Name { get; set; }
 
         [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, INFT_Grain_Person_AI_EG_PS>), IsEager = true, IsUnique = false, NullValue = "0")]
@@ -79,7 +79,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     [Serializable]
     public class NFT_Props_Job_AI_EG_PS : IJobProperties
     {
-        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_Job_AI_EG_PS>), IsEager = true, IsUnique = true)]
+        [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_Job_AI_EG_PS>), IsEager = true, IsUnique = false)]  // PerSilo cannot be Unique
         public string Title { get; set; }
 
         [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_Job_AI_EG_PS>), IsEager = true, IsUnique = false)]
@@ -89,7 +89,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     [Serializable]
     public class NFT_Props_Employee_AI_EG_PS : IEmployeeProperties
     {
-        [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, INFT_Grain_Employee_AI_EG_PS>), IsEager = true, IsUnique = true, NullValue = "-1")]
+        [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, INFT_Grain_Employee_AI_EG_PS>), IsEager = true, IsUnique = false, NullValue = "-1")]  // PerSilo cannot be Unique
         public int EmployeeId { get; set; }
     }
 

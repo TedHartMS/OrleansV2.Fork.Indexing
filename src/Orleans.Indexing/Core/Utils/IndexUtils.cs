@@ -224,5 +224,17 @@ namespace Orleans.Indexing
             }
             return isFaultTolerant;
         }
+
+        internal static bool IsIndexInterfaceType(this Type indexType)
+            => typeof(IIndexInterface).IsAssignableFrom(indexType) ? true : throw new ArgumentException($"Type {GetFullTypeName(indexType)} is not an index type", "indexType");
+
+        internal static bool IsPartitionedPerSiloIndex(this Type indexType)
+            => indexType.IsIndexInterfaceType() && typeof(IActiveHashIndexPartitionedPerSilo).IsAssignableFrom(indexType);
+
+        internal static bool IsTotalIndex(this Type indexType)
+            => indexType.IsIndexInterfaceType() && typeof(ITotalIndex).IsAssignableFrom(indexType); // TODO Possible addition for Transactional
+
+        internal static bool IsTotalIndex(this IIndexInterface itf)
+            => itf is ITotalIndex;     // TODO Possible addition for Transactional
     }
 }

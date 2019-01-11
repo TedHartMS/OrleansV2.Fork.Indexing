@@ -38,15 +38,15 @@ namespace Orleans.Indexing
         }
 
         /// <summary>
-        /// DirectApplyIndexUpdateBatch is not supported on ActiveHashIndexPartitionedPerSiloImpl,
-        /// because it will be skipped via IndexExtensions.DirectApplyIndexUpdateBatch
+        /// DirectApplyIndexUpdateBatch is not supported on ActiveHashIndexPartitionedPerSiloImpl, because it will be skipped
+        /// via IndexExtensions.ApplyIndexUpdateBatch which goes directly to the IActiveHashIndexPartitionedPerSiloBucket grain service
         /// </summary>
         public Task<bool> DirectApplyIndexUpdateBatch(Immutable<IDictionary<IIndexableGrain, IList<IMemberUpdate>>> iUpdates, bool isUnique, IndexMetaData idxMetaData, SiloAddress siloAddress = null)
             => throw new NotSupportedException();
 
         /// <summary>
-        /// DirectApplyIndexUpdate is not supported on ActiveHashIndexPartitionedPerSiloImpl,
-        /// because it will be skipped via IndexExtensions.ApplyIndexUpdate
+        /// DirectApplyIndexUpdate is not supported on ActiveHashIndexPartitionedPerSiloImpl, because it will be skipped
+        /// via IndexExtensions.ApplyIndexUpdate which goes directly to the IActiveHashIndexPartitionedPerSiloBucket grain service
         /// </summary>
         public Task<bool> DirectApplyIndexUpdate(IIndexableGrain g, Immutable<IMemberUpdate> iUpdate, bool isUniqueIndex, IndexMetaData idxMetaData, SiloAddress siloAddress)
             => throw new NotSupportedException();

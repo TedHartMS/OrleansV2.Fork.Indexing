@@ -14,9 +14,9 @@ namespace Orleans.Indexing.Facet
         private protected readonly IServiceProvider ServiceProvider;
         private protected readonly IIndexWriterConfiguration WriterConfig;  // TODO use this
 
-        private protected Grain grain;  // TODO review these "protected" for changing to "private"
-        private protected IIndexableGrain iIndexableGrain;
-        private protected IndexableGrainStateWrapper<TGrainState> wrappedState;
+        private Grain grain;
+        private IIndexableGrain iIndexableGrain;
+        private IndexableGrainStateWrapper<TGrainState> wrappedState;
         private protected Func<Task> writeGrainStateFunc;
 
         private protected Func<Guid> getWorkflowIdFunc;
@@ -262,7 +262,7 @@ namespace Orleans.Indexing.Facet
             {
                 var befImgs = indexes.BeforeImages.Value;
                 foreach ((var indexName, var indexInfo) in indexes.NamedIndexes
-                                                                  .Where(kvp => !onlyUpdateActiveIndexes || !(kvp.Value.IndexInterface is ITotalIndex))
+                                                                  .Where(kvp => !onlyUpdateActiveIndexes || !(kvp.Value.IndexInterface.IsTotalIndex()))
                                                                   .Select(kvp => (kvp.Key, kvp.Value)))
                 {
                     var mu = updateMode == ActivationMode.OnActivate
@@ -318,8 +318,7 @@ namespace Orleans.Indexing.Facet
                         this.grain.AsReference<IIndexableGrain>(this.SiloIndexManager, grainInterfaceType).GetHashCode(), this.BaseSiloAddress));
         }
 
-        // TODO: old IIndexableGrain methods; try to find a cleaner way that doesn't require the grain to shim it.
-        //       These are overridden only by FTWIW.
+        // IIndexableGrain methods; these are overridden only by FaultTolerantWorkflowIndexWriter.
         public virtual Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsSet() => throw new NotImplementedException("GetActiveWorkflowIdsSet");
         public virtual Task RemoveFromActiveWorkflowIds(HashSet<Guid> removedWorkflowIds) => throw new NotImplementedException("RemoveFromActiveWorkflowIds");
 

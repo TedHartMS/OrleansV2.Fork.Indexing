@@ -206,13 +206,20 @@ namespace Orleans.Indexing
                                                 PropertyInfo propInfo, bool? grainIndexesAreEager, bool isEager, bool isUnique, bool isFaultTolerant)
         {
             var indexType = (Type)indexTypeProperty.GetValue(indexAttr);
-            var isTotalIndex = typeof(ITotalIndex).IsAssignableFrom(indexType);
+            var isTotalIndex = indexType.IsTotalIndex();
+            var isPerSiloIndex = indexType.IsPartitionedPerSiloIndex();
 
             if (indexAttr is ActiveIndexAttribute && isUnique)
             {
                 // See comments in ActiveIndexAttribute for details of why this is disallowed.
                 throw new InvalidOperationException($"An active Index cannot be configured to be unique, because multiple activations, persisting, and deactivations can create duplicates." +
                                                     $" Active Index of type {IndexUtils.GetFullTypeName(indexType)} is defined to be unique on property {propInfo.Name}" +
+                                                    $" of class {IndexUtils.GetFullTypeName(propertiesArgType)} on {IndexUtils.GetFullTypeName(grainInterfaceType)} grain interface.");
+            }
+            if (isPerSiloIndex && isUnique)
+            {
+                throw new InvalidOperationException($"Unique indexes cannot be partitioned per silo because uniqueness across silos is currently not enforced." +
+                                                    $" Partitioned Per Silo Index of type {IndexUtils.GetFullTypeName(indexType)} is defined to be unique on property {propInfo.Name}" +
                                                     $" of class {IndexUtils.GetFullTypeName(propertiesArgType)} on {IndexUtils.GetFullTypeName(grainInterfaceType)} grain interface.");
             }
             if (isTotalIndex && isEager)
