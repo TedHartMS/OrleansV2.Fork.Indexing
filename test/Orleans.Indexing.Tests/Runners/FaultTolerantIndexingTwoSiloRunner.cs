@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
@@ -136,13 +137,13 @@ namespace Orleans.Indexing.Tests
             await p4.SetLocation(ITC.Tehran);
             await p5.SetLocation(ITC.Yazd);
 
-            for(int i = 0; i < 100; ++i)
+            for (int i = 0; i < 100; ++i)
             {
                 var tasks = new List<Task>();
                 for (int j = 0; j < 10; ++j)
                 {
                     p1 = base.GetGrain<IPlayer3Grain>(j);
-                    tasks.Add(p1.SetLocation(ITC.Yazd + i + "-" + j ));
+                    tasks.Add(p1.SetLocation(ITC.Yazd + i + "-" + j));
                 }
                 await Task.WhenAll(tasks);
             }

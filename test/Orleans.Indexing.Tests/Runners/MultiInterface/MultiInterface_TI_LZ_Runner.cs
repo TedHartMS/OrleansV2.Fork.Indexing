@@ -11,7 +11,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
 {
     #region PartitionedPerKey
 
-    [Serializable]
     public class FT_Props_Person_TI_LZ_PK : IPersonProperties
     {
         [Index(typeof(TotalHashIndexPartitionedPerKey<string, IFT_Grain_Person_TI_LZ_PK>), IsEager = false, IsUnique = true)]
@@ -21,7 +20,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public int Age { get; set; }
     }
 
-    [Serializable]
     public class NFT_Props_Person_TI_LZ_PK : IPersonProperties
     {
         [Index(typeof(TotalHashIndexPartitionedPerKey<string, INFT_Grain_Person_TI_LZ_PK>), IsEager = false, IsUnique = true)]
@@ -31,7 +29,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public int Age { get; set; }
     }
 
-    [Serializable]
     public class FT_Props_Job_TI_LZ_PK : IJobProperties
     {
         [Index(typeof(TotalHashIndexPartitionedPerKey<string, IFT_Grain_Job_TI_LZ_PK>), IsEager = false, IsUnique = true)]
@@ -41,7 +38,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public string Department { get; set; }
     }
 
-    [Serializable]
     public class NFT_Props_Job_TI_LZ_PK : IJobProperties
     {
         [Index(typeof(TotalHashIndexPartitionedPerKey<string, INFT_Grain_Job_TI_LZ_PK>), IsEager = false, IsUnique = true)]
@@ -51,14 +47,12 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public string Department { get; set; }
     }
 
-    [Serializable]
     public class FT_Props_Employee_TI_LZ_PK : IEmployeeProperties
     {
         [Index(typeof(TotalHashIndexPartitionedPerKey<int, IFT_Grain_Employee_TI_LZ_PK>), IsEager = false, IsUnique = true, NullValue = "-1")]
         public int EmployeeId { get; set; }
     }
 
-    [Serializable]
     public class NFT_Props_Employee_TI_LZ_PK : IEmployeeProperties
     {
         [Index(typeof(TotalHashIndexPartitionedPerKey<int, INFT_Grain_Employee_TI_LZ_PK>), IsEager = false, IsUnique = true, NullValue = "-1")]
@@ -89,7 +83,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
     {
     }
 
-    [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
     public class FT_Grain_Employee_TI_LZ_PK : TestEmployeeGrain<EmployeeGrainState, FaultTolerantIndexableGrainStateWrapper<EmployeeGrainState>>,
                                               IFT_Grain_Person_TI_LZ_PK, IFT_Grain_Job_TI_LZ_PK, IFT_Grain_Employee_TI_LZ_PK
     {
@@ -99,7 +92,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
             : base(indexWriter) { }
     }
 
-    [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
     public class NFT_Grain_Employee_TI_LZ_PK : TestEmployeeGrain<EmployeeGrainState, IndexableGrainStateWrapper<EmployeeGrainState>>,
                                                INFT_Grain_Person_TI_LZ_PK, INFT_Grain_Job_TI_LZ_PK, INFT_Grain_Employee_TI_LZ_PK
     {
@@ -118,7 +110,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
 
     #region SingleBucket
 
-    [Serializable]
     public class FT_Props_Person_TI_LZ_SB : IPersonProperties
     {
         [Index(typeof(ITotalHashIndexSingleBucket<string, IFT_Grain_Person_TI_LZ_SB>), IsEager = false, IsUnique = true)]
@@ -128,7 +119,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public int Age { get; set; }
     }
 
-    [Serializable]
     public class NFT_Props_Person_TI_LZ_SB : IPersonProperties
     {
         [Index(typeof(ITotalHashIndexSingleBucket<string, INFT_Grain_Person_TI_LZ_SB>), IsEager = false, IsUnique = true)]
@@ -138,7 +128,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public int Age { get; set; }
     }
 
-    [Serializable]
     public class FT_Props_Job_TI_LZ_SB : IJobProperties
     {
         [Index(typeof(ITotalHashIndexSingleBucket<string, IFT_Grain_Job_TI_LZ_SB>), IsEager = false, IsUnique = true)]
@@ -148,7 +137,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public string Department { get; set; }
     }
 
-    [Serializable]
     public class NFT_Props_Job_TI_LZ_SB : IJobProperties
     {
         [Index(typeof(ITotalHashIndexSingleBucket<string, INFT_Grain_Job_TI_LZ_SB>), IsEager = false, IsUnique = true)]
@@ -158,14 +146,12 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public string Department { get; set; }
     }
 
-    [Serializable]
     public class FT_Props_Employee_TI_LZ_SB : IEmployeeProperties
     {
         [Index(typeof(ITotalHashIndexSingleBucket<int, IFT_Grain_Employee_TI_LZ_SB>), IsEager = false, IsUnique = true, NullValue = "-1")]
         public int EmployeeId { get; set; }
     }
 
-    [Serializable]
     public class NFT_Props_Employee_TI_LZ_SB : IEmployeeProperties
     {
         [Index(typeof(ITotalHashIndexSingleBucket<int, INFT_Grain_Employee_TI_LZ_SB>), IsEager = false, IsUnique = true, NullValue = "-1")]
@@ -196,7 +182,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
     {
     }
 
-    [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
     public class FT_Grain_Employee_TI_LZ_SB : TestEmployeeGrain<EmployeeGrainState, FaultTolerantIndexableGrainStateWrapper<EmployeeGrainState>>,
                                               IFT_Grain_Person_TI_LZ_SB, IFT_Grain_Job_TI_LZ_SB, IFT_Grain_Employee_TI_LZ_SB
     {
@@ -206,7 +191,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
             : base(indexWriter) { }
     }
 
-    [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
     public class NFT_Grain_Employee_TI_LZ_SB : TestEmployeeGrain<EmployeeGrainState, IndexableGrainStateWrapper<EmployeeGrainState>>,
                                                INFT_Grain_Person_TI_LZ_SB, INFT_Grain_Job_TI_LZ_SB, INFT_Grain_Employee_TI_LZ_SB
     {

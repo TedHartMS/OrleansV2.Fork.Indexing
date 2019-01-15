@@ -1,9 +1,5 @@
-using System;
-using Orleans.Indexing;
-
 namespace Orleans.Indexing.Tests
 {
-    [Serializable]
     public class Player5PropertiesNonFaultTolerant : IPlayerProperties
     {
         [Index(typeof(IActiveHashIndexSingleBucket<int, IPlayer5GrainNonFaultTolerant>), IsEager = true, IsUnique = true, NullValue = "0")]

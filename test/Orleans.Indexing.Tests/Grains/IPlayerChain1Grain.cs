@@ -1,9 +1,5 @@
-using System;
-using Orleans.Indexing;
-
 namespace Orleans.Indexing.Tests
 {
-    [Serializable]
     public class PlayerChain1Properties : IPlayerProperties
     {
         [Index(IsEager = true, NullValue = "0")]

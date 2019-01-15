@@ -12,7 +12,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
 
     // NFT only; FT cannot be configured to be Eager.
 
-    [Serializable]
     public class NFT_Props_Person_AI_EG_PK : IPersonProperties
     {
         [Index(typeof(ActiveHashIndexPartitionedPerKey<string, INFT_Grain_Person_AI_EG_PK>), IsEager = true, IsUnique = true)]
@@ -22,7 +21,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public int Age { get; set; }
     }
 
-    [Serializable]
     public class NFT_Props_Job_AI_EG_PK : IJobProperties
     {
         [Index(typeof(ActiveHashIndexPartitionedPerKey<string, INFT_Grain_Job_AI_EG_PK>), IsEager = true, IsUnique = true)]
@@ -32,7 +30,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public string Department { get; set; }
     }
 
-    [Serializable]
     public class NFT_Props_Employee_AI_EG_PK : IEmployeeProperties
     {
         [Index(typeof(ActiveHashIndexPartitionedPerKey<int, INFT_Grain_Employee_AI_EG_PK>), IsEager = true, IsUnique = true, NullValue = "-1")]
@@ -51,7 +48,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
     {
     }
 
-    [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
     public class NFT_Grain_Employee_AI_EG_PK : TestEmployeeGrain<EmployeeGrainState, IndexableGrainStateWrapper<EmployeeGrainState>>,
                                                INFT_Grain_Person_AI_EG_PK, INFT_Grain_Job_AI_EG_PK, INFT_Grain_Employee_AI_EG_PK
     {
@@ -66,7 +62,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
 
     // NFT only; FT cannot be configured to be Eager.
 
-    [Serializable]
     public class NFT_Props_Person_AI_EG_PS : IPersonProperties
     {
         [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_Person_AI_EG_PS>), IsEager = true, IsUnique = false)]   // PerSilo cannot be Unique
@@ -76,7 +71,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public int Age { get; set; }
     }
 
-    [Serializable]
     public class NFT_Props_Job_AI_EG_PS : IJobProperties
     {
         [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, INFT_Grain_Job_AI_EG_PS>), IsEager = true, IsUnique = false)]  // PerSilo cannot be Unique
@@ -86,7 +80,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public string Department { get; set; }
     }
 
-    [Serializable]
     public class NFT_Props_Employee_AI_EG_PS : IEmployeeProperties
     {
         [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, INFT_Grain_Employee_AI_EG_PS>), IsEager = true, IsUnique = false, NullValue = "-1")]  // PerSilo cannot be Unique
@@ -105,7 +98,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
     {
     }
 
-    [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
     public class NFT_Grain_Employee_AI_EG_PS : TestEmployeeGrain<EmployeeGrainState, IndexableGrainStateWrapper<EmployeeGrainState>>,
                                                INFT_Grain_Person_AI_EG_PS, INFT_Grain_Job_AI_EG_PS, INFT_Grain_Employee_AI_EG_PS
     {
@@ -120,7 +112,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
 
     // NFT only; FT cannot be configured to be Eager.
 
-    [Serializable]
     public class NFT_Props_Person_AI_EG_SB : IPersonProperties
     {
         [Index(typeof(IActiveHashIndexSingleBucket<string, INFT_Grain_Person_AI_EG_SB>), IsEager = true, IsUnique = true)]
@@ -130,7 +121,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public int Age { get; set; }
     }
 
-    [Serializable]
     public class NFT_Props_Job_AI_EG_SB : IJobProperties
     {
         [Index(typeof(IActiveHashIndexSingleBucket<string, INFT_Grain_Job_AI_EG_SB>), IsEager = true, IsUnique = true)]
@@ -140,7 +130,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public string Department { get; set; }
     }
 
-    [Serializable]
     public class NFT_Props_Employee_AI_EG_SB : IEmployeeProperties
     {
         [Index(typeof(IActiveHashIndexSingleBucket<int, INFT_Grain_Employee_AI_EG_SB>), IsEager = true, IsUnique = true, NullValue = "-1")]
@@ -159,7 +148,6 @@ namespace Orleans.Indexing.Tests.MultiInterface
     {
     }
 
-    [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
     public class NFT_Grain_Employee_AI_EG_SB : TestEmployeeGrain<EmployeeGrainState, IndexableGrainStateWrapper<EmployeeGrainState>>,
                                                INFT_Grain_Person_AI_EG_SB, INFT_Grain_Job_AI_EG_SB, INFT_Grain_Employee_AI_EG_SB
     {

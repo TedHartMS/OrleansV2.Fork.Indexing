@@ -54,7 +54,7 @@ namespace Orleans.Indexing.Tests
                         opt.CanCreateResources = true;
                         opt.DB = databaseName;
                         opt.InitStage = ServiceLifecycleStage.RuntimeStorageServices;
-                        opt.StateFieldsToIndex.AddRange(GetStateFieldsToIndex());
+                        opt.StateFieldsToIndex.AddRange(GetDSMIStateFieldsToIndex());
                     })
                 : hostBuilder;
         }
@@ -74,10 +74,10 @@ namespace Orleans.Indexing.Tests
                                 });
         }
 
-        // Code below adapted from AppPartsIndexableGrainLoader to identify the necessary fields for the DSMI storage
+        // Code below adapted from ApplicationPartsIndexableGrainLoader to identify the necessary fields for the DSMI storage
         // provider to index.
 
-        private static IEnumerable<string> GetStateFieldsToIndex()
+        private static IEnumerable<string> GetDSMIStateFieldsToIndex()
         {
             var grainClassTypes = typeof(BaseIndexingFixture).Assembly.GetConcreteGrainClasses(logger: null).ToArray();
 
@@ -85,40 +85,20 @@ namespace Orleans.Indexing.Tests
             var interfacesToIndexedPropertyNames = new Dictionary<Type, string[]>();
             foreach (var grainClassType in grainClassTypes)
             {
-                GetFieldsForASingleGrainType(grainClassType, interfacesToIndexedPropertyNames);
+                GetDSMIFieldsForASingleGrainType(grainClassType, interfacesToIndexedPropertyNames);
             }
             return new HashSet<string>(interfacesToIndexedPropertyNames.Where(kvp => kvp.Value.Length > 0).SelectMany(kvp => kvp.Value));
         }
 
-        private static void GetFieldsForASingleGrainType(Type grainClassType, Dictionary<Type, string[]> interfacesToIndexedPropertyNames)
+        internal static void GetDSMIFieldsForASingleGrainType(Type grainClassType, Dictionary<Type, string[]> interfacesToIndexedPropertyNames)
         {
-            Type[] allInterfaces = grainClassType.GetInterfaces();
-
-            // If there are any interface that directly extends IIndexableGrain<TProperties>...
-            var indexableBaseInterfaces = allInterfaces.Where(itf => itf.IsGenericType && itf.GetGenericTypeDefinition() == typeof(IIndexableGrain<>)).ToArray();
-            if (indexableBaseInterfaces.Length == 0)
+            foreach (var (grainInterfaceType, propertiesClassType) in ApplicationPartsIndexableGrainLoader.EnumerateIndexedInterfacesForAGrainClassType(grainClassType)
+                                                                        .Where(tup => !interfacesToIndexedPropertyNames.ContainsKey(tup.interfaceType)))
             {
-                return;
-            }
-
-            var fieldPrefix = grainClassType.IsFaultTolerant() ? "UserState." : string.Empty;
-            foreach (var indexableBaseInterface in indexableBaseInterfaces)
-            {
-                // ... and its generic argument is a class (TProperties)... 
-                var propertiesClassType = indexableBaseInterface.GetGenericArguments()[0];
-                if (propertiesClassType.GetTypeInfo().IsClass)
-                {
-                    // ... then examine all indexed fields for all the descendant interfaces of IIndexableGrain<TProperties>; these interfaces are defined by end-users.
-                    foreach (var grainInterfaceType in allInterfaces.Where(itf => !indexableBaseInterfaces.Contains(itf)
-                                                                                    && indexableBaseInterface.IsAssignableFrom(itf)
-                                                                                    && !interfacesToIndexedPropertyNames.ContainsKey(itf)))
-                    {
-                        interfacesToIndexedPropertyNames[grainInterfaceType] = propertiesClassType.GetProperties()
-                                                                                .Where(propInfo => propInfo.GetCustomAttributes<StorageManagedIndexAttribute>(inherit: false).Any())
-                                                                                .Select(propInfo => fieldPrefix + propInfo.Name)
-                                                                                .ToArray();
-                    }
-                }
+                interfacesToIndexedPropertyNames[grainInterfaceType] = propertiesClassType.GetProperties()
+                                                                        .Where(propInfo => propInfo.GetCustomAttributes<StorageManagedIndexAttribute>(inherit: false).Any())
+                                                                        .Select(propInfo => IndexingConstants.UserStatePrefix + propInfo.Name)
+                                                                        .ToArray();
             }
         }
     }

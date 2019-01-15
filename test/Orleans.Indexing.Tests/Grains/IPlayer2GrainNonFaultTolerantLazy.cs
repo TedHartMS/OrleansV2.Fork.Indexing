@@ -1,8 +1,5 @@
-using System;
-
 namespace Orleans.Indexing.Tests
 {
-    [Serializable]
     public class Player2PropertiesNonFaultTolerantLazy : IPlayerProperties
     {
         public int Score { get; set; }

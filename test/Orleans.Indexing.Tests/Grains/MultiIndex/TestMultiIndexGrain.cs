@@ -1,28 +1,32 @@
+using Orleans.Concurrency;
+using Orleans.Indexing.Facet;
 using Orleans.Providers;
+using System;
 using System.Threading.Tasks;
 
 namespace Orleans.Indexing.Tests
 {
     [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
-    public abstract class TestMultiIndexGrain<TState, TProps> : IndexableGrain<TState, TProps>, ITestMultiIndexGrain
-        where TState : class, ITestMultiIndexState, new() where TProps : ITestMultiIndexProperties, new()
+    public abstract class TestMultiIndexGrain<TGrainState> : Grain<FaultTolerantIndexableGrainStateWrapper<TGrainState>>, ITestMultiIndexGrain
+        where TGrainState : class, ITestMultiIndexState, new()
     {
-        private TestMultiIndexGrainBase<TState, TProps> testBase;
+        private TestMultiIndexGrainBase<TGrainState> testBase;
+        private TGrainState unwrappedState => base.State.UserState;
 
-        public Task<string> GetUnIndexedString() => Task.FromResult(this.State.UnIndexedString);
-        public Task SetUnIndexedString(string value) => testBase.SetProperty(v => this.State.UnIndexedString = v, value, retry:false);
+        public Task<string> GetUnIndexedString() => Task.FromResult(this.unwrappedState.UnIndexedString);
+        public Task SetUnIndexedString(string value) => testBase.SetProperty(() => this.unwrappedState.UnIndexedString = value, retry:false);
 
-        public Task<int> GetUniqueInt() => Task.FromResult(this.State.UniqueInt);
-        public Task SetUniqueInt(int value) => testBase.SetProperty(v => this.State.UniqueInt = v, value, retry:testBase.IsUniqueIntIndexed);
+        public Task<int> GetUniqueInt() => Task.FromResult(this.unwrappedState.UniqueInt);
+        public Task SetUniqueInt(int value) => testBase.SetProperty(() => this.unwrappedState.UniqueInt = value, retry:testBase.IsUniqueIntIndexed);
 
-        public Task<string> GetUniqueString() => Task.FromResult(this.State.UniqueString);
-        public Task SetUniqueString(string value) => testBase.SetProperty(v => this.State.UniqueString = v, value, retry:testBase.IsUniqueStringIndexed);
+        public Task<string> GetUniqueString() => Task.FromResult(this.unwrappedState.UniqueString);
+        public Task SetUniqueString(string value) => testBase.SetProperty(() => this.unwrappedState.UniqueString = value, retry:testBase.IsUniqueStringIndexed);
 
-        public Task<int> GetNonUniqueInt() => Task.FromResult(this.State.NonUniqueInt);
-        public Task SetNonUniqueInt(int value) => testBase.SetProperty(v => this.State.NonUniqueInt = v, value, retry:testBase.IsNonUniqueIntIndexed);
+        public Task<int> GetNonUniqueInt() => Task.FromResult(this.unwrappedState.NonUniqueInt);
+        public Task SetNonUniqueInt(int value) => testBase.SetProperty(() => this.unwrappedState.NonUniqueInt = value, retry:testBase.IsNonUniqueIntIndexed);
 
-        public Task<string> GetNonUniqueString() => Task.FromResult(this.State.NonUniqueString);
-        public Task SetNonUniqueString(string value) => testBase.SetProperty(v => this.State.NonUniqueString = v, value, retry:testBase.IsNonUniqueStringIndexed);
+        public Task<string> GetNonUniqueString() => Task.FromResult(this.unwrappedState.NonUniqueString);
+        public Task SetNonUniqueString(string value) => testBase.SetProperty(() => this.unwrappedState.NonUniqueString = value, retry:testBase.IsNonUniqueStringIndexed);
 
         public Task Deactivate()
         {
@@ -30,9 +34,20 @@ namespace Orleans.Indexing.Tests
             return Task.CompletedTask;
         }
 
-        public TestMultiIndexGrain()
+        public TestMultiIndexGrain(IIndexWriter<TGrainState> indexWriter)
         {
-            this.testBase = new TestMultiIndexGrainBase<TState, TProps>(() => base.WriteStateAsync(), () => base.ReadStateAsync());
+            this.testBase = new TestMultiIndexGrainBase<TGrainState>(this.GetType(), indexWriter, this.WriteStateAsync, this.ReadStateAsync);
         }
+
+        #region Facet methods - required overrides of Grain<TGrainState>
+        public override Task OnActivateAsync() => this.testBase.IndexWriter.OnActivateAsync(this, base.State, base.WriteStateAsync, base.OnActivateAsync);
+        public override Task OnDeactivateAsync() => this.testBase.IndexWriter.OnDeactivateAsync(() => Task.CompletedTask);
+        protected override Task WriteStateAsync() => this.testBase.IndexWriter.WriteAsync();
+        #endregion Facet methods - required overrides of Grain<TGrainState>
+
+        #region Required shims for IIndexableGrain methods for fault tolerance
+        public Task<Immutable<System.Collections.Generic.HashSet<Guid>>> GetActiveWorkflowIdsSet() => this.testBase.IndexWriter.GetActiveWorkflowIdsSet();
+        public Task RemoveFromActiveWorkflowIds(System.Collections.Generic.HashSet<Guid> removedWorkflowId) => this.testBase.IndexWriter.RemoveFromActiveWorkflowIds(removedWorkflowId);
+        #endregion Required shims for IIndexableGrain methods for fault tolerance
     }
 }
