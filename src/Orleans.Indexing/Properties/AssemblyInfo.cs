@@ -1,8 +1,10 @@
 using Orleans.CodeGeneration;
 using Orleans.Indexing;
+using Orleans.Indexing.Facet;
 using System.Runtime.CompilerServices;
 
-[assembly: GenerateSerializer(typeof(FaultTolerantIndexableState<>))]
+[assembly: GenerateSerializer(typeof(IndexableGrainStateWrapper<>))]
+[assembly: GenerateSerializer(typeof(FaultTolerantIndexableGrainStateWrapper<>))]
 [assembly: GenerateSerializer(typeof(IndexWorkflowQueueState))]
 [assembly: GenerateSerializer(typeof(IndexWorkflowQueueEntry))]
 [assembly: GenerateSerializer(typeof(IndexWorkflowRecord))]

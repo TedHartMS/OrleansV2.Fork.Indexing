@@ -1,5 +1,5 @@
+using Orleans.Indexing.Facet;
 using Orleans.Providers;
-using System;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -7,7 +7,6 @@ using Xunit.Abstractions;
 namespace Orleans.Indexing.Tests
 {
     #region PartitionedPerKey
-    [Serializable]
     public class FT_Props_UIUSNINS_DSMI_LZ_PK : ITestMultiIndexProperties
     {
         [StorageManagedIndex(IsEager = false, IsUnique = true, NullValue = "0")]
@@ -23,7 +22,6 @@ namespace Orleans.Indexing.Tests
         public string NonUniqueString { get; set; }
     }
 
-    [Serializable]
     public class NFT_Props_UIUSNINS_DSMI_LZ_PK : ITestMultiIndexProperties
     {
         [StorageManagedIndex(IsEager = false, IsUnique = true, NullValue = "-1")]
@@ -39,8 +37,6 @@ namespace Orleans.Indexing.Tests
         public string NonUniqueString { get; set; }
     }
 
-    // TODO: Indexes are based on InterfaceType but not ClassType, so currently, unique index tests run in parallel must have 
-    // distinct interfaces, which percolates to state and properties as well.
     public interface IFT_Grain_UIUSNINS_DSMI_LZ_PK : ITestMultiIndexGrain, IIndexableGrain<FT_Props_UIUSNINS_DSMI_LZ_PK>
     {
     }
@@ -50,18 +46,25 @@ namespace Orleans.Indexing.Tests
     }
 
     [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
-    public class FT_Grain_UIUSNINS_DSMI_LZ_PK : TestMultiIndexGrain<TestMultiIndexState, FT_Props_UIUSNINS_DSMI_LZ_PK>, IFT_Grain_UIUSNINS_DSMI_LZ_PK
+    public class FT_Grain_UIUSNINS_DSMI_LZ_PK : TestMultiIndexGrain<TestMultiIndexState>, IFT_Grain_UIUSNINS_DSMI_LZ_PK
     {
+        public FT_Grain_UIUSNINS_DSMI_LZ_PK(
+            [FaultTolerantWorkflowIndexWriter]
+            IIndexWriter<TestMultiIndexState> indexWriter)
+            : base(indexWriter) { }
     }
 
     [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
-    public class NFT_Grain_UIUSNINS_DSMI_LZ_PK : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState, NFT_Props_UIUSNINS_DSMI_LZ_PK>, INFT_Grain_UIUSNINS_DSMI_LZ_PK
+    public class NFT_Grain_UIUSNINS_DSMI_LZ_PK : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_DSMI_LZ_PK
     {
+        public NFT_Grain_UIUSNINS_DSMI_LZ_PK(
+            [NonFaultTolerantWorkflowIndexWriter]
+            IIndexWriter<TestMultiIndexState> indexWriter)
+            : base(indexWriter) { }
     }
     #endregion // PartitionedPerKey
 
     #region PartitionedPerSilo
-    [Serializable]
     public class FT_Props_UIUSNINS_DSMI_LZ_PS : ITestMultiIndexProperties
     {
         [StorageManagedIndex(IsEager = false, IsUnique = true, NullValue = "0")]
@@ -77,7 +80,6 @@ namespace Orleans.Indexing.Tests
         public string NonUniqueString { get; set; }
     }
 
-    [Serializable]
     public class NFT_Props_UIUSNINS_DSMI_LZ_PS : ITestMultiIndexProperties
     {
         [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, INFT_Grain_UIUSNINS_DSMI_LZ_PS>), IsEager = false, IsUnique = false, NullValue = "0")]    // PerSilo cannot be Unique
@@ -93,8 +95,6 @@ namespace Orleans.Indexing.Tests
         public string NonUniqueString { get; set; }
     }
 
-    // TODO: Indexes are based on InterfaceType but not ClassType, so currently, unique index tests run in parallel must have 
-    // distinct interfaces, which percolates to state and properties as well.
     public interface IFT_Grain_UIUSNINS_DSMI_LZ_PS : ITestMultiIndexGrain, IIndexableGrain<FT_Props_UIUSNINS_DSMI_LZ_PS>
     {
     }
@@ -104,18 +104,25 @@ namespace Orleans.Indexing.Tests
     }
 
     [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
-    public class FT_Grain_UIUSNINS_DSMI_LZ_PS : TestMultiIndexGrain<TestMultiIndexState, FT_Props_UIUSNINS_DSMI_LZ_PS>, IFT_Grain_UIUSNINS_DSMI_LZ_PS
+    public class FT_Grain_UIUSNINS_DSMI_LZ_PS : TestMultiIndexGrain<TestMultiIndexState>, IFT_Grain_UIUSNINS_DSMI_LZ_PS
     {
+        public FT_Grain_UIUSNINS_DSMI_LZ_PS(
+            [FaultTolerantWorkflowIndexWriter]
+            IIndexWriter<TestMultiIndexState> indexWriter)
+            : base(indexWriter) { }
     }
 
     [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
-    public class NFT_Grain_UIUSNINS_DSMI_LZ_PS : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState, NFT_Props_UIUSNINS_DSMI_LZ_PS>, INFT_Grain_UIUSNINS_DSMI_LZ_PS
+    public class NFT_Grain_UIUSNINS_DSMI_LZ_PS : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_DSMI_LZ_PS
     {
+        public NFT_Grain_UIUSNINS_DSMI_LZ_PS(
+            [NonFaultTolerantWorkflowIndexWriter]
+            IIndexWriter<TestMultiIndexState> indexWriter)
+            : base(indexWriter) { }
     }
     #endregion // PartitionedPerSilo
 
     #region SingleBucket
-    [Serializable]
     public class FT_Props_UIUSNINS_DSMI_LZ_SB : ITestMultiIndexProperties
     {
         [StorageManagedIndex(IsEager = false, IsUnique = true, NullValue = "0")]
@@ -131,7 +138,6 @@ namespace Orleans.Indexing.Tests
         public string NonUniqueString { get; set; }
     }
 
-    [Serializable]
     public class NFT_Props_UIUSNINS_DSMI_LZ_SB : ITestMultiIndexProperties
     {
         [StorageManagedIndex(IsEager = false, IsUnique = true, NullValue = "-1")]
@@ -147,8 +153,6 @@ namespace Orleans.Indexing.Tests
         public string NonUniqueString { get; set; }
     }
 
-    // TODO: Indexes are based on InterfaceType but not ClassType, so currently, unique index tests run in parallel must have 
-    // distinct interfaces, which percolates to state and properties as well.
     public interface IFT_Grain_UIUSNINS_DSMI_LZ_SB : ITestMultiIndexGrain, IIndexableGrain<FT_Props_UIUSNINS_DSMI_LZ_SB>
     {
     }
@@ -158,13 +162,21 @@ namespace Orleans.Indexing.Tests
     }
 
     [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
-    public class FT_Grain_UIUSNINS_DSMI_LZ_SB : TestMultiIndexGrain<TestMultiIndexState, FT_Props_UIUSNINS_DSMI_LZ_SB>, IFT_Grain_UIUSNINS_DSMI_LZ_SB
+    public class FT_Grain_UIUSNINS_DSMI_LZ_SB : TestMultiIndexGrain<TestMultiIndexState>, IFT_Grain_UIUSNINS_DSMI_LZ_SB
     {
+        public FT_Grain_UIUSNINS_DSMI_LZ_SB(
+            [FaultTolerantWorkflowIndexWriter]
+            IIndexWriter<TestMultiIndexState> indexWriter)
+            : base(indexWriter) { }
     }
 
     [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
-    public class NFT_Grain_UIUSNINS_DSMI_LZ_SB : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState, NFT_Props_UIUSNINS_DSMI_LZ_SB>, INFT_Grain_UIUSNINS_DSMI_LZ_SB
+    public class NFT_Grain_UIUSNINS_DSMI_LZ_SB : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_DSMI_LZ_SB
     {
+        public NFT_Grain_UIUSNINS_DSMI_LZ_SB(
+            [NonFaultTolerantWorkflowIndexWriter]
+            IIndexWriter<TestMultiIndexState> indexWriter)
+            : base(indexWriter) { }
     }
     #endregion // SingleBucket
 

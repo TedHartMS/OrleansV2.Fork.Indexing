@@ -24,7 +24,6 @@ namespace Orleans.Indexing
         private string _grainClassName;
 
         private string _indexedField;
-        private string _indexedFieldPrefix;
 
         // IndexManager (and therefore logger) cannot be set in ctor because Grain activation has not yet set base.Runtime.
         internal SiloIndexManager SiloIndexManager => IndexManager.GetSiloIndexManager(ref __indexManager, base.ServiceProvider);
@@ -42,11 +41,11 @@ namespace Orleans.Indexing
 
         public Task<bool> DirectApplyIndexUpdateBatch(Immutable<IDictionary<IIndexableGrain, IList<IMemberUpdate>>> iUpdates,
                                                         bool isUnique, IndexMetaData idxMetaData, SiloAddress siloAddress = null)
-            => Task.FromResult(true);
+            => Task.FromResult(true);   // The index is maintained by the underlying _grainStorage, when the grain's WriteStateAsync is called
 
         public Task<bool> DirectApplyIndexUpdate(IIndexableGrain g, Immutable<IMemberUpdate> iUpdate, bool isUniqueIndex,
                                                  IndexMetaData idxMetaData, SiloAddress siloAddress)
-            => Task.FromResult(true);
+            => Task.FromResult(true);   // The index is maintained by the underlying _grainStorage, when the grain's WriteStateAsync is called
 
         public async Task Lookup(IOrleansQueryResultStream<V> result, K key)
         {
@@ -63,7 +62,7 @@ namespace Orleans.Indexing
             // In Indexing or in Corleans? The latter would remove the need for Storage Provider consumers to reference Orleans.Indexing.
             dynamic indexableStorageProvider = _grainStorage;
 
-            var qualifiedField = _indexedFieldPrefix + _indexedField;
+            var qualifiedField = IndexingConstants.UserStatePrefix + _indexedField;
             List<GrainReference> resultReferences = await indexableStorageProvider.LookupAsync<K>(_grainClassName, qualifiedField, key);
             return resultReferences.Select(grain => this.SiloIndexManager.Silo.Cast<V>(grain)).ToList();
         }
@@ -101,7 +100,6 @@ namespace Orleans.Indexing
                                              " interface {IndexUtils.GetFullTypeName(typeof(V))} was not resolved.");
                 }
                 _grainStorage = grainClassType.GetGrainStorage(this.SiloIndexManager.ServiceProvider);
-                this._indexedFieldPrefix = grainClassType.IsFaultTolerant() ? "UserState." : string.Empty;  // TODO: With Facet, always use .UserState now
             }
         }
     }

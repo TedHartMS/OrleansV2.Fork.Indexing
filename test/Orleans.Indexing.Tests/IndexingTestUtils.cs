@@ -39,13 +39,13 @@ namespace Orleans.Indexing.Tests
             return observedCount;
         }
 
-        internal static async Task SetPropertyAndWriteStateAsync<T>(Action<T> setter, T value, Func<Task> writeStateFunc, Func<Task>readStateFunc, bool retry)
+        internal static async Task SetPropertyAndWriteStateAsync(Action setterAction, Func<Task> writeStateFunc, Func<Task>readStateFunc, bool retry)
         {
             const int MaxRetries = 10;
             int retries = 0;
             while (true)
             {
-                setter(value);
+                setterAction();
                 try
                 {
                     await writeStateFunc();

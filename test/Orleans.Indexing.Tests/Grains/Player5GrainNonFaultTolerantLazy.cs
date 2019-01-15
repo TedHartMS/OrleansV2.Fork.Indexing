@@ -1,19 +1,15 @@
-using System;
-using Orleans.Providers;
+using Orleans.Indexing.Facet;
 
 namespace Orleans.Indexing.Tests
 {
-    [Serializable]
-    public class Player5GrainStateNonFaultTolerantLazy : Player5PropertiesNonFaultTolerantLazy, IPlayerState
-    {
-        public string Email { get; set; }
-    }
-
     /// <summary>
     /// A simple grain that represent a player in a game
     /// </summary>
-    [StorageProvider(ProviderName = "MemoryStore")]
-    public class Player5GrainNonFaultTolerantLazy : PlayerGrainNonFaultTolerant<Player5GrainStateNonFaultTolerantLazy, Player5PropertiesNonFaultTolerantLazy>, IPlayer5GrainNonFaultTolerantLazy
+    public class Player5GrainNonFaultTolerantLazy : PlayerGrainNonFaultTolerant<PlayerGrainState>, IPlayer5GrainNonFaultTolerantLazy
     {
+        public Player5GrainNonFaultTolerantLazy(
+            [NonFaultTolerantWorkflowIndexWriter]
+            IIndexWriter<PlayerGrainState> indexWriter)
+            : base(indexWriter) { }
     }
 }

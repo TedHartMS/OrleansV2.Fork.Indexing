@@ -1,9 +1,5 @@
-using System;
-using Orleans.Indexing;
-
 namespace Orleans.Indexing.Tests
 {
-    [Serializable]
     public class Player1Properties : IPlayerProperties
     {
         public int Score { get; set; }

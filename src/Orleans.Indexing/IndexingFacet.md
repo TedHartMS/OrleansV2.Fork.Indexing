@@ -22,20 +22,28 @@
       - [Register the Storage Provider](#register-the-storage-provider)
       - [Implement the Indexed Interface `TProperties` Accessors](#implement-the-indexed-interface-tproperties-accessors)
       - [Implement Required Overrides of Grain Methods](#implement-required-overrides-of-grain-methods)
-      - [Implement `IIndexableGrain` Methods](#implement-iindexablegrain-methods)
+      - [Implement IIndexableGrain Methods](#implement-iindexablegrain-methods)
   * [Querying Indexes](#querying-indexes)
+  * [Testing Indexes](#testing-indexes)
 - [Orleans Level](#orleans-level)
   * [Reading Property Attributes and Creating Indexes](#reading-property-attributes-and-creating-indexes)
   * [Orleans Indexing Interfaces](#orleans-indexing-interfaces)
     + [`IIndexableGrain<TProperties>`](#iindexablegrain)
   * [Orleans Indexing Implementation Classes](#orleans-indexing-implementation-classes)
-    + [Inheritance-based (obsolete)](#inheritance-based-obsolete)
+    + [Inheritance-based (obsolete and removed)](#inheritance-based-obsolete-and-removed)
       - [`IndexableGrainNonFaultTolerant<TProperties>`](#indexablegrainnonfaulttolerant)
       - [`IndexableGrain<TProperties>`](#indexablegrain)
     + [Facets](#facets)
       - [Facet Attribute](#facet-attribute)
       - [`IIndexWriter<TGrainState>`](#iindexwriter)
 - [Constraints on Indexing](#constraints-on-indexing)
+  * [Incompatible definitions](#incompatible-definitions)
+    + [Total Indexes Cannot Be Eager](#total-indexes-cannot-be-eager)
+    + [Total Indexes Cannot be Partitioned Per-Silo](#total-indexes-cannot-be-partitioned-per-silo)
+    + [Unique Indexes Cannot Be Active](#unique-indexes-cannot-be-active)
+    + [Unique Indexes Cannot Be Partitioned Per-Silo](#unique-indexes-cannot-be-partitioned-per-silo)
+    + [Fault-Tolerant Indexes Cannot Be Eager](#fault-tolerant-indexes-cannot-be-eager)
+    + [Cannot Define Both Eager And Lazy Indexes on a Single Grain](#cannot-define-both-eager-and-lazy-indexes-on-a-single-grain)
   * [Only One Index Implementation (FT, NFT, TRX) per Grain](#only-one-index-implementation-ft-nft-trx-per-grain)
   * [Single Implementation Class per Grain Interface](#single-implementation-class-per-grain-interface)
   * [Only One Index per Query (==)](#only-one-index-per-query-)
@@ -50,10 +58,13 @@
   * [Index Disjunctions (||)](#index-disjunctions-)
   * [Negations and Ranges](#negations-and-ranges)
   * [Adding Explicit TState-to-TProperties Name Mapping](#adding-explicit-tstate-to-tproperties-name-mapping)
+  * [Unique Indexes Partitioned Per-Silo](#unique-indexes-partitioned-per-silo)
 
 <!-- tocstop -->
 
 ## Overview of Indexing
+Indexing enables grains to be efficiently queried by scalar properties. A research paper describing the interface and implementation can be found [here](http://cidrdb.org/cidr2017/papers/p29-bernstein-cidr17.pdf).
+
 Indexing is defined at two levels: at the application level as property attributes on application properties classes, and by implementation classes supplied by Orleans to either update the indexes created from these attributes, or to translate LINQ queries into the retrieval of grains keyed by these indexes.
 
 In this discussion, generic type arguments are prefaced with 'T'. `TProperties` is the type of an application-level class containing properties to be indexed (which are marked with `IndexAttribute` or a subclass). `TIProperties` is the type of an underlying interface for such a class. `TGrainState` is the type of the state parameter of `Grain<TGrainState>`, which an indexed grain inherits from. `TIIndexableGrain` is the type of an interface that has been marked as indexable (details below).
@@ -85,6 +96,8 @@ The Index attribute may be `Index` or one of the attribute classes inheriting fr
 Index attributes have other parameters: the partitioning scheme (single grain, by key, or by silo); whether or not the index is unique; whether it is eager or lazy; and how many hash buckets to use for that index (the default is no limit; the actual number varies depending on the number of indexed grains and the distribution of the hash).
 #### Interaction of Indexed Properties and Grain State
 Generally, the `TGrainProperties` class is a base class of `Grain<TGrainState>`'s `TGrainState`, because the indexing implementation casts `TGrainState` to `TProperties` if possible. If there are multiple `TIIndexableGrain`s with multiple `TProperties`, then direct inheritance is not possible. For any `TProperties` that is not a base of `TGrainState`, the Indexing implementation creates an ephemeral `TProperties` instance and copies `TGrainState`'s property values using direct name matching. (Note that the application Grain does not usually create an instance of `TGrainProperties`; it creates an instance of `TGrainState` indirectly, by inheriting from `Grain<TGrainState>`, and populates this.) The properties of `TProperties` are then written to index storage.
+
+The grain state is the backing storage for properties values and will be written to persistent storage; thus, the state class (and not the properties class) must have the [Serializable] attribute. Additionally, because the index specifications are not relevant to the state persistence, the same state class may be used as the backing storage specification for multiple properties classes.
 
 For a single indexed interface, the `TGrainState` class can inherit from the `TProperties` class. For example:
 ```c#
@@ -258,7 +271,7 @@ Grain classes that implement a `TIIndexableGrain` usually derive (directly or in
         protected override Task WriteStateAsync() => this.indexWriter.WriteAsync();
         #endregion Facet methods - required overrides of Grain<TGrainState>
 
-        #region required implementations of IIndexableGrain methods; they are only called for fault-tolerant index writing
+        #region Required implementations of IIndexableGrain methods; they are only called for fault-tolerant index writing
         public Task<Immutable<System.Collections.Generic.HashSet<Guid>>> GetActiveWorkflowIdsSet() => this.indexWriter.GetActiveWorkflowIdsSet();
         public Task RemoveFromActiveWorkflowIds(System.Collections.Generic.HashSet<Guid> removedWorkflowId) => this.indexWriter.RemoveFromActiveWorkflowIds(removedWorkflowId);
         #endregion required implementations of IIndexableGrain methods
@@ -320,6 +333,13 @@ Querying is done by LINQ:
     }));
 ```
 Orleans.Indexing reads the ExpressionTrees created by LINQ to determine the property that is being requested and translates this into a read operation on the index.
+### Testing Indexes
+See test\Orleans.Indexing.Tests for the Unit Tests. These are clustered into 3 groups:
+- Players: These are the original tests, modified for the Facet implementation. They provide a single indexable interface on a grain and, usually, only a single indexed property: a Player's Location.
+- MultiIndex: These provide a single indexed interface on a grain: One unique and one non-unique int and string index.
+- MultiInterface: This capability is new with the Facet implementation. It provides 3 indexed interfaces per grain: A person, a job, and an employee, with a mix of unique and non-unique indexes.
+
+Additionally, the SportsTeamIndexing sample at Samples\2.1\SportsTeamIndexing illustrates creating tests outside the Unit Testing framework.
 
 ## Orleans Level
 This section defines the Indexing implementation within Orleans.Indexing.
@@ -352,8 +372,8 @@ In both the old inheritance-based system and the new Facet system, this not only
 ```
 ### Orleans Indexing Implementation Classes
 Orleans.Indexing is changing from inheritance to containment; rather than inheriting from an intermediate grain class implementation that overrides WriteStateAsync, facets provide the ability to utilize a contained implementation through constructor injection.
-#### Inheritance-based (obsolete)
-Under the inheritance scheme, each indexed grain must inherit from one of these grain classes, which override WriteStateAsync to provide persistence.
+#### Inheritance-based (obsolete and removed)
+Under the inheritance scheme, each indexed grain had to inherit from one of these grain classes, which override WriteStateAsync to provide persistence. This approach has been entirely removed, along with the implementation classes listed here; this section remains in order to assist in migration.
 ##### <a name="indexablegrainnonfaulttolerant"></a>`IndexableGrainNonFaultTolerant<TProperties>`
 An application grain inherits from this if its indexes do not have to be fault-tolerant. This is also the base class for `IndexableGrain<TProperties>`.
 ##### <a name="indexablegrain"></a>`IndexableGrain<TProperties>`
@@ -440,6 +460,25 @@ With the exception of the workflow ID set methods on IIndexedGrain, which an ind
 ```
 
 ## Constraints on Indexing
+### Incompatible definitions
+Some index definitions are not compatible with certain partitioning schemes or Active vs. Total indexing.
+#### Total Indexes Cannot Be Eager
+Eager indexes can only be Active indexes, because they must update the appropriate bucket on the same silo as the activated grain. 
+#### Total Indexes Cannot be Partitioned Per-Silo
+The indexing paper describes this limitation in detail in section 5.2: Per-Silo (physically partitioned) indexes would have to do fan-out operations to update the status of an index entry on a grain, because the grain may have previously been active on a different silo. The API does not contain definitions that allow such an index to be specified. There appears to be no need to implement this.
+#### Unique Indexes Cannot Be Active
+An Active Index cannot be defined as unique for the following reason:
+1. Suppose there's a unique Active Index over persistent objects.
+2. The activation of an initialized object could create a conflict in the Active Index.
+   E.g., there's an active player PA with email foo and a non-active persistent player PP with email foo.
+3. An attempt to activate PP will cause a violation of the Active Index on email.
+   In other words, having a Total unique index prevents the possibility of such a conflict; having an Active unique index does not, because one could activate a Grain, set its email to something already there and persist it (and then deactivate it and activate a new one, etc.). The only use case would be "only one such value can be active at a time", but this would lead to more issues than gain. This implies we should disallow such indexes.
+#### Unique Indexes Cannot Be Partitioned Per-Silo
+As with Total indexes, Unique Indexes partitioned per Silo (physically) would require fan-out operations to all silos to ensure that the indexed property value is unique. This is currently not implemented.
+#### Fault-Tolerant Indexes Cannot Be Eager
+Fault-Tolerant Indexes are based on the workflow queues, so they cannot be Eager.
+#### Cannot Define Both Eager And Lazy Indexes on a Single Grain
+Allowing both Eager and Lazy indexes on a single grain would lead to potential difficulties in ensuring correctness.
 ### Only One Index Implementation (FT, NFT, TRX) per Grain
 Orleans only supports a single index implementation per Grain class: fault-tolerant or non-fault-tolerant workflow, or transactional. This is reflected in the presence of only a single `IIndexWriter` facet parameter.
 ### Single Implementation Class per Grain Interface
@@ -470,3 +509,5 @@ As noted above, the application can union the returned `GrainReference`s from mu
 These cannot be done using the current hash-based approach.
 ### Adding Explicit TState-to-TProperties Name Mapping
 Currently, if `TGrainState` does not inherit from `TProperties`, Indexing maps them by assuming the same property names. We could add an explicit mapping, either by attributes on `TState` and/or `TProperties`, by passing a Dictionary to IIndexWriter.Write(), or by some other scheme.
+### Unique Indexes Partitioned Per-Silo
+As stated above, Unique Indexes partitioned per Silo (physically) would require fan-out operations to all silos to ensure that the indexed property value is unique. It is not clear how useful this would be.

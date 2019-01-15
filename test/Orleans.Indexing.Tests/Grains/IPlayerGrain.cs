@@ -1,5 +1,4 @@
 using System.Threading.Tasks;
-using Orleans;
 
 namespace Orleans.Indexing.Tests
 {

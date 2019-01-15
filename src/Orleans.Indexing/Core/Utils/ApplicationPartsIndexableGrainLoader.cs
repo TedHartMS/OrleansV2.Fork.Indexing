@@ -62,39 +62,25 @@ namespace Orleans.Indexing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private async static Task GetIndexesForASingleGrainType(ApplicationPartsIndexableGrainLoader loader, IndexRegistry registry, Type grainClassType)
         {
+            if (!typeof(IIndexableGrain).IsAssignableFrom(grainClassType))
+            {
+                return;
+            }
+
             if (registry.ContainsGrainType(grainClassType))
             {
                 throw new InvalidOperationException($"Grain class type {grainClassType.Name} has already been added to the registry");
             }
 
-            Type[] allInterfaces = grainClassType.GetInterfaces();
             bool? grainIndexesAreEager = null;
-
-            // If there are any interface that directly extends IIndexableGrain<TProperties>...
-            var indexableBaseInterfaces = allInterfaces.Where(itf => itf.IsGenericType && itf.GetGenericTypeDefinition() == typeof(IIndexableGrain<>)).ToArray();
-            if (indexableBaseInterfaces.Length == 0)
-            {
-                return;
-            }
             var indexedInterfaces = new List<Type>();
-
             var isFaultTolerant = grainClassType.IsFaultTolerant();
-            foreach (var indexableBaseInterface in indexableBaseInterfaces)
+
+            foreach (var (grainInterfaceType, propertiesClassType) in EnumerateIndexedInterfacesForAGrainClassType(grainClassType).Where(tup => !registry.ContainsKey(tup.interfaceType)))
             {
-                // ... and its generic argument is a class (TProperties)... 
-                var propertiesClassType = indexableBaseInterface.GetGenericArguments()[0];
-                if (propertiesClassType.GetTypeInfo().IsClass)
-                {
-                    // ... then add the indexes for all the descendant interfaces of IIndexableGrain<TProperties>; these interfaces are defined by end-users.
-                    foreach (var grainInterfaceType in allInterfaces.Where(itf => !indexableBaseInterfaces.Contains(itf)
-                                                                                    && indexableBaseInterface.IsAssignableFrom(itf)
-                                                                                    && !registry.ContainsKey(itf)))
-                    {
-                        grainIndexesAreEager = await CreateIndexesForASingleInterface(loader, registry, propertiesClassType, grainInterfaceType,
-                                                                                      grainClassType, isFaultTolerant, grainIndexesAreEager);
-                        indexedInterfaces.Add(grainInterfaceType);
-                    }
-                }
+                grainIndexesAreEager = await CreateIndexesForASingleInterface(loader, registry, propertiesClassType, grainInterfaceType,
+                                                                                grainClassType, isFaultTolerant, grainIndexesAreEager);
+                indexedInterfaces.Add(grainInterfaceType);
             }
 
             IReadOnlyDictionary<string, object> getNullValuesDictionary()
@@ -128,6 +114,33 @@ namespace Orleans.Indexing
             }
 
             registry.SetGrainIndexes(grainClassType, indexedInterfaces.ToArray(), getNullValuesDictionary());
+        }
+
+        internal static IEnumerable<(Type interfaceType, Type propertiesType)> EnumerateIndexedInterfacesForAGrainClassType(Type grainClassType)
+        {
+            Type[] allInterfaces = grainClassType.GetInterfaces();
+
+            // If there are any interface that directly extends IIndexableGrain<TProperties>...
+            var indexableBaseInterfaces = allInterfaces.Where(itf => itf.IsGenericType && itf.GetGenericTypeDefinition() == typeof(IIndexableGrain<>)).ToArray();
+            if (indexableBaseInterfaces.Length == 0)
+            {
+                yield break;
+            }
+
+            foreach (var indexableBaseInterface in indexableBaseInterfaces)
+            {
+                // ... and its generic argument is a class (TProperties)... 
+                var propertiesClassType = indexableBaseInterface.GetGenericArguments()[0];
+                if (propertiesClassType.GetTypeInfo().IsClass)
+                {
+                    // ... then add the indexes for all the descendant interfaces of IIndexableGrain<TProperties>; these interfaces are defined by end-users.
+                    foreach (var grainInterfaceType in allInterfaces.Where(itf => !indexableBaseInterfaces.Contains(itf)
+                                                                                    && indexableBaseInterface.IsAssignableFrom(itf)))
+                    {
+                        yield return (grainInterfaceType, propertiesClassType);
+                    }
+                }
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

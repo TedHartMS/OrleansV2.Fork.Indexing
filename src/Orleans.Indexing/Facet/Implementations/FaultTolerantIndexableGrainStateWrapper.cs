@@ -5,11 +5,12 @@ using System.Text;
 namespace Orleans.Indexing.Facet
 {
     /// <summary>
-    /// A wrapper around a user-defined state, TState, which adds the necessary information for fault-tolerant indexing
+    /// A wrapper around a user-defined state, TGrainState, which extends IndexableGrainStateWrapper to add fields for fault-tolerant indexing
     /// </summary>
     /// <typeparam name="TGrainState">the type of user state</typeparam>
     [Serializable]
     public class FaultTolerantIndexableGrainStateWrapper<TGrainState> : IndexableGrainStateWrapper<TGrainState>
+        where TGrainState : new()
     {
         /// <summary>
         /// Points to the in-flight indexing workflowsIds

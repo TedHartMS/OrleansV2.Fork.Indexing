@@ -1,5 +1,5 @@
+using Orleans.Indexing.Facet;
 using Orleans.Providers;
-using System;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -10,7 +10,6 @@ namespace Orleans.Indexing.Tests
 
     // NFT only; FT cannot be configured to be Eager.
 
-    [Serializable]
     public class NFT_Props_UIUSNINS_DSMI_EG_PK : ITestMultiIndexProperties
     {
         [StorageManagedIndex(IsEager = true, IsUnique = true, NullValue = "-1")]
@@ -31,8 +30,12 @@ namespace Orleans.Indexing.Tests
     }
 
     [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
-    public class NFT_Grain_UIUSNINS_DSMI_EG_PK : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState, NFT_Props_UIUSNINS_DSMI_EG_PK>, INFT_Grain_UIUSNINS_DSMI_EG_PK
+    public class NFT_Grain_UIUSNINS_DSMI_EG_PK : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_DSMI_EG_PK
     {
+        public NFT_Grain_UIUSNINS_DSMI_EG_PK(
+            [NonFaultTolerantWorkflowIndexWriter]
+            IIndexWriter<TestMultiIndexState> indexWriter)
+            : base(indexWriter) { }
     }
     #endregion // PartitionedPerKey
 
@@ -40,7 +43,6 @@ namespace Orleans.Indexing.Tests
 
     // NFT only; FT cannot be configured to be Eager.
 
-    [Serializable]
     public class NFT_Props_UIUSNINS_DSMI_EG_PS : ITestMultiIndexProperties
     {
         [StorageManagedIndex(IsEager = true, IsUnique = true, NullValue = "-1")]
@@ -61,8 +63,12 @@ namespace Orleans.Indexing.Tests
     }
 
     [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
-    public class NFT_Grain_UIUSNINS_DSMI_EG_PS : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState, NFT_Props_UIUSNINS_DSMI_EG_PS>, INFT_Grain_UIUSNINS_DSMI_EG_PS
+    public class NFT_Grain_UIUSNINS_DSMI_EG_PS : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_DSMI_EG_PS
     {
+        public NFT_Grain_UIUSNINS_DSMI_EG_PS(
+            [NonFaultTolerantWorkflowIndexWriter]
+            IIndexWriter<TestMultiIndexState> indexWriter)
+            : base(indexWriter) { }
     }
     #endregion // PartitionedPerSilo
 
@@ -70,7 +76,6 @@ namespace Orleans.Indexing.Tests
 
     // NFT only; FT cannot be configured to be Eager.
 
-    [Serializable]
     public class NFT_Props_UIUSNINS_DSMI_EG_SB : ITestMultiIndexProperties
     {
         [StorageManagedIndex(IsEager = true, IsUnique = true, NullValue = "-1")]
@@ -91,8 +96,12 @@ namespace Orleans.Indexing.Tests
     }
 
     [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
-    public class NFT_Grain_UIUSNINS_DSMI_EG_SB : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState, NFT_Props_UIUSNINS_DSMI_EG_SB>, INFT_Grain_UIUSNINS_DSMI_EG_SB
+    public class NFT_Grain_UIUSNINS_DSMI_EG_SB : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_DSMI_EG_SB
     {
+        public NFT_Grain_UIUSNINS_DSMI_EG_SB(
+            [NonFaultTolerantWorkflowIndexWriter]
+            IIndexWriter<TestMultiIndexState> indexWriter)
+            : base(indexWriter) { }
     }
     #endregion // SingleBucket
 
