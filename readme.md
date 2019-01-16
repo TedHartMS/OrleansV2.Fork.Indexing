@@ -74,7 +74,7 @@ The grain implementation for the player should extend the Grain<TWrappedPlayerSt
     {
         IIndexWriter<PlayerState> indexWriter;
 
-        public SportsTeamGrain(
+        public PlayerGrain(
             [FaultTolerantWorkflowIndexWriter]
             IIndexWriter<PlayerState> indexWriter) => this.indexWriter = indexWriter;
 
@@ -127,10 +127,10 @@ See [test/Orleans.Indexing.Tests/IndexingTestUtils.cs](/test/Orleans.Indexing.Te
 
 For detailed implementation examples, please have a look at [test/Orleans.Indexing.Tests](/test/Orleans.Indexing.Tests).
 
-#### *Player* tests
+#### *Player\** tests
 The *Player* series of tests focuses primarily on indexing Player Location (and occasionally Score).
-- Interfaces and classes are defined in the [test/Orleans.Indexing.Tests/Grains](/test/Orleans.Indexing.Tests/Grains) subdirectory.
-- Test runners are defined in the [test/Orleans.Indexing.Tests/Runners](/test/Orleans.Indexing.Tests/Runners) subdirectory.
+- Interfaces and classes are defined in the [test/Orleans.Indexing.Tests/Grains/Players](/test/Orleans.Indexing.Tests/Grains/Players) subdirectory.
+- Test runners are defined in the [test/Orleans.Indexing.Tests/Runners/Players](/test/Orleans.Indexing.Tests/Runners/Players) subdirectory.
 
 These use a number X for a grouping of tests, with the following form:
 - `IPlayerProperties` defines the properties of a player that may be indexed: Location and Score.
@@ -144,8 +144,8 @@ These use a number X for a grouping of tests, with the following form:
   - TProps must be a class (and should derive from IPlayerProperties)
 - `PlayerXGrain : PlayerGrain<PlayerXGrainState, PlayerXProperties>, IPlayerXGrain` defines the implementing class for PlayerX.
 
-#### *MultiIndex_\** tests
-The *MultiIndex_\** series of tests is separate from the *Player* series. This series of tests focuses on multiple indexes per grain.
+#### *MultiIndex\** tests
+The *MultiIndex\** series of tests is separate from the *Player* series. This series of tests focuses on multiple indexes per grain.
 - Base State, Property, and Grain interfaces are defined in the [test/Orleans.Indexing.Tests/Grains/MultiIndex](/test/Orleans.Indexing.Tests/Grains/MultiIndex) subdirectory.
 - Test runners are also defined in the [test/Orleans.Indexing.Tests/Runners/MultiIndex](/test/Orleans.Indexing.Tests/Runners/MultiIndex) subdirectory.
   - Each file contains the state, property, interface, and grain implementation definitions, as defined by the file name.
@@ -153,8 +153,8 @@ The *MultiIndex_\** series of tests is separate from the *Player* series. This s
     - For example, MultiIndex_AI_EG_Runner defines all interfaces, classes, and tests to implement testing for Eager Active indexes.
   - Testing includes unique and nonunique indexes on string and int. Additional combinations are TBD.
 
-#### *MultiInterface_\** tests
-The *MultiInterface_\** series of tests focuses on multiple indexed interfaces, each with one or more indexed properties, per grain. The multi-interface capability was introduced along with the Facet implementation. The tests are organized similarly to the *MultiIndex_\** series:
+#### *MultiInterface\** tests
+The *MultiInterface\** series of tests focuses on multiple indexed interfaces, each with one or more indexed properties, per grain. The multi-interface capability was introduced along with the Facet implementation. The tests are organized similarly to the *MultiIndex\** series:
 - Base State, Property, and Grain interfaces are defined in the [test/Orleans.Indexing.Tests/Grains/MultiInterface](/test/Orleans.Indexing.Tests/Grains/MultiInterface) subdirectory.
 - Test runners are also defined in the [test/Orleans.Indexing.Tests/Runners/MultiInterface](/test/Orleans.Indexing.Tests/Runners/MultiInterface) subdirectory.
   - Each file contains the state, property, interface, and grain implementation definitions, as defined by the file name.

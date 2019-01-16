@@ -6,6 +6,9 @@
 <!-- toc -->
 
 - [Overview of Indexing](#overview-of-indexing)
+  * [Features](#features)
+    + [Configuration Options](#configuration-options)
+  * [Source Code](#source-code)
 - [Application Level](#application-level)
   * [Application Properties Classes](#application-properties-classes)
     + [Property Attributes](#property-attributes)
@@ -25,6 +28,10 @@
       - [Implement IIndexableGrain Methods](#implement-iindexablegrain-methods)
   * [Querying Indexes](#querying-indexes)
   * [Testing Indexes](#testing-indexes)
+    + [*Player\** Tests](#player-tests)
+    + [*MultiIndex\** Tests](#multiindex-tests)
+    + [*MultiInterface\** Tests](#multiinterface-tests)
+    + [*SportsTeamIndexing* Sample](#sportsteamindexing-sample)
 - [Orleans Level](#orleans-level)
   * [Reading Property Attributes and Creating Indexes](#reading-property-attributes-and-creating-indexes)
   * [Orleans Indexing Interfaces](#orleans-indexing-interfaces)
@@ -74,6 +81,23 @@ The examples in this discussion use the SportsTeamIndexing sample at Samples\2.1
 The SportsTeamIndexing sample is intended to be simple, and implements only a single indexed interface on the SportsTeamGrain. More complicated scenarios that implement multiple indexed interfaces on a single grain are also supported. This discussion will also refer to the Indexing Unit Tests for MultipleInterface, which implement three indexed interfaces on TestEmployeeGrain; those interfaces use TProperties classes that implement IPersonProperties, IJobProperties, and IEmployeeProperties. These classes are defined in test\Orleans.Indexing.Tests\Grains\MultiInterface.
 
 Transactional indexes are not yet defined; some references are here as currently best-guess placeholders.
+### Features
+Key features of indexing:
+- Index all grain instances of a class 
+- Fault-tolerant multi-step workflow for index update
+
+#### Configuration Options
+The following options may be configured for indexes:
+- Store an index as a single grain
+- Partition an index with a bucket for each key value
+- Physically paritition an index over activated grains, so grains and their index are on the same silo
+- Index only the activated grains of a class
+- Allow an index to have very large buckets, to handle highly-skewed distributions of values
+### Source Code
+See [src/Orleans.Indexing](/src/Orleans.Indexing) (the directory containing this .md file) and [test/Orleans.Indexing.Tests](/test/Orleans.Indexing.Tests).
+
+To build, run the `Build.cmd` or open `src\Orleans.sln`.
+
 ## Application Level
 This section describes the indexing interface that is presented to the application developer.
 ### Application Properties Classes
@@ -334,12 +358,43 @@ Querying is done by LINQ:
 ```
 Orleans.Indexing reads the ExpressionTrees created by LINQ to determine the property that is being requested and translates this into a read operation on the index.
 ### Testing Indexes
-See test\Orleans.Indexing.Tests for the Unit Tests. These are clustered into 3 groups:
-- Players: These are the original tests, modified for the Facet implementation. They provide a single indexable interface on a grain and, usually, only a single indexed property: a Player's Location.
-- MultiIndex: These provide a single indexed interface on a grain: One unique and one non-unique int and string index.
-- MultiInterface: This capability is new with the Facet implementation. It provides 3 indexed interfaces per grain: A person, a job, and an employee, with a mix of unique and non-unique indexes.
+See test\Orleans.Indexing.Tests for the Unit Tests. These are clustered into 3 groups as defined in the following sections.
+#### *Player\** tests
+The *Player* series of tests focuses primarily on indexing Player Location (and occasionally Score).
+- Interfaces and classes are defined in the [test/Orleans.Indexing.Tests/Grains/Players](/test/Orleans.Indexing.Tests/Grains/Players) subdirectory.
+- Test runners are defined in the [test/Orleans.Indexing.Tests/Runners/Players](/test/Orleans.Indexing.Tests/Runners/Players) subdirectory.
 
-Additionally, the SportsTeamIndexing sample at Samples\2.1\SportsTeamIndexing illustrates creating tests outside the Unit Testing framework.
+These use a number X for a grouping of tests, with the following form:
+- `IPlayerProperties` defines the properties of a player that may be indexed: Location and Score.
+- `IPlayerState` defines an additional non-indexed property: Email.
+- `IPlayerGrain` defines all properties of a player, expressed in paired async Get/Set properties returning Tasks.
+  - For these tests, players have three properties: Location and Score may be indexed, and Email is not indexed.
+- `PlayerXProperties : IPlayerProperties` defines the indexed properties of the player.
+- `IPlayerXGrain : IPlayerGrain, IIndexableGrain<PlayerXProperties>` defines the interface for the player implementation.
+- `PlayerGrain<TState, TProps> : IndexableGrain<TState, TProps>, IPlayerGrain where TState : IPlayerState where TProps : new()` is the base class implementing common functionality for all player grains:
+  - TState must be IPlayerState or a subclass
+  - TProps must be a class (and should derive from IPlayerProperties)
+- `PlayerXGrain : PlayerGrain<PlayerXGrainState, PlayerXProperties>, IPlayerXGrain` defines the implementing class for PlayerX.
+
+#### *MultiIndex\** tests
+The *MultiIndex\** series of tests is separate from the *Player* series. This series of tests focuses on multiple indexes per grain.
+- Base State, Property, and Grain interfaces are defined in the [test/Orleans.Indexing.Tests/Grains/MultiIndex](/test/Orleans.Indexing.Tests/Grains/MultiIndex) subdirectory.
+- Test runners are also defined in the [test/Orleans.Indexing.Tests/Runners/MultiIndex](/test/Orleans.Indexing.Tests/Runners/MultiIndex) subdirectory.
+  - Each file contains the state, property, interface, and grain implementation definitions, as defined by the file name.
+  - [test/Orleans.Indexing.Tests/Grains/ITestIndexProperties.cs](/test/Orleans.Indexing.Tests/Grains/ITestIndexProperties.cs) describes the abbreviations used in the file and test names.
+    - For example, MultiIndex_AI_EG_Runner defines all interfaces, classes, and tests to implement testing for Eager Active indexes.
+  - Testing includes unique and nonunique indexes on string and int. Additional combinations are TBD.
+
+#### *MultiInterface\** tests
+The *MultiInterface\** series of tests focuses on multiple indexed interfaces, each with one or more indexed properties, per grain. The multi-interface capability was introduced along with the Facet implementation. The tests are organized similarly to the *MultiIndex\** series:
+- Base State, Property, and Grain interfaces are defined in the [test/Orleans.Indexing.Tests/Grains/MultiInterface](/test/Orleans.Indexing.Tests/Grains/MultiInterface) subdirectory.
+- Test runners are also defined in the [test/Orleans.Indexing.Tests/Runners/MultiInterface](/test/Orleans.Indexing.Tests/Runners/MultiInterface) subdirectory.
+  - Each file contains the state, property, interface, and grain implementation definitions, as defined by the file name.
+  - [test/Orleans.Indexing.Tests/Grains/ITestIndexProperties.cs](/test/Orleans.Indexing.Tests/Grains/ITestIndexProperties.cs) describes the abbreviations used in the file and test names (except for those related to property names; MultiInterface uses the properties interface name instead), but MultiInterface does not otherwise use ITestIndexProperties.
+    - For example, MultiInterface_AI_EG_Runner defines all interfaces, classes, and tests to implement testing for Eager Active indexes.
+  - Testing uses IPersonGrain, IJobGrain, and IEmployeeGrain indexed interfaces on an Employee grain.
+#### *SportsTeamIndexing* sample
+The SportsTeamIndexing sample at Samples\2.1\SportsTeamIndexing illustrates creating a simple indexed application, and serves as an example for creating tests outside the Unit Testing framework.
 
 ## Orleans Level
 This section defines the Indexing implementation within Orleans.Indexing.
