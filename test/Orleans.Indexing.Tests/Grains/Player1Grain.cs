@@ -7,7 +7,7 @@ namespace Orleans.Indexing.Tests
     /// A simple grain that represents a player in a game
     /// </summary>
     [StorageProvider(ProviderName = IndexingTestConstants.GrainStore)]
-    public class Player1Grain : PlayerGrain<PlayerGrainState>, IPlayer1Grain
+    public class Player1Grain : PlayerGrainFaultTolerant<PlayerGrainState>, IPlayer1Grain
     {
         public Player1Grain(
             [FaultTolerantWorkflowIndexWriter]
