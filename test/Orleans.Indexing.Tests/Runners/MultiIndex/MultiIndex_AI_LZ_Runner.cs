@@ -45,7 +45,7 @@ namespace Orleans.Indexing.Tests
     {
     }
 
-    public class FT_Grain_UIUSNINS_AI_LZ_PK : TestMultiIndexGrain<TestMultiIndexState>, IFT_Grain_UIUSNINS_AI_LZ_PK
+    public class FT_Grain_UIUSNINS_AI_LZ_PK : TestMultiIndexGrainFaultTolerant<TestMultiIndexState>, IFT_Grain_UIUSNINS_AI_LZ_PK
     {
         public FT_Grain_UIUSNINS_AI_LZ_PK(
             [FaultTolerantWorkflowIndexWriter]
@@ -101,7 +101,7 @@ namespace Orleans.Indexing.Tests
     {
     }
 
-    public class FT_Grain_UIUSNINS_AI_LZ_PS : TestMultiIndexGrain<TestMultiIndexState>, IFT_Grain_UIUSNINS_AI_LZ_PS
+    public class FT_Grain_UIUSNINS_AI_LZ_PS : TestMultiIndexGrainFaultTolerant<TestMultiIndexState>, IFT_Grain_UIUSNINS_AI_LZ_PS
     {
         public FT_Grain_UIUSNINS_AI_LZ_PS(
             [FaultTolerantWorkflowIndexWriter]
@@ -157,7 +157,7 @@ namespace Orleans.Indexing.Tests
     {
     }
 
-    public class FT_Grain_UIUSNINS_AI_LZ_SB : TestMultiIndexGrain<TestMultiIndexState>, IFT_Grain_UIUSNINS_AI_LZ_SB
+    public class FT_Grain_UIUSNINS_AI_LZ_SB : TestMultiIndexGrainFaultTolerant<TestMultiIndexState>, IFT_Grain_UIUSNINS_AI_LZ_SB
     {
         public FT_Grain_UIUSNINS_AI_LZ_SB(
             [FaultTolerantWorkflowIndexWriter]
