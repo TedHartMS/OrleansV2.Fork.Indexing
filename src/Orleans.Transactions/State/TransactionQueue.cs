@@ -9,6 +9,7 @@ using Orleans.Runtime;
 using Orleans.Transactions.Abstractions;
 using Orleans.Storage;
 using Orleans.Configuration;
+using Orleans.Timers.Internal;
 
 namespace Orleans.Transactions.State
 {
@@ -51,9 +52,9 @@ namespace Orleans.Transactions.State
             ParticipantId resource,
             Action deactivate,
             ITransactionalStateStorage<TState> storage,
-            JsonSerializerSettings serializerSettings,
             IClock clock,
-            ILogger logger)
+            ILogger logger,
+            ITimerManager timerManager)
         {
             this.options = options.Value;
             this.resource = resource;
@@ -63,7 +64,7 @@ namespace Orleans.Transactions.State
             this.logger = logger;
             this.storageWorker = new BatchWorkerFromDelegate(StorageWork);
             this.RWLock = new ReadWriteLock<TState>(options, this, this.storageWorker, logger);
-            this.confirmationWorker = new ConfirmationWorker<TState>(options, this.resource, this.storageWorker, () => this.storageBatch, this.logger);
+            this.confirmationWorker = new ConfirmationWorker<TState>(options, this.resource, this.storageWorker, () => this.storageBatch, this.logger, timerManager);
             this.unprocessedPreparedMessages = new Dictionary<DateTime, PreparedMessages>();
             this.commitQueue = new CommitQueue<TState>();
             this.readyTask = Task.CompletedTask;
@@ -357,7 +358,7 @@ namespace Orleans.Transactions.State
 
             // setting this field makes this entry ready for batching
 
-            remoteEntry.ConfirmationResponsePromise = remoteEntry.ConfirmationResponsePromise ?? new TaskCompletionSource<bool>();
+            remoteEntry.ConfirmationResponsePromise = remoteEntry.ConfirmationResponsePromise ?? new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             storageWorker.Notify();
 
@@ -536,7 +537,9 @@ namespace Orleans.Transactions.State
                         {
                             // perform the actual store, and record the e-tag
                             this.storageBatch.ETag = await batchBeingSentToStorage.Store(storage);
-                        } else
+                            failCounter = 0;
+                        }
+                        else
                         {
                             logger.LogWarning("Store pre conditions not met.");
                             await AbortAndRestore(TransactionalStatus.CommitFailure);
@@ -576,7 +579,6 @@ namespace Orleans.Transactions.State
                     batchBeingSentToStorage.RunFollowUpActions();
                     storageWorker.Notify();  // we have to re-check for work
                 }
-                failCounter = 0;
             }
             catch (Exception e)
             {
@@ -593,25 +595,24 @@ namespace Orleans.Transactions.State
 
         private async Task Bail(TransactionalStatus status, bool force = false)
         {
-            await RWLock.AbortExecutingTransactions();
+            List<Task> pending = new List<Task>();
+            pending.Add(RWLock.AbortExecutingTransactions());
+            this.RWLock.AbortQueuedTransactions();
 
             // abort all entries in the commit queue
             foreach (var entry in commitQueue.Elements)
             {
-                await NotifyOfAbort(entry, status);
+                pending.Add(NotifyOfAbort(entry, status));
             }
             commitQueue.Clear();
 
-            this.RWLock.AbortQueuedTransactions();
-
+            await Task.WhenAll(pending);
             if (++failCounter >= 10 || force)
             {
                 logger.Debug("StorageWorker triggering grain Deactivation");
                 this.deactivate();
-            } else
-            {
-                await this.Restore();
             }
+            await this.Restore();
         }
 
         private async Task CheckProgressOfCommitQueue()

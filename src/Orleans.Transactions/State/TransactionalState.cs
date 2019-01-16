@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -11,6 +11,7 @@ using Orleans.Runtime;
 using Orleans.Transactions.Abstractions;
 using Orleans.Transactions.State;
 using Orleans.Configuration;
+using Orleans.Timers.Internal;
 
 namespace Orleans.Transactions
 {
@@ -23,6 +24,7 @@ namespace Orleans.Transactions
         private readonly ITransactionalStateConfiguration config;
         private readonly IGrainActivationContext context;
         private readonly ITransactionDataCopier<TState> copier;
+        private readonly Dictionary<Type,object> copiers;
         private readonly IProviderRuntime runtime;
         private readonly IGrainRuntime grainRuntime;
         private readonly ILoggerFactory loggerFactory;
@@ -53,6 +55,8 @@ namespace Orleans.Transactions
             this.grainRuntime = grainRuntime;
             this.loggerFactory = loggerFactory;
             this.serializerSettings = serializerSettings;
+            this.copiers = new Dictionary<Type, object>();
+            this.copiers.Add(typeof(TState), copier);
         }
 
         /// <summary>
@@ -74,12 +78,12 @@ namespace Orleans.Transactions
 
             // schedule read access to happen under the lock
             return this.queue.RWLock.EnterLock<TResult>(info.TransactionId, info.Priority, recordedaccesses, true,
-                 new Task<TResult>(() =>
+                 () =>
                  {
                      // check if our record is gone because we expired while waiting
                      if (!this.queue.RWLock.TryGetRecord(info.TransactionId, out TransactionRecord<TState> record))
                      {
-                         throw new OrleansTransactionLockAcquireTimeoutException(info.TransactionId.ToString());
+                         throw new OrleansCascadingAbortException(info.TransactionId.ToString());
                      }
 
                      // merge the current clock into the transaction time stamp
@@ -102,7 +106,7 @@ namespace Orleans.Transactions
                      {
                          detectReentrancy = true;
 
-                         result = operation(record.State);
+                         result = CopyResult(operation(record.State));
                      }
                      finally
                      {
@@ -113,7 +117,7 @@ namespace Orleans.Transactions
                      }
 
                      return result;
-                 }));
+                 });
         }
 
         /// <inheritdoc/>
@@ -138,12 +142,12 @@ namespace Orleans.Transactions
             info.Participants.TryGetValue(this.participantId, out var recordedaccesses);
 
             return this.queue.RWLock.EnterLock<TResult>(info.TransactionId, info.Priority, recordedaccesses, false,
-                new Task<TResult>(() =>
+                () =>
                 {
                     // check if we expired while waiting
                     if (!this.queue.RWLock.TryGetRecord(info.TransactionId, out TransactionRecord<TState> record))
                     {
-                        throw new OrleansTransactionLockAcquireTimeoutException(info.TransactionId.ToString());
+                        throw new OrleansCascadingAbortException(info.TransactionId.ToString());
                     }
 
                     // merge the current clock into the transaction time stamp
@@ -174,7 +178,7 @@ namespace Orleans.Transactions
                     {
                         detectReentrancy = true;
 
-                        return updateAction(record.State);
+                        return CopyResult(updateAction(record.State));
                     }
                     finally
                     {
@@ -184,7 +188,7 @@ namespace Orleans.Transactions
                         detectReentrancy = false;
                     }
                 }
-            ));
+            );
         }
 
         public void Participate(IGrainLifecycle lifecycle)
@@ -216,12 +220,28 @@ namespace Orleans.Transactions
             Action deactivate = () => grainRuntime.DeactivateOnIdle(context.GrainInstance);
             var options = this.context.ActivationServices.GetRequiredService<IOptions<TransactionalStateOptions>>();
             var clock = this.context.ActivationServices.GetRequiredService<IClock>();
-            this.queue = new TransactionQueue<TState>(options, this.participantId, deactivate, storage, this.serializerSettings, clock, logger);
+            var timerManager = this.context.ActivationServices.GetRequiredService<ITimerManager>();
+            this.queue = new TransactionQueue<TState>(options, this.participantId, deactivate, storage, clock, logger, timerManager);
 
             setupResourceFactory(this.context, this.config.StateName, queue);
 
             // recover state
             await this.queue.NotifyOfRestore();
+        }
+
+        private TResult CopyResult<TResult>(TResult result)
+        {
+            ITransactionDataCopier<TResult> resultCopier;
+            if (!this.copiers.TryGetValue(typeof(TResult), out object cp))
+            {
+                resultCopier = this.context.ActivationServices.GetRequiredService<ITransactionDataCopier<TResult>>();
+                this.copiers.Add(typeof(TResult), resultCopier);
+            }
+            else
+            {
+                resultCopier = (ITransactionDataCopier<TResult>)cp;
+            }
+            return resultCopier.DeepCopy(result);
         }
     }
 }

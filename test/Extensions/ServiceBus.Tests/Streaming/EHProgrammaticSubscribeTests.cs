@@ -13,8 +13,8 @@ namespace ServiceBus.Tests.Streaming
     public class EHProgrammaticSubscribeTest : ProgrammaticSubcribeTestsRunner, IClassFixture<EHProgrammaticSubscribeTest.Fixture>
     {
         private const string EHPath = "ehorleanstest";
+        private const string EHPath2 = "ehorleanstest2";
         private const string EHConsumerGroup = "orleansnightly";
-
         public class Fixture : BaseTestClusterFixture
         {
             protected override void ConfigureTestCluster(TestClusterBuilder builder)
@@ -46,7 +46,7 @@ namespace ServiceBus.Tests.Streaming
                         {
                             options.ConnectionString = TestDefaultConfiguration.EventHubConnectionString;
                             options.ConsumerGroup = EHConsumerGroup;
-                            options.Path = EHPath;
+                            options.Path = EHPath2;
                           
                         }))
                         .UseEventHubCheckpointer(ob => ob.Configure(options => {

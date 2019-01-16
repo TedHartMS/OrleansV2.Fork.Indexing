@@ -38,7 +38,7 @@ namespace Orleans.Runtime
     {
         /// <summary> Standard name for Primary silo. </summary>
         public const string PrimarySiloName = "Primary";
-
+        private static TimeSpan WaitForMessageToBeQueuedForOutbound = TimeSpan.FromSeconds(2);
         /// <summary> Silo Types. </summary>
         public enum SiloType
         {
@@ -248,11 +248,6 @@ namespace Orleans.Runtime
             this.Participate(this.siloLifecycle);
 
             logger.Info(ErrorCode.SiloInitializingFinished, "-------------- Started silo {0}, ConsistentHashCode {1:X} --------------", SiloAddress.ToLongString(), SiloAddress.GetConsistentHashCode());
-        }
-
-        public void Start()
-        {
-            StartAsync(CancellationToken.None).GetAwaiter().GetResult();
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -731,10 +726,6 @@ namespace Orleans.Runtime
             // Stop scheduling/executing application turns
             SafeExecute(scheduler.StopApplicationTurns);
 
-            // Directory: Speed up directory handoff
-            // will be started automatically when directory receives SiloStatusChangeNotification(Stopping)
-            SafeExecute(() => LocalGrainDirectory.StopPreparationCompletion.WithCancellation(ct));
-
             return Task.CompletedTask;
         }
 
@@ -783,10 +774,15 @@ namespace Orleans.Runtime
                 {
                     logger.Info(ErrorCode.SiloShuttingDown, "Silo starting to Shutdown()");
                     // Write "ShutDown" state in the table + broadcast gossip msgs to re-read the table to everyone
+                    //We do a 30 ms wait on the async silo status gossip in shutdown senario.
                     await scheduler.QueueTask(this.membershipOracle.ShutDown, this.membershipOracleContext)
                         .WithCancellation(ct, "MembershipOracle Shutting down failed because the task was cancelled");
-                    // Deactivate all grains
+                    //Stop LocalGrainDirectory
+                    await scheduler.QueueTask(()=>localGrainDirectory.Stop(true), localGrainDirectory.CacheValidator.SchedulingContext)
+                        .WithCancellation(ct, "localGrainDirectory Stop failed because the task was cancelled");
                     SafeExecute(() => catalog.DeactivateAllActivations().Wait(ct));
+                    //wait for all queued message sent to OutboundMessageQueue before MessageCenter stop and OutboundMessageQueue stop. 
+                    await Task.Delay(WaitForMessageToBeQueuedForOutbound);
                 }
                 else
                 {

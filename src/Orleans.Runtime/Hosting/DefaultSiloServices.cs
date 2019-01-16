@@ -38,6 +38,7 @@ using System;
 using System.Reflection;
 using System.Linq;
 using Microsoft.Extensions.Options;
+using Orleans.Timers.Internal;
 
 namespace Orleans.Hosting
 {
@@ -296,7 +297,9 @@ namespace Orleans.Hosting
                 });
 
             // Validate all CollectionAgeLimit values for the right configuration.
-            services.AddTransient<IConfigurationValidator, CollectionAgeLimitValidator>();
+            services.AddTransient<IConfigurationValidator, GrainCollectionOptionsValidator>();
+
+            services.TryAddSingleton<ITimerManager, TimerManagerImpl>();
         }
     }
 }

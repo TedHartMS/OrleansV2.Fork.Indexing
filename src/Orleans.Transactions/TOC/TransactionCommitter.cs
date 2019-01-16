@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +9,7 @@ using Orleans.CodeGeneration;
 using Orleans.Configuration;
 using Orleans.Providers;
 using Orleans.Runtime;
+using Orleans.Timers.Internal;
 using Orleans.Transactions.Abstractions;
 using Orleans.Transactions.State;
 using Orleans.Transactions.TOC;
@@ -75,12 +76,12 @@ namespace Orleans.Transactions
             info.Participants.TryGetValue(this.participantId, out var recordedaccesses);
 
             return this.queue.RWLock.EnterLock<bool>(info.TransactionId, info.Priority, recordedaccesses, false,
-                new Task<bool>(() =>
+                () =>
                 {
                     // check if we expired while waiting
                     if (!this.queue.RWLock.TryGetRecord(info.TransactionId, out TransactionRecord<OperationState> record))
                     {
-                        throw new OrleansTransactionLockAcquireTimeoutException(info.TransactionId.ToString());
+                        throw new OrleansCascadingAbortException(info.TransactionId.ToString());
                     }
 
                     // merge the current clock into the transaction time stamp
@@ -122,7 +123,7 @@ namespace Orleans.Transactions
                         detectReentrancy = false;
                     }
                 }
-            ));
+            );
         }
 
         public void Participate(IGrainLifecycle lifecycle)
@@ -134,7 +135,7 @@ namespace Orleans.Transactions
         {
             if (ct.IsCancellationRequested) return;
 
-            this.participantId = new ParticipantId(this.config.ServiceName, this.context.GrainInstance.GrainReference, ParticipantId.Role.PriorityManager);
+            this.participantId = new ParticipantId(this.config.ServiceName, this.context.GrainInstance.GrainReference, ParticipantId.Role.Resource | ParticipantId.Role.PriorityManager);
 
             this.logger = loggerFactory.CreateLogger($"{context.GrainType.Name}.{this.config.ServiceName}.{this.context.GrainIdentity.IdentityString}");
 
@@ -146,7 +147,8 @@ namespace Orleans.Transactions
             var options = this.context.ActivationServices.GetRequiredService<IOptions<TransactionalStateOptions>>();
             var clock = this.context.ActivationServices.GetRequiredService<IClock>();
             TService service = this.context.ActivationServices.GetRequiredServiceByName<TService>(this.config.ServiceName);
-            this.queue = new TocTransactionQueue<TService>(service, options, this.participantId, deactivate, storage, this.serializerSettings, clock, logger);
+            var timerManager = this.context.ActivationServices.GetRequiredService<ITimerManager>();
+            this.queue = new TocTransactionQueue<TService>(service, options, this.participantId, deactivate, storage, this.serializerSettings, clock, logger, timerManager);
 
             // Add transaction manager factory to the grain context
             this.context.RegisterResourceFactory<ITransactionManager>(this.config.ServiceName, () => new TransactionManager<OperationState>(this.queue));

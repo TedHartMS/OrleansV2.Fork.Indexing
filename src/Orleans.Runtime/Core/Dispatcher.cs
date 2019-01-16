@@ -526,8 +526,18 @@ namespace Orleans.Runtime
             bool forwardingSucceded = true;
             try
             {
-
-                logger.Info(ErrorCode.Messaging_Dispatcher_TryForward, $"Trying to forward after {failedOperation}, ForwardCount = {message.ForwardCount}. Message {message}.");
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation(
+                        (int)ErrorCode.Messaging_Dispatcher_TryForward,
+                        "Trying to forward after {FailedOperation}, ForwardCount = {ForwardCount}. OldAddress = {OldAddress}, ForwardingAddress = {ForwardingAddress}, Message {Message}, Exception: {Exception}.",
+                        failedOperation,
+                        message.ForwardCount,
+                        oldAddress,
+                        forwardingAddress,
+                        message,
+                        exc);
+                }
 
                 // if this message is from a different cluster and hit a non-existing activation
                 // in this cluster (which can happen due to stale cache or directory states)
@@ -621,10 +631,13 @@ namespace Orleans.Runtime
         }
 
         // Forwarding is used by the receiver, usually when it cannot process the message and forwards it to another silo to perform the processing
-        // (got here due to outdated cache, silo is shutting down/overloaded, ...).
+        // (got here due to duplicate activation, outdated cache, silo is shutting down/overloaded, ...).
         private static bool MayForward(Message message, SiloMessagingOptions messagingOptions)
         {
-            return message.ForwardCount < messagingOptions.MaxForwardCount;
+            return message.ForwardCount < messagingOptions.MaxForwardCount
+                // allow one more forward hop for multi-cluster case
+                + (message.IsReturnedFromRemoteCluster ? 1 : 0)
+                ;
         }
 
         /// <summary>
