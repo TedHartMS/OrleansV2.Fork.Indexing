@@ -24,10 +24,16 @@ namespace Orleans.Indexing.Tests
             var queryPropAsync = queryTuple.Item2;
 
             int counter = 0;
-            await queryItems.ObserveResults(new QueryResultStreamObserver<TIGrain>(async entry =>
+            await queryItems.ObserveResults(new QueryResultStreamObserver<TIGrain>(/*async*/ entry =>
             {
                 counter++;
-                runner.Output.WriteLine($"grain id = {entry}, {propertyName} = {await queryPropAsync(entry)}, primary key = {entry.GetPrimaryKeyLong()}");
+ 
+                // For Total indexes, the grain may not be active; querying the property will activate it. If we have a mix of Active and Total
+                // indexes on a grain, this will cause the Active counts to be incorrect during testing. TODO: specify per-test whether to retrieve this
+                var isActiveIndex = runner.IndexFactory.GetIndex(typeof(TIGrain), IndexUtils.PropertyNameToIndexName(propertyName)).IsActiveIndex();
+                var propertyValue = /* isActiveIndex ? (await queryPropAsync(entry)).ToString() : */ "[not retrieved]";
+                runner.Output.WriteLine($"grain id = {entry}, {propertyName} = {propertyValue}, primary key = {entry.GetPrimaryKeyLong()}");
+                return Task.CompletedTask;
             }, () =>
             {
                 taskCompletionSource.SetResult(counter);

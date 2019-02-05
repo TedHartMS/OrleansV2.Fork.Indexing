@@ -121,9 +121,14 @@ namespace Orleans.Indexing.Tests
 
                 // UniqueInt and UniqueString are defined as Unique for non-PerSilo partitioning only; we do not test duplicates here.
                 var intIndexes = await this.GetAndWaitForIndexes<int, TIGrain>(ITC.UniqueIntProperty, ITC.NonUniqueIntProperty);
-                var ignoreDeactivate = this.ShouldIgnoreDeactivate(intIndexes[1].GetType());
+                var isActiveUqInt = intIndexes[0].GetType().IsActiveIndex();
+                var isActiveNonUqInt = intIndexes[1].GetType().IsActiveIndex();
                 var stringIndexes = await this.GetAndWaitForIndexes<string, TIGrain>(ITC.UniqueStringProperty, ITC.NonUniqueStringProperty);
+                var isActiveUqString = stringIndexes[0].GetType().IsActiveIndex();
+                var isActiveNonUqString = stringIndexes[1].GetType().IsActiveIndex();
 
+                Assert.Equal(1, await this.GetUniqueIntCount<TIGrain, TProperties>(adj1));
+                Assert.Equal(1, await this.GetUniqueIntCount<TIGrain, TProperties>(adj11));
                 Assert.Equal(1, await this.GetUniqueStringCount<TIGrain, TProperties>(adjOne));
                 Assert.Equal(1, await this.GetUniqueStringCount<TIGrain, TProperties>(adjEleven));
                 Assert.Equal(1, await this.GetUniqueIntCount<TIGrain, TProperties>(adj2));
@@ -138,9 +143,11 @@ namespace Orleans.Indexing.Tests
                 async Task verifyCount(int expected1, int expected11, int expected1000)
                 {
                     Assert.Equal(expected1, await this.GetUniqueIntCount<TIGrain, TProperties>(adj1));
-                    Assert.Equal(expected11, await this.GetUniqueIntCount<TIGrain, TProperties>(adj11));
-                    Assert.Equal(expected1000, await this.GetNonUniqueIntCount<TIGrain, TProperties>(adj1000));
-                    Assert.Equal(expected1000, await this.GetNonUniqueStringCount<TIGrain, TProperties>(adj1k));
+                    Assert.Equal(expected1, await this.GetUniqueStringCount<TIGrain, TProperties>(adjOne));
+                    Assert.Equal(isActiveUqInt ? expected11 : 1, await this.GetUniqueIntCount<TIGrain, TProperties>(adj11));
+                    Assert.Equal(isActiveUqString ? expected11 : 1, await this.GetUniqueStringCount<TIGrain, TProperties>(adjEleven));
+                    Assert.Equal(isActiveNonUqInt ? expected1000 : 4, await this.GetNonUniqueIntCount<TIGrain, TProperties>(adj1000));
+                    Assert.Equal(isActiveNonUqString ? expected1000 : 4, await this.GetNonUniqueStringCount<TIGrain, TProperties>(adj1k));
                 }
 
                 Console.WriteLine("*** First Verify ***");
@@ -151,7 +158,7 @@ namespace Orleans.Indexing.Tests
                 await Task.Delay(ITC.DelayUntilIndexesAreUpdatedLazily);
 
                 Console.WriteLine("*** Second Verify ***");
-                await verifyCount(1, ignoreDeactivate ? 1 : 0, ignoreDeactivate ? 4 : 3);
+                await verifyCount(1, 0, 3);
 
                 Console.WriteLine("*** Second and Third Deactivate ***");
                 await p111.Deactivate();
@@ -159,7 +166,7 @@ namespace Orleans.Indexing.Tests
                 await Task.Delay(ITC.DelayUntilIndexesAreUpdatedLazily);
 
                 Console.WriteLine("*** Third Verify ***");
-                await verifyCount(1, ignoreDeactivate ? 1 : 0, ignoreDeactivate ? 4 : 1);
+                await verifyCount(1, 0, 1);
 
                 Console.WriteLine("*** GetGrain ***");
                 p11 = this.GetGrain<TIGrain>(p11.GetPrimaryKeyLong());
@@ -167,7 +174,7 @@ namespace Orleans.Indexing.Tests
                 Assert.Equal(unindexedString + adjEleven, await p11.GetUnIndexedString());
 
                 Console.WriteLine("*** Fourth Verify ***");
-                await verifyCount(1, 1, ignoreDeactivate ? 4 : 2);
+                await verifyCount(1, 1, 2);
             }
         }
 
@@ -240,12 +247,15 @@ namespace Orleans.Indexing.Tests
                 // Name and Title are defined as Unique for non-PerSilo partitioning only; we do not test duplicates here.
                 // Age and Department may have multiple entries; additionally, they may or may not be of a type that
                 // is "Total" -- either TotalIndex or DSMI, in which case deactivations do not really deactivate them.
-                await this.GetAndWaitForIndex<string, TIPersonGrain>(ITC.NameProperty);
+                var nameIndex = await this.GetAndWaitForIndex<string, TIPersonGrain>(ITC.NameProperty);
+                var isActiveName = nameIndex.GetType().IsActiveIndex();
                 var ageIndex = await this.GetAndWaitForIndex<int, TIPersonGrain>(ITC.AgeProperty);
-                var ignoreDeactivate = this.ShouldIgnoreDeactivate(ageIndex.GetType());
+                var isActiveAge = ageIndex.GetType().IsActiveIndex();
                 var jobIndexes = await this.GetAndWaitForIndexes<string, TIJobGrain>(ITC.TitleProperty, ITC.DepartmentProperty);
-                Assert.Equal(ignoreDeactivate, this.ShouldIgnoreDeactivate(jobIndexes[1].GetType()));
-                await this.GetAndWaitForIndex<int, TIEmployeeGrain>(ITC.EmployeeIdProperty);
+                var isActiveTitle = jobIndexes[0].GetType().IsActiveIndex();
+                var isActiveDept = jobIndexes[1].GetType().IsActiveIndex();
+                var employeeIdIndex = await this.GetAndWaitForIndex<int, TIEmployeeGrain>(ITC.EmployeeIdProperty);
+                var isActiveEmployeeId = employeeIdIndex.GetType().IsActiveIndex();
 
                 Assert.Equal(1, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name1));
                 Assert.Equal(1, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name11));
@@ -263,35 +273,29 @@ namespace Orleans.Indexing.Tests
 
                 async Task verifyCount(int expectedDups, int expected11, int expected111, int expected1111)
                 {
-                    if (ignoreDeactivate)
-                    {
-                        expectedDups = 4;
-                        expected11 = expected111 = expected1111 = 1;
-                    }
-
                     // Verify the duplicated count as well as sanity-checking for some of the non-duplicated ones.
                     Assert.Equal(1, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name1));
-                    Assert.Equal(expected11, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name11));
-                    Assert.Equal(expected111, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name111));
-                    Assert.Equal(expected1111, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name1111));
+                    Assert.Equal(isActiveName ? expected11 : 1, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name11));
+                    Assert.Equal(isActiveName ? expected111 : 1, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name111));
+                    Assert.Equal(isActiveName ? expected1111 : 1, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name1111));
                     Assert.Equal(1, await this.GetNameCount<TIPersonGrain, TPersonProperties>(name2));
-                    Assert.Equal(expectedDups, await this.GetPersonAgeCount<TIPersonGrain, TPersonProperties>(age1));
+                    Assert.Equal(isActiveAge ? expectedDups : 4, await this.GetPersonAgeCount<TIPersonGrain, TPersonProperties>(age1));
                     Assert.Equal(1, await this.GetPersonAgeCount<TIPersonGrain, TPersonProperties>(age2));
 
                     Assert.Equal(1, await this.GetJobTitleCount<TIJobGrain, TJobProperties>(title1));
-                    Assert.Equal(expected11, await this.GetJobTitleCount<TIJobGrain, TJobProperties>(title11));
-                    Assert.Equal(expected111, await this.GetJobTitleCount<TIJobGrain, TJobProperties>(title111));
-                    Assert.Equal(expected1111, await this.GetJobTitleCount<TIJobGrain, TJobProperties>(title1111));
+                    Assert.Equal(isActiveTitle ? expected11 : 1, await this.GetJobTitleCount<TIJobGrain, TJobProperties>(title11));
+                    Assert.Equal(isActiveTitle ? expected111 : 1, await this.GetJobTitleCount<TIJobGrain, TJobProperties>(title111));
+                    Assert.Equal(isActiveTitle ? expected1111 : 1, await this.GetJobTitleCount<TIJobGrain, TJobProperties>(title1111));
                     Assert.Equal(1, await this.GetJobTitleCount<TIJobGrain, TJobProperties>(title2));
-                    Assert.Equal(expectedDups, await this.GetJobDepartmentCount<TIJobGrain, TJobProperties>(dept1));
+                    Assert.Equal(isActiveDept ? expectedDups : 4, await this.GetJobDepartmentCount<TIJobGrain, TJobProperties>(dept1));
                     Assert.Equal(1, await this.GetJobDepartmentCount<TIJobGrain, TJobProperties>(dept2));
 
                     // EmployeeId is in parallel with expected11(1(1))
                     var employeeId0 = employeeIdBase + intAdjust;
                     Assert.Equal(1, await this.GetEmployeeIdCount<TIEmployeeGrain, TEmployeeProperties>(employeeId0 + 1));
-                    Assert.Equal(expected11, await this.GetEmployeeIdCount<TIEmployeeGrain, TEmployeeProperties>(employeeId0 + 2));
-                    Assert.Equal(expected111, await this.GetEmployeeIdCount<TIEmployeeGrain, TEmployeeProperties>(employeeId0 + 3));
-                    Assert.Equal(expected1111, await this.GetEmployeeIdCount<TIEmployeeGrain, TEmployeeProperties>(employeeId0 + 4));
+                    Assert.Equal(isActiveEmployeeId ? expected11 : 1, await this.GetEmployeeIdCount<TIEmployeeGrain, TEmployeeProperties>(employeeId0 + 2));
+                    Assert.Equal(isActiveEmployeeId ? expected111 : 1, await this.GetEmployeeIdCount<TIEmployeeGrain, TEmployeeProperties>(employeeId0 + 3));
+                    Assert.Equal(isActiveEmployeeId ? expected1111 : 1, await this.GetEmployeeIdCount<TIEmployeeGrain, TEmployeeProperties>(employeeId0 + 4));
                 }
 
                 Console.WriteLine("*** First Verify ***");
@@ -327,9 +331,6 @@ namespace Orleans.Indexing.Tests
         }
 
         public static long GrainPkFromUniqueInt(int uInt) => uInt + 4200000000000;
-
-        bool ShouldIgnoreDeactivate(Type nonUniqueIndexType)
-            => nonUniqueIndexType.IsTotalIndex() || typeof(IDirectStorageManagedIndex).IsAssignableFrom(nonUniqueIndexType);
 
         protected Task StartAndWaitForSecondSilo()
         {

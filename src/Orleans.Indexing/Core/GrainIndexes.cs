@@ -51,14 +51,14 @@ namespace Orleans.Indexing
                     // Copy named property values from this.State to _props. The set of property names will not change.
                     // Note: TProperties is specified on IIndexableGrain<TProperties> with a "where TProperties: new()" constraint.
                     var properties = indexes.Properties ?? Activator.CreateInstance(tProperties);
-                    tProperties.GetProperties().Mutate(p => p.SetValue(properties, tGrainState.GetProperty(p.Name).GetValue(state)));
+                    tProperties.GetProperties().ForEach(p => p.SetValue(properties, tGrainState.GetProperty(p.Name).GetValue(state)));
                     return properties;
                 }
 
                 indexes.Properties = tProperties.IsAssignableFrom(tGrainState) ? state : mapStateToProperties();
             }
 
-            this.interfaceToIndexMap.Mutate(kvp => createOrUpdatePropertiesFromState(kvp.Value));
+            this.interfaceToIndexMap.ForEach(kvp => createOrUpdatePropertiesFromState(kvp.Value));
         }
 
         /// <summary>
@@ -83,7 +83,7 @@ namespace Orleans.Indexing
             }
 
             this.MapStateToProperties(state);
-            this.interfaceToIndexMap.Mutate(kvp => addMissingBeforeImages(kvp.Value));
+            this.interfaceToIndexMap.ForEach(kvp => addMissingBeforeImages(kvp.Value));
         }
 
         /// <summary>
@@ -110,7 +110,8 @@ namespace Orleans.Indexing
                 indexes.BeforeImages = befImgs.AsImmutable();
             }
 
-            this.interfaceToIndexMap.Mutate(kvp => updateBeforeImages(kvp.Value, interfaceToUpdatesMap[kvp.Key]));
+            // Note that there may not be an index update for all interfaces; thus, iterate the updates list.
+            interfaceToUpdatesMap.ForEach(kvp => updateBeforeImages(interfaceToIndexMap[kvp.Key], kvp.Value));
         }
 
         internal bool HasIndexImages => this.interfaceToIndexMap.Values.Any(itf => itf.HasIndexImages);

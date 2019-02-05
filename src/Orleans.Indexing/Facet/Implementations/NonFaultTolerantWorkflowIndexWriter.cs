@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Orleans.Runtime;
 
 namespace Orleans.Indexing.Facet
 {
@@ -96,9 +94,9 @@ namespace Orleans.Indexing.Facet
             this.UpdateBeforeImages(updatesByInterface);
         }
 
-        private Task UndoTentativeChangesToUniqueIndexesEagerly(InterfaceToUpdatesMap updatesByInterface)
-            => Task.WhenAll(updatesByInterface.Select(kvp => base.ApplyIndexUpdatesEagerly(kvp.Key, MemberUpdateReverseTentative.Reverse(kvp.Value),
-                                                                                           UpdateIndexType.Unique, isTentative: false)));
+        private Task UndoTentativeChangesToUniqueIndexesEagerly(InterfaceToUpdatesMap interfaceToUpdatesMap)
+            => Task.WhenAll(interfaceToUpdatesMap.Select(kvp => base.ApplyIndexUpdatesEagerly(kvp.Key, MemberUpdateReverseTentative.Reverse(kvp.Value),
+                                                                                              UpdateIndexType.Unique, isTentative: false)));
 
         /// <summary>
         /// Lazily Applies updates to the indexes defined on this grain

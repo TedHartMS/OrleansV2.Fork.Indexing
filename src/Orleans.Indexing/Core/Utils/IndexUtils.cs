@@ -110,7 +110,7 @@ namespace Orleans.Indexing
                 : Convert.ChangeType(value, propertyType, CultureInfo.InvariantCulture);
         }
 
-        internal static void Mutate<T>(this IEnumerable<T> enumerable, Action<T> mutator)
+        internal static void ForEach<T>(this IEnumerable<T> enumerable, Action<T> mutator)
         {
             // Simple but allows chaining
             foreach (var item in enumerable)
@@ -182,15 +182,14 @@ namespace Orleans.Indexing
             }
         }
 
-        internal static bool IsFaultTolerant(this Type grainClassType)
+        internal static IndexScheme GetIndexScheme(this Type grainClassType)
         {
-            bool? facetIsFT = null;
+            IndexScheme? scheme = null;
 
-            void setFacetIsFT(bool currentFacetIsFT)
-                => facetIsFT = facetIsFT.HasValue && facetIsFT.Value != currentFacetIsFT
-                                ? throw new IndexConfigurationException($"Grain type {grainClassType.Name} has a conflict between" +
-                                                                        " Fault Tolerant and Non Fault Tolerant Indexing facet ctor parameters")
-                                : currentFacetIsFT;
+            void setScheme(IndexScheme currentScheme)
+                => scheme = scheme.HasValue && scheme.Value != currentScheme
+                                ? throw new IndexConfigurationException($"Grain type {grainClassType.Name} has a conflict between indexing schemes specified on facet ctor parameters")
+                                : currentScheme;
 
             foreach (var ctor in grainClassType.GetConstructors())
             {
@@ -204,17 +203,17 @@ namespace Orleans.Indexing
                     ctorHasFacet = true;
                     if (attr is IFaultTolerantWorkflowIndexWriterAttribute)
                     {
-                        setFacetIsFT(true);
+                        setScheme(IndexScheme.FaultTolerantWorkflow);
                     }
                     else if (attr is INonFaultTolerantWorkflowIndexWriterAttribute)
                     {
-                        setFacetIsFT(false);
+                        setScheme(IndexScheme.NonFaultTolerantWorkflow);
                     }
                     // TODO: Transactional
                 }
             }
 
-            return facetIsFT ?? throw new IndexConfigurationException($"Grain type {grainClassType.Name} has no Indexing Facet constructor argument specified");
+            return scheme ?? throw new IndexConfigurationException($"Grain type {grainClassType.Name} has no Indexing Facet constructor argument specified");
         }
 
         internal static bool IsIndexInterfaceType(this Type indexType)
@@ -229,7 +228,22 @@ namespace Orleans.Indexing
         internal static bool IsTotalIndex(this Type indexType)
             => indexType.RequireIndexInterfaceType() && typeof(ITotalIndex).IsAssignableFrom(indexType); // TODO Possible addition for Transactional
 
+        internal static bool IsDirectStorageManagedIndex(this Type indexType)
+            => indexType.RequireIndexInterfaceType() && typeof(IDirectStorageManagedIndex).IsAssignableFrom(indexType);
+
+        internal static bool IsActiveIndex(this Type indexType)
+            => !indexType.IsTotalIndex() && !indexType.IsDirectStorageManagedIndex();
+
         internal static bool IsTotalIndex(this IIndexInterface itf)
             => itf is ITotalIndex;     // TODO Possible addition for Transactional
+
+        internal static bool IsDirectStorageManagedIndex(this IIndexInterface itf)
+            => itf is IDirectStorageManagedIndex;
+
+        internal static bool IsActiveIndex(this IIndexInterface itf)
+            => !itf.IsTotalIndex() && !itf.IsDirectStorageManagedIndex();
+
+        internal static bool IsActivationChange(this IndexUpdateReason updateReason)
+            => updateReason == IndexUpdateReason.OnActivate || updateReason == IndexUpdateReason.OnDeactivate;
     }
 }

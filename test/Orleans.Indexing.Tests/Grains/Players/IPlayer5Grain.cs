@@ -1,5 +1,6 @@
 namespace Orleans.Indexing.Tests
 {
+#if ALLOW_FT_ACTIVE
     public class Player5Properties : IPlayerProperties
     {
         [Index(typeof(IActiveHashIndexSingleBucket<int, IPlayer5Grain>)/*, IsEager = false*/, IsUnique = true, NullValue = "0")]
@@ -12,4 +13,5 @@ namespace Orleans.Indexing.Tests
     public interface IPlayer5Grain : IPlayerGrain, IIndexableGrain<Player5Properties>   // TODO: Currently not used in any tests
     {
     }
+#endif // ALLOW_FT_ACTIVE
 }

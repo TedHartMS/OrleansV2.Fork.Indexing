@@ -7,6 +7,7 @@ using Xunit.Abstractions;
 namespace Orleans.Indexing.Tests
 {
     #region PartitionedPerKey
+#if ALLOW_FT_ACTIVE
     public class FT_Props_UIUSNINS_AI_LZ_PK : ITestMultiIndexProperties
     {
         [Index(typeof(ActiveHashIndexPartitionedPerKey<int, IFT_Grain_UIUSNINS_AI_LZ_PK>), IsEager = false, IsUnique = true, NullValue = "0")]
@@ -21,7 +22,7 @@ namespace Orleans.Indexing.Tests
         [Index(typeof(ActiveHashIndexPartitionedPerKey<string, IFT_Grain_UIUSNINS_AI_LZ_PK>), IsEager = false, IsUnique = false)]
         public string NonUniqueString { get; set; }
     }
-
+#endif // ALLOW_FT_ACTIVE
     public class NFT_Props_UIUSNINS_AI_LZ_PK : ITestMultiIndexProperties
     {
         [Index(typeof(ActiveHashIndexPartitionedPerKey<int, INFT_Grain_UIUSNINS_AI_LZ_PK>), IsEager = false, IsUnique = true, NullValue = "-1")]
@@ -37,14 +38,17 @@ namespace Orleans.Indexing.Tests
         public string NonUniqueString { get; set; }
     }
 
+#if ALLOW_FT_ACTIVE
     public interface IFT_Grain_UIUSNINS_AI_LZ_PK : ITestMultiIndexGrain, IIndexableGrain<FT_Props_UIUSNINS_AI_LZ_PK>
     {
     }
+#endif // ALLOW_FT_ACTIVE
 
     public interface INFT_Grain_UIUSNINS_AI_LZ_PK : ITestMultiIndexGrain, IIndexableGrain<NFT_Props_UIUSNINS_AI_LZ_PK>
     {
     }
 
+#if ALLOW_FT_ACTIVE
     public class FT_Grain_UIUSNINS_AI_LZ_PK : TestMultiIndexGrainFaultTolerant<TestMultiIndexState>, IFT_Grain_UIUSNINS_AI_LZ_PK
     {
         public FT_Grain_UIUSNINS_AI_LZ_PK(
@@ -52,6 +56,7 @@ namespace Orleans.Indexing.Tests
             IIndexWriter<TestMultiIndexState> indexWriter)
             : base(indexWriter) { }
     }
+#endif // ALLOW_FT_ACTIVE
 
     public class NFT_Grain_UIUSNINS_AI_LZ_PK : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_AI_LZ_PK
     {
@@ -63,6 +68,7 @@ namespace Orleans.Indexing.Tests
     #endregion // PartitionedPerKey
 
     #region PartitionedPerSilo
+#if ALLOW_FT_ACTIVE
     public class FT_Props_UIUSNINS_AI_LZ_PS : ITestMultiIndexProperties
     {
         [Index(typeof(IActiveHashIndexPartitionedPerSilo<int, IFT_Grain_UIUSNINS_AI_LZ_PS>), IsEager = false, IsUnique = false, NullValue = "0")]   // PerSilo cannot be Unique
@@ -77,6 +83,7 @@ namespace Orleans.Indexing.Tests
         [Index(typeof(IActiveHashIndexPartitionedPerSilo<string, IFT_Grain_UIUSNINS_AI_LZ_PS>), IsEager = false, IsUnique = false)]
         public string NonUniqueString { get; set; }
     }
+#endif // ALLOW_FT_ACTIVE
 
     public class NFT_Props_UIUSNINS_AI_LZ_PS : ITestMultiIndexProperties
     {
@@ -93,14 +100,17 @@ namespace Orleans.Indexing.Tests
         public string NonUniqueString { get; set; }
     }
 
+#if ALLOW_FT_ACTIVE
     public interface IFT_Grain_UIUSNINS_AI_LZ_PS : ITestMultiIndexGrain, IIndexableGrain<FT_Props_UIUSNINS_AI_LZ_PS>
     {
     }
+#endif // ALLOW_FT_ACTIVE
 
     public interface INFT_Grain_UIUSNINS_AI_LZ_PS : ITestMultiIndexGrain, IIndexableGrain<NFT_Props_UIUSNINS_AI_LZ_PS>
     {
     }
 
+#if ALLOW_FT_ACTIVE
     public class FT_Grain_UIUSNINS_AI_LZ_PS : TestMultiIndexGrainFaultTolerant<TestMultiIndexState>, IFT_Grain_UIUSNINS_AI_LZ_PS
     {
         public FT_Grain_UIUSNINS_AI_LZ_PS(
@@ -108,6 +118,7 @@ namespace Orleans.Indexing.Tests
             IIndexWriter<TestMultiIndexState> indexWriter)
             : base(indexWriter) { }
     }
+#endif // ALLOW_FT_ACTIVE
 
     public class NFT_Grain_UIUSNINS_AI_LZ_PS : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_AI_LZ_PS
     {
@@ -119,6 +130,7 @@ namespace Orleans.Indexing.Tests
     #endregion // PartitionedPerSilo
 
     #region SingleBucket
+#if ALLOW_FT_ACTIVE
     public class FT_Props_UIUSNINS_AI_LZ_SB : ITestMultiIndexProperties
     {
         [Index(typeof(IActiveHashIndexSingleBucket<int, IFT_Grain_UIUSNINS_AI_LZ_SB>), IsEager = false, IsUnique = true, NullValue = "0")]
@@ -133,6 +145,7 @@ namespace Orleans.Indexing.Tests
         [Index(typeof(IActiveHashIndexSingleBucket<string, IFT_Grain_UIUSNINS_AI_LZ_SB>), IsEager = false, IsUnique = false)]
         public string NonUniqueString { get; set; }
     }
+#endif // ALLOW_FT_ACTIVE
 
     public class NFT_Props_UIUSNINS_AI_LZ_SB : ITestMultiIndexProperties
     {
@@ -149,14 +162,17 @@ namespace Orleans.Indexing.Tests
         public string NonUniqueString { get; set; }
     }
 
+#if ALLOW_FT_ACTIVE
     public interface IFT_Grain_UIUSNINS_AI_LZ_SB : ITestMultiIndexGrain, IIndexableGrain<FT_Props_UIUSNINS_AI_LZ_SB>
     {
     }
+#endif // ALLOW_FT_ACTIVE
 
     public interface INFT_Grain_UIUSNINS_AI_LZ_SB : ITestMultiIndexGrain, IIndexableGrain<NFT_Props_UIUSNINS_AI_LZ_SB>
     {
     }
 
+#if ALLOW_FT_ACTIVE
     public class FT_Grain_UIUSNINS_AI_LZ_SB : TestMultiIndexGrainFaultTolerant<TestMultiIndexState>, IFT_Grain_UIUSNINS_AI_LZ_SB
     {
         public FT_Grain_UIUSNINS_AI_LZ_SB(
@@ -164,6 +180,7 @@ namespace Orleans.Indexing.Tests
             IIndexWriter<TestMultiIndexState> indexWriter)
             : base(indexWriter) { }
     }
+#endif // ALLOW_FT_ACTIVE
 
     public class NFT_Grain_UIUSNINS_AI_LZ_SB : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_AI_LZ_SB
     {
@@ -172,7 +189,7 @@ namespace Orleans.Indexing.Tests
             IIndexWriter<TestMultiIndexState> indexWriter)
             : base(indexWriter) { }
     }
-    #endregion // SingleBucket
+#endregion // SingleBucket
 
     public abstract class MultiIndex_AI_LZ_Runner: IndexingTestRunnerBase
     {
@@ -181,11 +198,13 @@ namespace Orleans.Indexing.Tests
         {
         }
 
+#if ALLOW_FT_ACTIVE
         [Fact, TestCategory("BVT"), TestCategory("Indexing")]
         public async Task Test_FT_Grain_UIUSNINS_AI_LZ_PK()
         {
             await base.TestIndexesWithDeactivations<IFT_Grain_UIUSNINS_AI_LZ_PK, FT_Props_UIUSNINS_AI_LZ_PK>();
         }
+#endif // ALLOW_FT_ACTIVE
 
         [Fact, TestCategory("BVT"), TestCategory("Indexing")]
         public async Task Test_NFT_Grain_UIUSNINS_AI_LZ_PK()
@@ -193,11 +212,13 @@ namespace Orleans.Indexing.Tests
             await base.TestIndexesWithDeactivations<INFT_Grain_UIUSNINS_AI_LZ_PK, NFT_Props_UIUSNINS_AI_LZ_PK>();
         }
 
+#if ALLOW_FT_ACTIVE
         [Fact, TestCategory("BVT"), TestCategory("Indexing")]
         public async Task Test_FT_Grain_UIUSNINS_AI_LZ_PS()
         {
             await base.TestIndexesWithDeactivations<IFT_Grain_UIUSNINS_AI_LZ_PS, FT_Props_UIUSNINS_AI_LZ_PS>();
         }
+#endif // ALLOW_FT_ACTIVE
 
         [Fact, TestCategory("BVT"), TestCategory("Indexing")]
         public async Task Test_NFT_Grain_UIUSNINS_AI_LZ_PS()
@@ -205,11 +226,13 @@ namespace Orleans.Indexing.Tests
             await base.TestIndexesWithDeactivations<INFT_Grain_UIUSNINS_AI_LZ_PS, NFT_Props_UIUSNINS_AI_LZ_PS>();
         }
 
+#if ALLOW_FT_ACTIVE
         [Fact, TestCategory("BVT"), TestCategory("Indexing")]
         public async Task Test_FT_Grain_UIUSNINS_AI_LZ_SB()
         {
             await base.TestIndexesWithDeactivations<IFT_Grain_UIUSNINS_AI_LZ_SB, FT_Props_UIUSNINS_AI_LZ_SB>();
         }
+#endif // ALLOW_FT_ACTIVE
 
         [Fact, TestCategory("BVT"), TestCategory("Indexing")]
         public async Task Test_NFT_Grain_UIUSNINS_AI_LZ_SB()
@@ -221,11 +244,17 @@ namespace Orleans.Indexing.Tests
         {
             return new Func<IndexingTestRunnerBase, int, Task>[]
             {
+#if ALLOW_FT_ACTIVE
                 (baseRunner, intAdjust) => baseRunner.TestIndexesWithDeactivations<IFT_Grain_UIUSNINS_AI_LZ_PK, FT_Props_UIUSNINS_AI_LZ_PK>(intAdjust),
+#endif // ALLOW_FT_ACTIVE
                 (baseRunner, intAdjust) => baseRunner.TestIndexesWithDeactivations<INFT_Grain_UIUSNINS_AI_LZ_PK, NFT_Props_UIUSNINS_AI_LZ_PK>(intAdjust),
+#if ALLOW_FT_ACTIVE
                 (baseRunner, intAdjust) => baseRunner.TestIndexesWithDeactivations<IFT_Grain_UIUSNINS_AI_LZ_PS, FT_Props_UIUSNINS_AI_LZ_PS>(intAdjust),
+#endif // ALLOW_FT_ACTIVE
                 (baseRunner, intAdjust) => baseRunner.TestIndexesWithDeactivations<INFT_Grain_UIUSNINS_AI_LZ_PS, NFT_Props_UIUSNINS_AI_LZ_PS>(intAdjust),
+#if ALLOW_FT_ACTIVE
                 (baseRunner, intAdjust) => baseRunner.TestIndexesWithDeactivations<IFT_Grain_UIUSNINS_AI_LZ_SB, FT_Props_UIUSNINS_AI_LZ_SB>(intAdjust),
+#endif // ALLOW_FT_ACTIVE
                 (baseRunner, intAdjust) => baseRunner.TestIndexesWithDeactivations<INFT_Grain_UIUSNINS_AI_LZ_SB, NFT_Props_UIUSNINS_AI_LZ_SB>(intAdjust)
             };
         }

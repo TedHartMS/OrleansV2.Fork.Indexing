@@ -15,6 +15,7 @@ namespace Orleans.Indexing.Tests
         {
         }
 
+#if ALLOW_FT_ACTIVE
         /// <summary>
         /// Tests basic functionality of HashIndexSingleBucket
         /// </summary>
@@ -83,6 +84,7 @@ namespace Orleans.Indexing.Tests
             Assert.Equal(2, await getLocationCount(ITC.Tehran));
             base.Output.WriteLine("Done.");
         }
+#endif // ALLOW_FT_ACTIVE
 
         /// <summary>
         /// Tests basic functionality of HashIndexPartitionedPerKey

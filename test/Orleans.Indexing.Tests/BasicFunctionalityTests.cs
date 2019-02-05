@@ -67,7 +67,7 @@ namespace Orleans.Indexing.Tests
         [Fact, TestCategory("BVT"), TestCategory("Indexing")]
         public async Task Test_Validate_Indexes()
         {
-            await IndexValidator.Validate(typeof(IPlayer1Grain).Assembly);
+            await IndexValidator.Validate(typeof(BasicFunctionalityTests).Assembly);
         }
     }
 }
