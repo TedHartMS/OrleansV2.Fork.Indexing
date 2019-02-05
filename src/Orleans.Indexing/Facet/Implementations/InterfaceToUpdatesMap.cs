@@ -12,9 +12,12 @@ namespace Orleans.Indexing.Facet
 
         internal IReadOnlyDictionary<string, IMemberUpdate> this[Type interfaceType] => this.updatesByInterface[interfaceType];
 
-        internal InterfaceToUpdatesMap(IEnumerable<(Type interfaceType, IEnumerable<(string indexName, IMemberUpdate mu)> namedUpdates)> updateEnumerator,
-                                       Func<Guid> getWorkflowIdFunc)
+        internal IndexUpdateReason UpdateReason { get; }
+
+        internal InterfaceToUpdatesMap(IndexUpdateReason updateReason, Func<Guid> getWorkflowIdFunc,
+                                       IEnumerable<(Type interfaceType, IEnumerable<(string indexName, IMemberUpdate mu)> namedUpdates)> updateEnumerator)
         {
+            this.UpdateReason = updateReason;
             this.updatesByInterface = updateEnumerator.Select(x => (itf: x.interfaceType, dict: x.namedUpdates.ToDictionary(upd => upd.indexName, upd => upd.mu)))
                                                       .Where(pair => pair.dict.Count > 0)
                                                       .ToDictionary(pair => pair.itf, pair => (IReadOnlyDictionary<string, IMemberUpdate>)pair.dict);

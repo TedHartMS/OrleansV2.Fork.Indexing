@@ -32,16 +32,6 @@ namespace Orleans.Indexing.Facet
             NonUnique
         }
 
-        /// <summary>
-        /// Indicates whether an index update is happening due to activation, deactivation, or while remaining active.
-        /// </summary>
-        private protected enum ActivationMode
-        {
-            OnActivate,
-            Active,
-            OnDeactivate
-        }
-
         private protected GrainIndexes _grainIndexes;
         private protected bool _hasAnyUniqueIndex;
 
@@ -90,7 +80,7 @@ namespace Orleans.Indexing.Facet
             // UpdateIndexes kicks off the sequence that eventually goes through virtual/overridden ApplyIndexUpdates, which in turn calls
             // writeGrainStateFunc() appropriately to ensure that only the successfully persisted bits are indexed, and the indexes are updated
             // concurrently while writeGrainStateFunc() is done.
-            await this.UpdateIndexes(ActivationMode.Active, onlyUpdateActiveIndexes: false, writeStateIfConstraintsAreNotViolated: true);
+            await this.UpdateIndexes(IndexUpdateReason.WriteState, onlyUpdateActiveIndexes: false, writeStateIfConstraintsAreNotViolated: true);
         }
 
         #endregion public API
@@ -127,7 +117,7 @@ namespace Orleans.Indexing.Facet
         {
             // Check if it contains anything to be indexed
             return this._grainIndexes.HasIndexImages
-                ? this.UpdateIndexes(ActivationMode.OnActivate, onlyUpdateActiveIndexes: true, writeStateIfConstraintsAreNotViolated: false)
+                ? this.UpdateIndexes(IndexUpdateReason.OnActivate, onlyUpdateActiveIndexes: true, writeStateIfConstraintsAreNotViolated: false)
                 : Task.CompletedTask;
         }
 
@@ -138,7 +128,7 @@ namespace Orleans.Indexing.Facet
         {
             // Check if it has anything indexed
             return this._grainIndexes.HasIndexImages
-                ? this.UpdateIndexes(ActivationMode.OnDeactivate, onlyUpdateActiveIndexes: true, writeStateIfConstraintsAreNotViolated: false)
+                ? this.UpdateIndexes(IndexUpdateReason.OnDeactivate, onlyUpdateActiveIndexes: true, writeStateIfConstraintsAreNotViolated: false)
                 : Task.CompletedTask;
         }
 
@@ -153,10 +143,10 @@ namespace Orleans.Indexing.Facet
         /// might have changed. In this case, it updates the list of member update and tries again. In the case of a positive result
         /// from ApplyIndexUpdates, the list of before-images is replaced by the list of after-images.
         /// </remarks>
-        /// <param name="activationMode">Determines whether this method is called upon activation, deactivation, or still-active state of this grain</param>
+        /// <param name="updateReason">Determines whether this method is called upon activation, deactivation, or still-active state of this grain</param>
         /// <param name="onlyUpdateActiveIndexes">whether only active indexes should be updated</param>
         /// <param name="writeStateIfConstraintsAreNotViolated">whether to write back the state to the storage if no constraint is violated</param>
-        private protected Task UpdateIndexes(ActivationMode activationMode, bool onlyUpdateActiveIndexes, bool writeStateIfConstraintsAreNotViolated)
+        private protected Task UpdateIndexes(IndexUpdateReason updateReason, bool onlyUpdateActiveIndexes, bool writeStateIfConstraintsAreNotViolated)
         {
             // If there are no indexes defined on this grain, then only the grain state
             // should be written back to the storage (if requested, otherwise nothing should be done)
@@ -169,7 +159,7 @@ namespace Orleans.Indexing.Facet
             var onlyUniqueIndexesWereUpdated = this._hasAnyUniqueIndex;
 
             // Gather the dictionary of indexes to their corresponding updates, grouped by interface
-            var interfaceToUpdatesMap = this.GenerateMemberUpdates(activationMode, onlyUpdateActiveIndexes,
+            var interfaceToUpdatesMap = this.GenerateMemberUpdates(updateReason, onlyUpdateActiveIndexes,
                 out var updateIndexesEagerly, ref onlyUniqueIndexesWereUpdated, out var numberOfUniqueIndexesUpdated);
 
             // Apply the updates to the indexes defined on this grain
@@ -180,13 +170,13 @@ namespace Orleans.Indexing.Facet
         /// <summary>
         /// Applies a set of updates to the indexes defined on the grain
         /// </summary>
-        /// <param name="updatesByInterface">the dictionary of indexes to their corresponding updates</param>
+        /// <param name="interfaceToUpdatesMap">the dictionary of indexes to their corresponding updates</param>
         /// <param name="updateIndexesEagerly">whether indexes should be updated eagerly or lazily</param>
         /// <param name="onlyUniqueIndexesWereUpdated">a flag to determine whether only unique indexes were updated</param>
         /// <param name="numberOfUniqueIndexesUpdated">determine the number of updated unique indexes</param>
         /// <param name="writeStateIfConstraintsAreNotViolated">whether writing back
         ///             the state to the storage should be done if no constraint is violated</param>
-        private protected abstract Task ApplyIndexUpdates(InterfaceToUpdatesMap updatesByInterface,
+        private protected abstract Task ApplyIndexUpdates(InterfaceToUpdatesMap interfaceToUpdatesMap,
                                                   bool updateIndexesEagerly, bool onlyUniqueIndexesWereUpdated,
                                                   int numberOfUniqueIndexesUpdated, bool writeStateIfConstraintsAreNotViolated);
 
@@ -195,23 +185,23 @@ namespace Orleans.Indexing.Facet
         /// 
         /// The lazy update involves adding a workflow record to the corresponding IIndexWorkflowQueue for this grain.
         /// </summary>
-        /// <param name="updatesByInterface">the dictionary of updates for each index by interface</param>
+        /// <param name="interfaceToUpdatesMap">the dictionary of updates for each index by interface</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private protected Task ApplyIndexUpdatesLazily(InterfaceToUpdatesMap updatesByInterface)
-            => Task.WhenAll(updatesByInterface.Select(kvp => this.GetWorkflowQueue(kvp.Key).AddToQueue(new IndexWorkflowRecord(updatesByInterface.WorkflowIds[kvp.Key],
+        private protected Task ApplyIndexUpdatesLazily(InterfaceToUpdatesMap interfaceToUpdatesMap)
+            => Task.WhenAll(interfaceToUpdatesMap.Select(kvp => this.GetWorkflowQueue(kvp.Key).AddToQueue(new IndexWorkflowRecord(interfaceToUpdatesMap.WorkflowIds[kvp.Key],
                                                                                                        this.iIndexableGrain, kvp.Value).AsImmutable())));
 
         /// <summary>
         /// Eagerly Applies updates to the indexes defined on this grain
         /// </summary>
-        /// <param name="updatesByInterface">the dictionary of updates for each index of each interface</param>
+        /// <param name="interfaceToUpdatesMap">the dictionary of updates for each index of each interface</param>
         /// <param name="updateIndexTypes">indicates whether unique and/or non-unique indexes should be updated</param>
         /// <param name="isTentative">indicates whether updates to indexes should be tentatively done. That is, the update
         ///     won't be visible to readers, but prevents writers from overwriting them an violating constraints</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private protected Task ApplyIndexUpdatesEagerly(InterfaceToUpdatesMap updatesByInterface,
+        private protected Task ApplyIndexUpdatesEagerly(InterfaceToUpdatesMap interfaceToUpdatesMap,
                                                     UpdateIndexType updateIndexTypes, bool isTentative = false)
-            => Task.WhenAll(updatesByInterface.Select(kvp => this.ApplyIndexUpdatesEagerly(kvp.Key, kvp.Value, updateIndexTypes, isTentative)));
+            => Task.WhenAll(interfaceToUpdatesMap.Select(kvp => this.ApplyIndexUpdatesEagerly(kvp.Key, kvp.Value, updateIndexTypes, isTentative)));
 
         /// <summary>
         /// Eagerly Applies updates to the indexes defined on this grain for a single grain interface type implemented by this grain
@@ -249,7 +239,7 @@ namespace Orleans.Indexing.Facet
         private protected void UpdateBeforeImages(InterfaceToUpdatesMap interfaceToUpdatesMap)
             => this._grainIndexes.UpdateBeforeImages(interfaceToUpdatesMap);
 
-        private InterfaceToUpdatesMap GenerateMemberUpdates(ActivationMode updateMode,
+        private InterfaceToUpdatesMap GenerateMemberUpdates(IndexUpdateReason updateReason,
                                                             bool onlyUpdateActiveIndexes, out bool updateIndexesEagerly,
                                                             ref bool onlyUniqueIndexesWereUpdated, out int numberOfUniqueIndexesUpdated)
         {
@@ -262,13 +252,13 @@ namespace Orleans.Indexing.Facet
             {
                 var befImgs = indexes.BeforeImages.Value;
                 foreach ((var indexName, var indexInfo) in indexes.NamedIndexes
-                                                                  .Where(kvp => !onlyUpdateActiveIndexes || !(kvp.Value.IndexInterface.IsTotalIndex()))
+                                                                  .Where(kvp => !onlyUpdateActiveIndexes || !kvp.Value.IndexInterface.IsTotalIndex())
                                                                   .Select(kvp => (kvp.Key, kvp.Value)))
                 {
-                    var mu = updateMode == ActivationMode.OnActivate
+                    var mu = updateReason == IndexUpdateReason.OnActivate
                                             ? indexInfo.UpdateGenerator.CreateMemberUpdate(befImgs[indexName])
                                             : indexInfo.UpdateGenerator.CreateMemberUpdate(
-                                                updateMode == ActivationMode.OnDeactivate ? null : indexes.Properties, befImgs[indexName]);
+                                                updateReason == IndexUpdateReason.OnDeactivate ? null : indexes.Properties, befImgs[indexName]);
                     if (mu.OperationType != IndexOperationType.None)
                     {
                         if (prevIndexName != null && prevIndexIsEager != indexInfo.MetaData.IsEager)
@@ -293,8 +283,8 @@ namespace Orleans.Indexing.Facet
                 }
             }
 
-            var interfaceToUpdatesMap = new InterfaceToUpdatesMap(this._grainIndexes.Select(kvp => (kvp.Key, generateNamedMemberUpdates(kvp.Key, kvp.Value))),
-                                                                  this.getWorkflowIdFunc);
+            var interfaceToUpdatesMap = new InterfaceToUpdatesMap(updateReason, this.getWorkflowIdFunc,
+                                                                  this._grainIndexes.Select(kvp => (kvp.Key, generateNamedMemberUpdates(kvp.Key, kvp.Value))));
             updateIndexesEagerly = prevIndexName != null ? prevIndexIsEager : false;
             numberOfUniqueIndexesUpdated = numUniqueIndexes;
             onlyUniqueIndexesWereUpdated = onlyUniqueIndexes;

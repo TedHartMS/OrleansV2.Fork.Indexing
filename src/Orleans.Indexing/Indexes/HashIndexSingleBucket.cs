@@ -111,7 +111,7 @@ namespace Orleans.Indexing
             // Updates the index bucket synchronously (note that no other thread can run concurrently before we reach an await operation,
             // when execution is yielded back to the Orleans scheduler, so no concurrency control mechanism (e.g., locking) is required).
             // 'fixIndexUnavailableOnDelete' indicates whether the index was still unavailable when we received a delete operation.
-            if (!HashIndexBucketUtils.UpdateBucket(updatedGrain, updt, this.State, isUniqueIndex, idxMetaData, out K befImg, out HashIndexSingleBucketEntry<V> befEntry, out bool fixIndexUnavailableOnDelete))
+            if (!HashIndexBucketUtils.UpdateBucketState(updatedGrain, updt, this.State, isUniqueIndex, idxMetaData, out K befImg, out HashIndexSingleBucketEntry<V> befEntry, out bool fixIndexUnavailableOnDelete))
             {
                 await (await GetNextBucketAndPersist()).DirectApplyIndexUpdate(g, updt.AsImmutable(), isUniqueIndex, idxMetaData, siloAddress);
             }

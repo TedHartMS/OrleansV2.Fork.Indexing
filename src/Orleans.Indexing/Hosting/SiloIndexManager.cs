@@ -45,9 +45,6 @@ namespace Orleans.Indexing
         internal T GetGrainService<T>(GrainReference grainReference) where T : IGrainService
             => this.Silo.GetGrainService<T>(grainReference);
 
-        internal async Task<IEnumerable<Tuple<GrainReference, string, int>>> GetClusterGrainActivations(SiloAddress[] siloAddresses)
-            => await this.Silo.GetClusterGrainActivations(siloAddresses);
-
         internal OutputGrainInterfaceType GetGrain<OutputGrainInterfaceType>(Guid grainPrimaryKey, Type grainInterfaceType)
             where OutputGrainInterfaceType : IGrain
             => this.Silo.GetGrain<OutputGrainInterfaceType>(grainPrimaryKey, grainInterfaceType);
