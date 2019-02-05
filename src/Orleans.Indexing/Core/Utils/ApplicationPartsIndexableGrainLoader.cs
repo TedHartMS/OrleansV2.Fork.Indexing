@@ -74,12 +74,12 @@ namespace Orleans.Indexing
 
             bool? grainIndexesAreEager = null;
             var indexedInterfaces = new List<Type>();
-            var isFaultTolerant = grainClassType.IsFaultTolerant();
+            var indexScheme = grainClassType.GetIndexScheme();
 
             foreach (var (grainInterfaceType, propertiesClassType) in EnumerateIndexedInterfacesForAGrainClassType(grainClassType).Where(tup => !registry.ContainsKey(tup.interfaceType)))
             {
                 grainIndexesAreEager = await CreateIndexesForASingleInterface(loader, registry, propertiesClassType, grainInterfaceType,
-                                                                                grainClassType, isFaultTolerant, grainIndexesAreEager);
+                                                                                grainClassType, indexScheme, grainIndexesAreEager);
                 indexedInterfaces.Add(grainInterfaceType);
             }
 
@@ -146,7 +146,7 @@ namespace Orleans.Indexing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private async static Task<bool?> CreateIndexesForASingleInterface(ApplicationPartsIndexableGrainLoader loader, IndexRegistry registry,
                                                                           Type propertiesClassType, Type grainInterfaceType, Type grainClassType,
-                                                                          bool isFaultTolerant, bool? grainIndexesAreEager)
+                                                                          IndexScheme indexScheme, bool? grainIndexesAreEager)
         {
             // All the properties in TProperties are scanned for Index annotation.
             // If found, the index is created using the information provided in the annotation.
@@ -178,7 +178,7 @@ namespace Orleans.Indexing
                     var isUnique = (bool)isUniqueProperty.GetValue(indexAttr);
 
                     ValidateSingleIndex(indexAttr, grainInterfaceType, grainClassType, propertiesClassType, propInfo, grainIndexesAreEager,
-                                        isEager:isEager, isUnique:isUnique, isFaultTolerant:isFaultTolerant);   // Multiple bools, so use param names for safety
+                                        indexScheme, isEager:isEager, isUnique:isUnique);   // Multiple bools, so use param names for safety
 
                     var maxEntriesPerBucket = (int)maxEntriesPerBucketProperty.GetValue(indexAttr);
                     if (loader != null)
@@ -194,7 +194,7 @@ namespace Orleans.Indexing
             registry[grainInterfaceType] = indexesOnInterface;
             if (interfaceHasLazyIndex && loader != null)
             {
-                await loader.RegisterWorkflowQueues(grainInterfaceType, grainClassType, isFaultTolerant);
+                await loader.RegisterWorkflowQueues(grainInterfaceType, grainClassType, indexScheme == IndexScheme.FaultTolerantWorkflow);
             }
             return grainIndexesAreEager;
         }
@@ -216,11 +216,12 @@ namespace Orleans.Indexing
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ValidateSingleIndex(IndexAttribute indexAttr, Type grainInterfaceType, Type grainClassType, Type propertiesArgType,
-                                                PropertyInfo propInfo, bool? grainIndexesAreEager, bool isEager, bool isUnique, bool isFaultTolerant)
+                                                PropertyInfo propInfo, bool? grainIndexesAreEager, IndexScheme indexScheme, bool isEager, bool isUnique)
         {
             var indexType = (Type)indexTypeProperty.GetValue(indexAttr);
             var isTotalIndex = indexType.IsTotalIndex();
             var isPerSiloIndex = indexType.IsPartitionedPerSiloIndex();
+            var isFaultTolerantWorkflow = indexScheme == IndexScheme.FaultTolerantWorkflow;
 
             if (indexAttr is ActiveIndexAttribute && isUnique)
             {
@@ -235,18 +236,19 @@ namespace Orleans.Indexing
                                                     $" Partitioned Per Silo Index of type {IndexUtils.GetFullTypeName(indexType)} is defined to be unique on property {propInfo.Name}" +
                                                     $" of class {IndexUtils.GetFullTypeName(propertiesArgType)} on {IndexUtils.GetFullTypeName(grainInterfaceType)} grain interface.");
             }
-            if (isTotalIndex && isEager)
+            if (isFaultTolerantWorkflow && isEager)
             {
-                throw new InvalidOperationException($"A Total Index cannot be configured to be updated eagerly. The only option for updating a Total Index is lazy updating." +
-                                                    $" Total Index of type {IndexUtils.GetFullTypeName(indexType)} is defined to be updated eagerly on property {propInfo.Name}" +
-                                                    $" of class {IndexUtils.GetFullTypeName(propertiesArgType)} on {IndexUtils.GetFullTypeName(grainInterfaceType)} grain interface.");
-            }
-            if (isFaultTolerant && isEager)
-            {
-                throw new InvalidOperationException($"A fault-tolerant grain implementation cannot be configured to eagerly update its indexes." +
+                throw new InvalidOperationException($"A workflow-fault-tolerant grain implementation cannot be configured to eagerly update its indexes." +
                                                     $" The only option for updating the indexes of a fault-tolerant indexable grain is lazy updating." +
                                                     $" The index of type {IndexUtils.GetFullTypeName(indexType)} is defined to be updated eagerly on property {propInfo.Name}" +
                                                     $" of class {IndexUtils.GetFullTypeName(propertiesArgType)} on {IndexUtils.GetFullTypeName(grainClassType)} grain implementation class.");
+            }
+            if (isFaultTolerantWorkflow && indexType.IsActiveIndex())
+            {
+                throw new InvalidOperationException($"An Active index cannot be workflow-fault-tolerant, because it will continually be reactivated as part of the fault-tolerant workflow." +
+                                                    $" The Active index of type {IndexUtils.GetFullTypeName(indexType)} on property {propInfo.Name}" +
+                                                    $" of class {IndexUtils.GetFullTypeName(propertiesArgType)} on {IndexUtils.GetFullTypeName(grainClassType)} grain implementation class" +
+                                                    $" which uses workflow-fault-tolerant indexing.");
             }
             if (grainIndexesAreEager.HasValue && grainIndexesAreEager.Value != isEager)
             {

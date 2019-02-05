@@ -46,6 +46,7 @@ namespace Orleans.Indexing.Facet
                 throw new IndexException($"Grain type {grain.GetType().Name} state must be wrapped by FaultTolerantIndexableGrainStateWrapper");
             }
 
+            // In order to initialize base.State etc. this must be called here; it's called in base.OnActivateAsync and will no-op the second time.
             base.InitOnActivate(grain, wrappedState, writeGrainStateFunc);
 
             // If the list of active workflows is null or empty we can assume that we were not previously activated
@@ -69,22 +70,31 @@ namespace Orleans.Indexing.Facet
         /// <summary>
         /// Applies a set of updates to the indexes defined on the grain
         /// </summary>
-        /// <param name="updatesByInterface">the dictionary of indexes to their corresponding updates</param>
+        /// <param name="interfaceToUpdatesMap">the dictionary of indexes to their corresponding updates</param>
         /// <param name="updateIndexesEagerly">whether indexes should be updated eagerly or lazily</param>
         /// <param name="onlyUniqueIndexesWereUpdated">a flag to determine whether only unique indexes were updated</param>
         /// <param name="numberOfUniqueIndexesUpdated">determine the number of updated unique indexes</param>
         /// <param name="writeStateIfConstraintsAreNotViolated">whether writing back
         ///             the state to the storage should be done if no constraint is violated</param>
-        private protected override async Task ApplyIndexUpdates(InterfaceToUpdatesMap updatesByInterface,
+        private protected override async Task ApplyIndexUpdates(InterfaceToUpdatesMap interfaceToUpdatesMap,
                                                                 bool updateIndexesEagerly, bool onlyUniqueIndexesWereUpdated,
                                                                 int numberOfUniqueIndexesUpdated, bool writeStateIfConstraintsAreNotViolated)
         {
-            if (updatesByInterface.IsEmpty || !this._hasAnyTotalIndex)
+            if (interfaceToUpdatesMap.IsEmpty || !this._hasAnyTotalIndex)
             {
-                await base.ApplyIndexUpdates(updatesByInterface, updateIndexesEagerly, onlyUniqueIndexesWereUpdated,
+                // Drop down to non-fault-tolerant
+                await base.ApplyIndexUpdates(interfaceToUpdatesMap, updateIndexesEagerly, onlyUniqueIndexesWereUpdated,
                                              numberOfUniqueIndexesUpdated, writeStateIfConstraintsAreNotViolated);
                 return;
             }
+
+#if !ALLOW_FT_ACTIVE
+            if (interfaceToUpdatesMap.UpdateReason.IsActivationChange())
+            {
+                throw new InvalidOperationException("Active indexes cannot be fault-tolerant. This misconfiguration should have" +
+                                                    " been detected on silo startup. Check ApplicationPartsIndexableGrainLoader for the reason.");
+            }
+#endif // !ALLOW_FT_ACTIVE
 
             if (updateIndexesEagerly)
             {
@@ -94,29 +104,30 @@ namespace Orleans.Indexing.Facet
 
             // Update the indexes lazily. This is the first step, because its workflow record should be persisted in the workflow-queue first.
             // The reason for waiting here is to make sure that the workflow record in the workflow queue is correctly persisted.
-            await base.ApplyIndexUpdatesLazily(updatesByInterface);
+            await base.ApplyIndexUpdatesLazily(interfaceToUpdatesMap);
 
-            // Apply any unique index updates eagerly.
+            // Apply any unique index updates eagerly. This will always finish before the Lazy updates start (see "interleaving" below).
             if (numberOfUniqueIndexesUpdated > 0)
             {
-                // If there is more than one unique index to update, then updates to the unique indexes should be tentative
-                // so they are not visible to readers before making sure that all uniqueness constraints are satisfied.
+                // Updates to the unique indexes should be tentative so they are not visible to readers before making sure
+                // that all uniqueness constraints are satisfied (and that the grain state persistence completes successfully).
                 // UniquenessConstraintViolatedExceptions propagate; any tentative records will be removed by WorkflowQueueHandler.
-                await base.ApplyIndexUpdatesEagerly(updatesByInterface, UpdateIndexType.Unique, isTentative: true);
+                await base.ApplyIndexUpdatesEagerly(interfaceToUpdatesMap, UpdateIndexType.Unique, isTentative: true);
             }
 
             // Finally, the grain state is persisted if requested.
             if (writeStateIfConstraintsAreNotViolated)
             {
                 // There is no constraint violation, so add the workflow ID to the list of active (committed/in-flight) workflows.
-                // Note that there is no race condition allowing the lazy update to sneak in before we add these, because grain
-                // access is single-threaded, so the queue handler call to GetActiveWorkflowIdsSet blocks until this method exits.
-                this.AddWorkflowIdsToActiveWorkflows(updatesByInterface.Select(kvp => updatesByInterface.WorkflowIds[kvp.Key]).ToArray());
+                // Note that there is no race condition allowing the lazy update to sneak in before we add these, because grain access
+                // is single-threaded unless the method is marked as interleaved; this method is called from this.WriteStateAsync, which
+                // is not marked as interleaved, so the queue handler call to this.GetActiveWorkflowIdsSet blocks until this method exits.
+                this.AddWorkflowIdsToActiveWorkflows(interfaceToUpdatesMap.Select(kvp => interfaceToUpdatesMap.WorkflowIds[kvp.Key]).ToArray());
                 await base.writeGrainStateFunc();
             }
 
             // If everything was successful, the before images are updated
-            base.UpdateBeforeImages(updatesByInterface);
+            base.UpdateBeforeImages(interfaceToUpdatesMap);
         }
 
         /// <summary>

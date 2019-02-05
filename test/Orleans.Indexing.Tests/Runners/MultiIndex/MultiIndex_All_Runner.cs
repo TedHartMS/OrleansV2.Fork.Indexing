@@ -24,7 +24,9 @@ namespace Orleans.Indexing.Tests
             await Task.WhenAll(getTasks(MultiIndex_AI_EG_Runner.GetAllTestTasks())
                     .Concat(getTasks(MultiIndex_AI_LZ_Runner.GetAllTestTasks()))
                     .Concat(getTasks(MultiIndex_TI_EG_Runner.GetAllTestTasks()))
-                    .Concat(getTasks(MultiIndex_TI_LZ_Runner.GetAllTestTasks())));
+                    .Concat(getTasks(MultiIndex_TI_LZ_Runner.GetAllTestTasks()))
+                    .Concat(getTasks(MultiIndex_XI_EG_Runner.GetAllTestTasks()))
+                    .Concat(getTasks(MultiIndex_XI_LZ_Runner.GetAllTestTasks())));
         }
     }
 }

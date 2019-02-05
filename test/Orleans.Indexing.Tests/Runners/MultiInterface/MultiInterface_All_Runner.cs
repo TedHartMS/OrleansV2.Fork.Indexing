@@ -27,7 +27,9 @@ namespace Orleans.Indexing.Tests.MultiInterface
             await Task.WhenAll(getTasks(MultiInterface_AI_EG_Runner.GetAllTestTasks(testIndexTypes))
                     .Concat(getTasks(MultiInterface_AI_LZ_Runner.GetAllTestTasks(testIndexTypes)))
                     .Concat(getTasks(MultiInterface_TI_EG_Runner.GetAllTestTasks(testIndexTypes)))
-                    .Concat(getTasks(MultiInterface_TI_LZ_Runner.GetAllTestTasks(testIndexTypes))));
+                    .Concat(getTasks(MultiInterface_TI_LZ_Runner.GetAllTestTasks(testIndexTypes)))
+                    .Concat(getTasks(MultiInterface_XI_EG_Runner.GetAllTestTasks(testIndexTypes)))
+                    .Concat(getTasks(MultiInterface_XI_LZ_Runner.GetAllTestTasks(testIndexTypes))));
         }
     }
 }
