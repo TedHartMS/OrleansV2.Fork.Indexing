@@ -1,5 +1,6 @@
 namespace Orleans.Indexing.Tests
 {
+#if ALLOW_FT_ACTIVE
     public class Player4Properties : IPlayerProperties
     {
         public int Score { get; set; }
@@ -11,4 +12,5 @@ namespace Orleans.Indexing.Tests
     public interface IPlayer4Grain : IPlayerGrain, IIndexableGrain<Player4Properties>
     {
     }
+#endif // ALLOW_FT_ACTIVE
 }

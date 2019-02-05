@@ -14,9 +14,9 @@ namespace Orleans.Indexing
         /// <param name="state">the index bucket to be updated</param>
         /// <param name="isUniqueIndex">a flag to indicate whether the hash-index has a uniqueness constraint</param>
         /// <param name="idxMetaData">the index metadata</param>
-        internal static bool UpdateBucket<K, V>(V updatedGrain, IMemberUpdate iUpdate, HashIndexBucketState<K, V> state, bool isUniqueIndex,
-                                                IndexMetaData idxMetaData) where V : IIndexableGrain
-            => UpdateBucket(updatedGrain, iUpdate, state, isUniqueIndex, idxMetaData, out K befImg, out HashIndexSingleBucketEntry<V> _, out bool _);
+        internal static bool UpdateBucketState<K, V>(V updatedGrain, IMemberUpdate iUpdate, HashIndexBucketState<K, V> state, bool isUniqueIndex,
+                                                     IndexMetaData idxMetaData) where V : IIndexableGrain
+            => UpdateBucketState(updatedGrain, iUpdate, state, isUniqueIndex, idxMetaData, out K befImg, out HashIndexSingleBucketEntry<V> _, out bool _);
 
         /// <summary>
         /// This method contains the common functionality for updating the hash-index bucket.
@@ -32,16 +32,16 @@ namespace Orleans.Indexing
         /// <param name="befEntry">output parameter: the index entry containing the before-image</param>
         /// <param name="fixIndexUnavailableOnDelete">output parameter: this variable determines whether
         ///             the index was still unavailable when we received a delete operation</param>
-        internal static bool UpdateBucket<K, V>(V updatedGrain, IMemberUpdate update, HashIndexBucketState<K, V> state, bool isUniqueIndex,
-                                                IndexMetaData idxMetaData, out K befImg, out HashIndexSingleBucketEntry<V> befEntry,
-                                                out bool fixIndexUnavailableOnDelete) where V : IIndexableGrain
+        internal static bool UpdateBucketState<K, V>(V updatedGrain, IMemberUpdate update, HashIndexBucketState<K, V> state, bool isUniqueIndex,
+                                                     IndexMetaData idxMetaData, out K befImg, out HashIndexSingleBucketEntry<V> befEntry,
+                                                     out bool fixIndexUnavailableOnDelete) where V : IIndexableGrain
         {
             fixIndexUnavailableOnDelete = false;
             befImg = default(K);
             befEntry = null;
 
             bool isTentativeUpdate = isUniqueIndex && (update is MemberUpdateTentative);
-            IndexOperationType opType = update.OperationType;
+            var opType = update.OperationType;
             HashIndexSingleBucketEntry<V> aftEntry;
 
             // Insert is done for both IndexOperationType.Update and IndexOperationType.Update, so use a local function.

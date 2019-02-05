@@ -91,6 +91,18 @@ namespace Orleans.Indexing.Tests
     }
 
     [TestCategory("BVT"), TestCategory("Indexing")]
+    public class MultiIndex_XI_EG_Wf : MultiIndex_XI_EG_Runner, IClassFixture<WorkflowIndexingFixture>
+    {
+        public MultiIndex_XI_EG_Wf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
+    }
+
+    [TestCategory("BVT"), TestCategory("Indexing")]
+    public class MultiIndex_XI_LZ_Wf : MultiIndex_XI_LZ_Runner, IClassFixture<WorkflowIndexingFixture>
+    {
+        public MultiIndex_XI_LZ_Wf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
+    }
+
+    [TestCategory("BVT"), TestCategory("Indexing")]
     public class MultiIndex_All_Wf : MultiIndex_All_Runner, IClassFixture<WorkflowIndexingFixture>
     {
         public MultiIndex_All_Wf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
@@ -122,6 +134,18 @@ namespace Orleans.Indexing.Tests
     public class MultiInterface_TI_LZ_Wf : MultiInterface_TI_LZ_Runner, IClassFixture<WorkflowIndexingFixture>
     {
         public MultiInterface_TI_LZ_Wf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
+    }
+
+    [TestCategory("BVT"), TestCategory("Indexing")]
+    public class MultiInterface_XI_EG_Wf : MultiInterface_XI_EG_Runner, IClassFixture<WorkflowIndexingFixture>
+    {
+        public MultiInterface_XI_EG_Wf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
+    }
+
+    [TestCategory("BVT"), TestCategory("Indexing")]
+    public class MultiInterface_XI_LZ_Wf : MultiInterface_XI_LZ_Runner, IClassFixture<WorkflowIndexingFixture>
+    {
+        public MultiInterface_XI_LZ_Wf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
     }
 
     [TestCategory("BVT"), TestCategory("Indexing")]

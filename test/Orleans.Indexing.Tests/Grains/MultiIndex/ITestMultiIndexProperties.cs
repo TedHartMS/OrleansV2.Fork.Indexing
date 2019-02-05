@@ -3,8 +3,8 @@
 //      I - for interface
 //      FT or NFT - Fault Tolerant or Non FT for class impl
 //      IFT or INFT - Fault Tolerant or Non FT for class interface
-//  UI, US, NI, NS  - property abbrev
-//  AI, TI, DSMI - Active, Total, or DirectStorageManaged
+//  UI, US, NI, NS  - property abbrev (specific to Multi-Index tests)
+//  AI, TI, XI, DSMI - Active, Total, Mixed AI and TI, or DirectStorageManaged
 //  EG, LZ - eager or lazy
 //  PK, PS, SB - partition per key/silo or single bucket
 //

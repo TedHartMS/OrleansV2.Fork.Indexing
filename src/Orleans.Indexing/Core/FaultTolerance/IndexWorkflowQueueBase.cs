@@ -209,7 +209,10 @@ namespace Orleans.Indexing
                 tmp.Prev.Clean();
             }
 
-            if (tmp == null) from.Remove(ref queueState.State.WorkflowRecordsHead, ref _workflowRecordsTail);
+            if (tmp == null)
+            {
+                from.Remove(ref queueState.State.WorkflowRecordsHead, ref _workflowRecordsTail);
+            }
             else
             {
                 from.Next = tmp;
@@ -239,7 +242,7 @@ namespace Orleans.Indexing
                     _pendingWriteRequests.Clear();
 
                     //write the state back to the storage
-                    string grainType = "Orleans.Indexing.IndexWorkflowQueue-" + IndexUtils.GetFullTypeName(_grainInterfaceType);
+                    var grainType = "Orleans.Indexing.IndexWorkflowQueue-" + IndexUtils.GetFullTypeName(_grainInterfaceType);
                     var saveETag = this.queueState.ETag;
                     try
                     {
@@ -257,6 +260,8 @@ namespace Orleans.Indexing
             }
         }
 
+        private static Immutable<IndexWorkflowRecordNode> EmptyIndexWorkflowRecordNode = new Immutable<IndexWorkflowRecordNode>(null);
+
         public Task<Immutable<IndexWorkflowRecordNode>> GiveMoreWorkflowsOrSetAsIdle()
         {
             List<IndexWorkflowRecord> removedWorkflows = RemoveFromQueueUntilPunctuation(queueState.State.WorkflowRecordsHead);
@@ -269,14 +274,14 @@ namespace Orleans.Indexing
                 //      indexable grain, but its corresponding workflow record does not exist in the workflow queue.
                 //Task.WhenAll(
                 //    RemoveWorkflowRecordsFromIndexableGrains(removedWorkflows),
-                PersistState(//)
+                this.PersistState(//)
             ).Ignore();
             }
 
             if (_workflowRecordsTail == null)
             {
                 _isHandlerWorkerIdle = 1;
-                return Task.FromResult(new Immutable<IndexWorkflowRecordNode>(null));
+                return Task.FromResult(EmptyIndexWorkflowRecordNode);
             }
             else
             {
@@ -300,7 +305,7 @@ namespace Orleans.Indexing
         public Task<Immutable<List<IndexWorkflowRecord>>> GetRemainingWorkflowsIn(HashSet<Guid> activeWorkflowsSet)
         {
             var result = new List<IndexWorkflowRecord>();
-            for (var current = queueState.State.WorkflowRecordsHead; current != null; current = current.Next)
+            for (var current = queueState.State.WorkflowRecordsHead; current != null && !current.IsPunctuation; current = current.Next)
             {
                 if (activeWorkflowsSet.Contains(current.WorkflowRecord.WorkflowId))
                 {

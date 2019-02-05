@@ -53,7 +53,7 @@ namespace Orleans.Indexing
                 var valueType = ((ConstantExpression)e).Value.GetType().GetGenericTypeDefinition().MakeGenericType(grainInterfaceType, iPropertiesType);
                 if (queryActiveNodeType.IsAssignableFrom(valueType))
                 {
-                    var qNode = ((QueryGrainsNode)((ConstantExpression)e).Value);
+                    var qNode = (QueryGrainsNode)((ConstantExpression)e).Value;
                     indexFactory = qNode.IndexFactory;
                     streamProvider = qNode.StreamProvider;
                     return true;

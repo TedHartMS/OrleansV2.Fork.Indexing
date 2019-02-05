@@ -46,7 +46,6 @@ namespace Orleans.Indexing.Tests
     {
     }
 
-    [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
     public class FT_Grain_UIUSNINS_TI_LZ_PK : TestMultiIndexGrainFaultTolerant<TestMultiIndexState>, IFT_Grain_UIUSNINS_TI_LZ_PK
     {
         public FT_Grain_UIUSNINS_TI_LZ_PK(
@@ -55,7 +54,6 @@ namespace Orleans.Indexing.Tests
             : base(indexWriter) { }
     }
 
-    [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
     public class NFT_Grain_UIUSNINS_TI_LZ_PK : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_TI_LZ_PK
     {
         public NFT_Grain_UIUSNINS_TI_LZ_PK(
@@ -110,7 +108,6 @@ namespace Orleans.Indexing.Tests
     {
     }
 
-    [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
     public class FT_Grain_UIUSNINS_TI_LZ_SB : TestMultiIndexGrainFaultTolerant<TestMultiIndexState>, IFT_Grain_UIUSNINS_TI_LZ_SB
     {
         public FT_Grain_UIUSNINS_TI_LZ_SB(
@@ -119,7 +116,6 @@ namespace Orleans.Indexing.Tests
             : base(indexWriter) { }
     }
 
-    [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
     public class NFT_Grain_UIUSNINS_TI_LZ_SB : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_TI_LZ_SB
     {
         public NFT_Grain_UIUSNINS_TI_LZ_SB(

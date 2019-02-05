@@ -3,6 +3,7 @@ using Orleans.Providers;
 
 namespace Orleans.Indexing.Tests
 {
+#if ALLOW_FT_ACTIVE
     /// <summary>
     /// A simple grain that represents a player in a game
     /// </summary>
@@ -14,4 +15,5 @@ namespace Orleans.Indexing.Tests
             IIndexWriter<PlayerGrainState> indexWriter)
             : base(indexWriter) { }
     }
+#endif // ALLOW_FT_ACTIVE
 }

@@ -13,6 +13,7 @@ namespace Orleans.Indexing.Tests
         {
         }
 
+#if ALLOW_FT_ACTIVE
         /// <summary>
         /// Tests basic functionality of ActiveHashIndexPartitionedPerSiloImpl with 2 Silos
         /// </summary>
@@ -51,5 +52,6 @@ namespace Orleans.Indexing.Tests
             Assert.Equal(2, await getLocationCount(ITC.Seattle));
             base.Output.WriteLine("Done.");
         }
+#endif // ALLOW_FT_ACTIVE
     }
 }
