@@ -44,9 +44,5 @@ namespace Orleans.Indexing
 
         internal T GetGrainService<T>(GrainReference grainReference) where T : IGrainService
             => this.Silo.GetGrainService<T>(grainReference);
-
-        internal OutputGrainInterfaceType GetGrain<OutputGrainInterfaceType>(Guid grainPrimaryKey, Type grainInterfaceType)
-            where OutputGrainInterfaceType : IGrain
-            => this.Silo.GetGrain<OutputGrainInterfaceType>(grainPrimaryKey, grainInterfaceType);
     }
 }

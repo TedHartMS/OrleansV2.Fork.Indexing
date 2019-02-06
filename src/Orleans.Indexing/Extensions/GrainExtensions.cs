@@ -14,7 +14,7 @@ namespace Orleans.Indexing
         /// <returns>A strongly typed <c>GrainReference</c> of grain interface type TGrainInterface.</returns>
         internal static TGrainInterface AsReference<TGrainInterface>(this IAddressable grain, SiloIndexManager siloIndexManager) where TGrainInterface: IGrain
             => (grain != null)
-                ? siloIndexManager.Silo.Cast<TGrainInterface>(grain.AsWeaklyTypedReference())
+                ? grain.Cast<TGrainInterface>()
                 : throw new ArgumentNullException("grain", "Cannot pass null as an argument to AsReference");
 
         /// <summary>
