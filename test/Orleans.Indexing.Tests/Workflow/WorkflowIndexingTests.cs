@@ -17,12 +17,6 @@ namespace Orleans.Indexing.Tests
     }
 
     [TestCategory("BVT"), TestCategory("Indexing")]
-    public class ActiveGrainEnumerationTestsWf : ActiveGrainEnumerationRunner, IClassFixture<WorkflowIndexingFixture>
-    {
-        public ActiveGrainEnumerationTestsWf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
-    }
-
-    [TestCategory("BVT"), TestCategory("Indexing")]
     public class ChainedBucketIndexingSingleSiloTestsWf : ChainedBucketIndexingSingleSiloRunner, IClassFixture<WorkflowIndexingFixture>
     {
         public ChainedBucketIndexingSingleSiloTestsWf(WorkflowIndexingFixture fixture, ITestOutputHelper output) : base(fixture, output) { }
