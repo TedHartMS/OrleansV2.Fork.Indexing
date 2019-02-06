@@ -64,7 +64,7 @@ namespace Orleans.Indexing
 
             var qualifiedField = IndexingConstants.UserStatePrefix + _indexedField;
             List<GrainReference> resultReferences = await indexableStorageProvider.LookupAsync<K>(_grainClassName, qualifiedField, key);
-            return resultReferences.Select(grain => this.SiloIndexManager.Silo.Cast<V>(grain)).ToList();
+            return resultReferences.Select(grain => grain.Cast<V>()).ToList();
         }
 
         public async Task<V> LookupUnique(K key)
