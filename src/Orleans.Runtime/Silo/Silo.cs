@@ -574,6 +574,12 @@ namespace Orleans.Runtime
             logger.Info($"Grain Service {service.GetType().FullName} started successfully.");
         }
 
+        public async Task AddGrainService(IGrainService service)
+        {
+            await RegisterGrainService(service);
+            await StartGrainService(service);
+        }
+
         private void ConfigureThreadPoolAndServicePointSettings()
         {
             PerformanceTuningOptions performanceTuningOptions = Services.GetRequiredService<IOptions<PerformanceTuningOptions>>().Value;
