@@ -298,5 +298,42 @@ namespace Orleans
         /// <inheritdoc />
         public GrainReference GetGrain(GrainId grainId, string genericArguments)
             => GrainReference.FromGrainId(grainId, this.GrainReferenceRuntime, genericArguments);
+
+
+        /// <summary>
+        /// A GetGrain overload that returns the runtime type of the grain interface and returns the grain cast to
+        /// TGrainInterface.
+        /// 
+        /// The main use-case is when you want to get a grain whose type is unknown at compile time (e.g. generic type parameters).
+        /// </summary>
+        /// <typeparam name="TGrainInterface">The output type of the grain</typeparam>
+        /// <param name="grainPrimaryKey">the primary key of the grain</param>
+        /// <param name="grainInterfaceType">the runtime type of the grain interface</param>
+        /// <returns>the requested grain with the given grainID and grainInterfaceType</returns>
+        public TGrainInterface GetGrain<TGrainInterface>(Guid grainPrimaryKey, Type grainInterfaceType)
+            where TGrainInterface : IGrain
+        {
+            this.runtimeClient.GrainTypeResolver.TryGetGrainClassData(grainInterfaceType, out GrainClassData implementation, string.Empty);
+            var grainId = GrainId.GetGrainId(implementation.GetTypeCode(grainInterfaceType), grainPrimaryKey);
+            return this.Cast<TGrainInterface>(this.MakeGrainReferenceFromType(grainInterfaceType, grainId));
+        }
+
+        /// <summary>
+        /// A GetGrain overload that returns the runtime type of the grain interface and returns the grain cast to
+        /// <see paramref="TGrainInterface"/>. It is the caller's responsibility to ensure <see paramref="TGrainInterface"/>
+        /// extends IGrain, as there is no compile-time checking for this overload.
+        /// 
+        /// The main use-case is when you want to get a grain whose type is unknown at compile time.
+        /// </summary>
+        /// <param name="grainPrimaryKey">the primary key of the grain</param>
+        /// <param name="grainInterfaceType">the runtime type of the grain interface</param>
+        /// <param name="TGrainInterface">the type of grain interface that should be returned</param>
+        /// <returns></returns>
+        public IGrain GetGrain(string grainPrimaryKey, Type grainInterfaceType, Type TGrainInterface)
+        {
+            this.runtimeClient.GrainTypeResolver.TryGetGrainClassData(grainInterfaceType, out GrainClassData implementation, string.Empty);
+            var grainId = GrainId.GetGrainId(implementation.GetTypeCode(grainInterfaceType), grainPrimaryKey);
+            return (IGrain)this.Cast(this.MakeGrainReferenceFromType(grainInterfaceType, grainId), TGrainInterface);
+        }
     }
 }
