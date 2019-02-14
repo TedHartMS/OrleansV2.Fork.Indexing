@@ -182,11 +182,11 @@ namespace Orleans.Indexing
             }
         }
 
-        internal static IndexScheme GetIndexScheme(this Type grainClassType)
+        internal static ConsistencyScheme GetConsistencyScheme(this Type grainClassType)
         {
-            IndexScheme? scheme = null;
+            ConsistencyScheme? scheme = null;
 
-            void setScheme(IndexScheme currentScheme)
+            void setScheme(ConsistencyScheme currentScheme)
                 => scheme = scheme.HasValue && scheme.Value != currentScheme
                                 ? throw new IndexConfigurationException($"Grain type {grainClassType.Name} has a conflict between indexing schemes specified on facet ctor parameters")
                                 : currentScheme;
@@ -194,22 +194,22 @@ namespace Orleans.Indexing
             foreach (var ctor in grainClassType.GetConstructors())
             {
                 var ctorHasFacet = false;
-                foreach (var attr in ctor.GetParameters().SelectMany(p => p.GetCustomAttributes<Attribute>()))
+                foreach (var attr in ctor.GetParameters().SelectMany(p => p.GetCustomAttributes<IndexWriterAttribute>()))
                 {
-                    if (ctorHasFacet)
+                    ctorHasFacet = ctorHasFacet
+                        ? throw new IndexConfigurationException($"Grain type {grainClassType.Name}: a ctor cannot have two Indexing facet specifications")
+                        : true;
+                    switch (attr)
                     {
-                        throw new IndexConfigurationException($"Grain type {grainClassType.Name}: a ctor cannot have two Indexing facet specifications");
+                        case IFaultTolerantWorkflowIndexWriterAttribute _:
+                            setScheme(ConsistencyScheme.FaultTolerantWorkflow);
+                            break;
+                        case INonFaultTolerantWorkflowIndexWriterAttribute _:
+                            setScheme(ConsistencyScheme.NonFaultTolerantWorkflow);
+                            break;
+                        default:
+                            throw new IndexConfigurationException($"Grain type {grainClassType.Name} has an unknown Indexing Facet constructor attribute {attr.GetType().Name}");
                     }
-                    ctorHasFacet = true;
-                    if (attr is IFaultTolerantWorkflowIndexWriterAttribute)
-                    {
-                        setScheme(IndexScheme.FaultTolerantWorkflow);
-                    }
-                    else if (attr is INonFaultTolerantWorkflowIndexWriterAttribute)
-                    {
-                        setScheme(IndexScheme.NonFaultTolerantWorkflow);
-                    }
-                    // TODO: Transactional
                 }
             }
 

@@ -74,12 +74,12 @@ namespace Orleans.Indexing
 
             bool? grainIndexesAreEager = null;
             var indexedInterfaces = new List<Type>();
-            var indexScheme = grainClassType.GetIndexScheme();
+            var consistencyScheme = grainClassType.GetConsistencyScheme();
 
             foreach (var (grainInterfaceType, propertiesClassType) in EnumerateIndexedInterfacesForAGrainClassType(grainClassType).Where(tup => !registry.ContainsKey(tup.interfaceType)))
             {
                 grainIndexesAreEager = await CreateIndexesForASingleInterface(loader, registry, propertiesClassType, grainInterfaceType,
-                                                                                grainClassType, indexScheme, grainIndexesAreEager);
+                                                                                grainClassType, consistencyScheme, grainIndexesAreEager);
                 indexedInterfaces.Add(grainInterfaceType);
             }
 
@@ -146,7 +146,7 @@ namespace Orleans.Indexing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private async static Task<bool?> CreateIndexesForASingleInterface(ApplicationPartsIndexableGrainLoader loader, IndexRegistry registry,
                                                                           Type propertiesClassType, Type grainInterfaceType, Type grainClassType,
-                                                                          IndexScheme indexScheme, bool? grainIndexesAreEager)
+                                                                          ConsistencyScheme consistencyScheme, bool? grainIndexesAreEager)
         {
             // All the properties in TProperties are scanned for Index annotation.
             // If found, the index is created using the information provided in the annotation.
@@ -178,7 +178,7 @@ namespace Orleans.Indexing
                     var isUnique = (bool)isUniqueProperty.GetValue(indexAttr);
 
                     ValidateSingleIndex(indexAttr, grainInterfaceType, grainClassType, propertiesClassType, propInfo, grainIndexesAreEager,
-                                        indexScheme, isEager:isEager, isUnique:isUnique);   // Multiple bools, so use param names for safety
+                                        consistencyScheme, isEager:isEager, isUnique:isUnique);   // Multiple bools, so use param names for safety
 
                     var maxEntriesPerBucket = (int)maxEntriesPerBucketProperty.GetValue(indexAttr);
                     if (loader != null)
@@ -194,7 +194,7 @@ namespace Orleans.Indexing
             registry[grainInterfaceType] = indexesOnInterface;
             if (interfaceHasLazyIndex && loader != null)
             {
-                await loader.RegisterWorkflowQueues(grainInterfaceType, grainClassType, indexScheme == IndexScheme.FaultTolerantWorkflow);
+                await loader.RegisterWorkflowQueues(grainInterfaceType, grainClassType, consistencyScheme == ConsistencyScheme.FaultTolerantWorkflow);
             }
             return grainIndexesAreEager;
         }
@@ -216,12 +216,12 @@ namespace Orleans.Indexing
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ValidateSingleIndex(IndexAttribute indexAttr, Type grainInterfaceType, Type grainClassType, Type propertiesArgType,
-                                                PropertyInfo propInfo, bool? grainIndexesAreEager, IndexScheme indexScheme, bool isEager, bool isUnique)
+                                                PropertyInfo propInfo, bool? grainIndexesAreEager, ConsistencyScheme consistencyScheme, bool isEager, bool isUnique)
         {
             var indexType = (Type)indexTypeProperty.GetValue(indexAttr);
             var isTotalIndex = indexType.IsTotalIndex();
             var isPerSiloIndex = indexType.IsPartitionedPerSiloIndex();
-            var isFaultTolerantWorkflow = indexScheme == IndexScheme.FaultTolerantWorkflow;
+            var isFaultTolerantWorkflow = consistencyScheme == ConsistencyScheme.FaultTolerantWorkflow;
 
             if (indexAttr is ActiveIndexAttribute && isUnique)
             {

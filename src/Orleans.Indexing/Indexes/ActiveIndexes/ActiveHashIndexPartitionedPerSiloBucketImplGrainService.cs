@@ -36,7 +36,6 @@ namespace Orleans.Indexing
             {
                 IndexMap = new Dictionary<K, HashIndexSingleBucketEntry<V>>(),
                 IndexStatus = IndexStatus.Available
-                //, IsUnique = false; //a per-silo index cannot check for uniqueness
             };
 
             _parentIndexName = parentIndexName;

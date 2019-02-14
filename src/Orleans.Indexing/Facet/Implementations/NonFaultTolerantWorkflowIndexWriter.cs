@@ -19,20 +19,19 @@ namespace Orleans.Indexing.Facet
         /// <summary>
         /// Applies a set of updates to the indexes defined on the grain
         /// </summary>
-        /// <param name="updatesByInterface">the dictionary of indexes to their corresponding updates</param>
+        /// <param name="interfaceToUpdatesMap">the dictionary of indexes to their corresponding updates</param>
         /// <param name="updateIndexesEagerly">whether indexes should be updated eagerly or lazily</param>
         /// <param name="onlyUniqueIndexesWereUpdated">a flag to determine whether only unique indexes were updated</param>
         /// <param name="numberOfUniqueIndexesUpdated">determine the number of updated unique indexes</param>
-        /// <param name="writeStateIfConstraintsAreNotViolated">whether writing back
-        ///             the state to the storage should be done if no constraint is violated</param>
-        private protected override async Task ApplyIndexUpdates(InterfaceToUpdatesMap updatesByInterface,
+        /// <param name="writeStateIfConstraintsAreNotViolated">whether the state should be written to storage if no constraint is violated</param>
+        private protected override async Task ApplyIndexUpdates(InterfaceToUpdatesMap interfaceToUpdatesMap,
                                                                 bool updateIndexesEagerly,
                                                                 bool onlyUniqueIndexesWereUpdated,
                                                                 int numberOfUniqueIndexesUpdated,
                                                                 bool writeStateIfConstraintsAreNotViolated)
         {
             // If there is no update to the indexes, we should only write back the state of the grain, if requested.
-            if (updatesByInterface.IsEmpty)
+            if (interfaceToUpdatesMap.IsEmpty)
             {
                 if (writeStateIfConstraintsAreNotViolated)
                 {
@@ -43,7 +42,7 @@ namespace Orleans.Indexing.Facet
 
             // HashIndexBucketState will not actually perform an index removal (Delete) if the index is not marked tentative.
             // Therefore we must do a two-step approach here; mark a tentative Delete, then do the non-tentative Delete.
-            var updateEagerUniqueIndexesTentatively = numberOfUniqueIndexesUpdated > 1 || updatesByInterface.HasAnyDeletes;
+            var updateEagerUniqueIndexesTentatively = numberOfUniqueIndexesUpdated > 1 || interfaceToUpdatesMap.HasAnyDeletes;
 
             // Apply any unique index updates eagerly.
             if (numberOfUniqueIndexesUpdated > 0)
@@ -52,7 +51,7 @@ namespace Orleans.Indexing.Facet
                 {
                     // If there is more than one unique index to update, then updates to the unique indexes should be tentative
                     // so they are not visible to readers before making sure that all uniqueness constraints are satisfied.
-                    await this.ApplyIndexUpdatesEagerly(updatesByInterface, UpdateIndexType.Unique, updateEagerUniqueIndexesTentatively);
+                    await this.ApplyIndexUpdatesEagerly(interfaceToUpdatesMap, UpdateIndexType.Unique, updateEagerUniqueIndexesTentatively);
                 }
                 catch (UniquenessConstraintViolatedException ex)
                 {
@@ -60,7 +59,7 @@ namespace Orleans.Indexing.Facet
                     // updates must be undone, then the exception is thrown back to the user code.
                     if (updateEagerUniqueIndexesTentatively)
                     {
-                        await this.UndoTentativeChangesToUniqueIndexesEagerly(updatesByInterface);
+                        await this.UndoTentativeChangesToUniqueIndexesEagerly(interfaceToUpdatesMap);
                     }
                     throw ex;
                 }
@@ -76,14 +75,14 @@ namespace Orleans.Indexing.Facet
                 {
                     await Task.WhenAll(new[]
                     {
-                        updateIndexTypes != UpdateIndexType.None ? base.ApplyIndexUpdatesEagerly(updatesByInterface, updateIndexTypes, isTentative: false) : null,
+                        updateIndexTypes != UpdateIndexType.None ? base.ApplyIndexUpdatesEagerly(interfaceToUpdatesMap, updateIndexTypes, isTentative: false) : null,
                         writeStateIfConstraintsAreNotViolated ? base.writeGrainStateFunc() : null
                     }.Coalesce());
                 }
             }
             else // !updateIndexesEagerly
             {
-                this.ApplyIndexUpdatesLazilyWithoutWait(updatesByInterface);
+                this.ApplyIndexUpdatesLazilyWithoutWait(interfaceToUpdatesMap);
                 if (writeStateIfConstraintsAreNotViolated)
                 {
                     await base.writeGrainStateFunc();
@@ -91,7 +90,7 @@ namespace Orleans.Indexing.Facet
             }
 
             // If everything was successful, the before images are updated
-            this.UpdateBeforeImages(updatesByInterface);
+            this.UpdateBeforeImages(interfaceToUpdatesMap);
         }
 
         private Task UndoTentativeChangesToUniqueIndexesEagerly(InterfaceToUpdatesMap interfaceToUpdatesMap)

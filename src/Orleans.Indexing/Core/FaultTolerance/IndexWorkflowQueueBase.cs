@@ -35,7 +35,7 @@ namespace Orleans.Indexing
 
         //the grain storage for the index workflow queue
         private IGrainStorage __grainStorage;
-        private IGrainStorage StorageProvider => __grainStorage ?? GetGrainStorage();
+        private IGrainStorage StorageProvider => this.__grainStorage ?? (this.__grainStorage = typeof(IndexWorkflowQueueGrainService).GetGrainStorage(this.SiloIndexManager.ServiceProvider));
 
         private int _queueSeqNum;
         private Type _grainInterfaceType;
@@ -74,7 +74,7 @@ namespace Orleans.Indexing
         public const int BATCH_SIZE = int.MaxValue;
 
         private SiloAddress _silo;
-        private SiloIndexManager _siloIndexManager;
+        private SiloIndexManager SiloIndexManager;
         private Lazy<GrainReference> _lazyParent;
 
         internal IndexWorkflowQueueBase(SiloIndexManager siloIndexManager, Type grainInterfaceType, int queueSequenceNumber, SiloAddress silo,
@@ -96,15 +96,15 @@ namespace Orleans.Indexing
             _pendingWriteRequests = new HashSet<int>();
 
             _silo = silo;
-            _siloIndexManager = siloIndexManager;
+            SiloIndexManager = siloIndexManager;
             _lazyParent = new Lazy<GrainReference>(parentFunc, true);
         }
 
         private IIndexWorkflowQueueHandler InitWorkflowQueueHandler() 
             => __handler = _lazyParent.Value.IsGrainService
-                ? _siloIndexManager.GetGrainService<IIndexWorkflowQueueHandler>(
-                        IndexWorkflowQueueHandlerBase.CreateIndexWorkflowQueueHandlerGrainReference(_siloIndexManager, _grainInterfaceType, _queueSeqNum, _silo))
-                : _siloIndexManager.GrainFactory.GetGrain<IIndexWorkflowQueueHandler>(CreateIndexWorkflowQueuePrimaryKey(_grainInterfaceType, _queueSeqNum));
+                ? SiloIndexManager.GetGrainService<IIndexWorkflowQueueHandler>(
+                        IndexWorkflowQueueHandlerBase.CreateIndexWorkflowQueueHandlerGrainReference(SiloIndexManager, _grainInterfaceType, _queueSeqNum, _silo))
+                : SiloIndexManager.GrainFactory.GetGrain<IIndexWorkflowQueueHandler>(CreateIndexWorkflowQueuePrimaryKey(_grainInterfaceType, _queueSeqNum));
 
         public Task AddAllToQueue(Immutable<List<IndexWorkflowRecord>> workflowRecords)
         {
@@ -241,13 +241,13 @@ namespace Orleans.Indexing
                     //clear all pending write requests, as this attempt will do them all.
                     _pendingWriteRequests.Clear();
 
-                    //write the state back to the storage
-                    var grainType = "Orleans.Indexing.IndexWorkflowQueue-" + IndexUtils.GetFullTypeName(_grainInterfaceType);
+                    //write the state back to the storage unconditionally
+                    var grainTypeName = "Orleans.Indexing.IndexWorkflowQueue-" + IndexUtils.GetFullTypeName(_grainInterfaceType);
                     var saveETag = this.queueState.ETag;
                     try
                     {
                         this.queueState.ETag = StorageProviderUtils.ANY_ETAG;
-                        await StorageProvider.WriteStateAsync(grainType, _lazyParent.Value, this.queueState);
+                        await StorageProvider.WriteStateAsync(grainTypeName, _lazyParent.Value, this.queueState);
                     }
                     finally
                     {
@@ -294,13 +294,10 @@ namespace Orleans.Indexing
         {
             if (!__hasAnyTotalIndex.HasValue)
             {
-                __hasAnyTotalIndex = _siloIndexManager.IndexFactory.GetGrainIndexes(_grainInterfaceType).HasAnyTotalIndex;
+                __hasAnyTotalIndex = SiloIndexManager.IndexFactory.GetGrainIndexes(_grainInterfaceType).HasAnyTotalIndex;
             }
             return __hasAnyTotalIndex.Value;
         }
-
-        private IGrainStorage GetGrainStorage()
-            => __grainStorage = typeof(IndexWorkflowQueueGrainService).GetGrainStorage(_siloIndexManager.ServiceProvider);
 
         public Task<Immutable<List<IndexWorkflowRecord>>> GetRemainingWorkflowsIn(HashSet<Guid> activeWorkflowsSet)
         {

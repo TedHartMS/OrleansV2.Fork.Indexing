@@ -225,7 +225,7 @@ namespace Orleans.Indexing.Facet
                     if (updateIndexTypes.HasFlag(indexInfo.MetaData.IsUniqueIndex ? UpdateIndexType.Unique : UpdateIndexType.NonUnique))
                     {
                         // If the caller asks for the update to be tentative, then it will be wrapped inside a MemberUpdateTentative
-                        var updateToIndex = isTentative ? new MemberUpdateTentative(mu) : mu;
+                        var updateToIndex = isTentative ? new MemberUpdateWithMode(mu, IndexUpdateMode.Tentative) : mu;
                         yield return indexInfo.IndexInterface.ApplyIndexUpdate(this.SiloIndexManager,
                                              this.iIndexableGrain, updateToIndex.AsImmutable(), indexInfo.MetaData, this.BaseSiloAddress);
                     }

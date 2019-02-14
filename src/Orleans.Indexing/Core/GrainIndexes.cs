@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Orleans.Concurrency;
 using Orleans.Indexing.Facet;
 
@@ -51,7 +52,7 @@ namespace Orleans.Indexing
                     // Copy named property values from this.State to _props. The set of property names will not change.
                     // Note: TProperties is specified on IIndexableGrain<TProperties> with a "where TProperties: new()" constraint.
                     var properties = indexes.Properties ?? Activator.CreateInstance(tProperties);
-                    tProperties.GetProperties().ForEach(p => p.SetValue(properties, tGrainState.GetProperty(p.Name).GetValue(state)));
+                    tProperties.GetProperties(BindingFlags.Public | BindingFlags.Instance).ForEach(p => p.SetValue(properties, tGrainState.GetProperty(p.Name).GetValue(state)));
                     return properties;
                 }
 
