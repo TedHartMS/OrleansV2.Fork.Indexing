@@ -4,8 +4,6 @@ using System.Reflection;
 using Orleans.Streams;
 using System.Threading.Tasks;
 using System.Linq.Expressions;
-using System.Linq;
-using Orleans.Indexing.Facet;
 
 namespace Orleans.Indexing
 {
@@ -196,6 +194,5 @@ namespace Orleans.Indexing
             => new IndexUpdateGenerator(indexedProperty);
 
         #endregion private functions
-
     }
 }

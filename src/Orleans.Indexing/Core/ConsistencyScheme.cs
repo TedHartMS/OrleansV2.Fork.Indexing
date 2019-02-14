@@ -2,7 +2,7 @@ using System;
 
 namespace Orleans.Indexing
 {
-    [Flags] enum IndexScheme
+    [Flags] enum ConsistencyScheme
     {
         Workflow = 1,
         FaultTolerantWorkflow = 3,

@@ -40,7 +40,7 @@ namespace Orleans.Indexing
             befImg = default(K);
             befEntry = null;
 
-            bool isTentativeUpdate = isUniqueIndex && (update is MemberUpdateTentative);
+            var indexUpdateMode = update is MemberUpdateWithMode updateWithMode ? updateWithMode.UpdateMode : IndexUpdateMode.NonTentative;
             var opType = update.OperationType;
             HashIndexSingleBucketEntry<V> aftEntry;
 
@@ -57,9 +57,9 @@ namespace Orleans.Indexing
                             uniquenessViolation = true;
                             return false;
                         }
-                        aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
+                        aftEntry.Add(updatedGrain, indexUpdateMode, isUniqueIndex);
                     }
-                    else if (isTentativeUpdate)
+                    else if (indexUpdateMode == IndexUpdateMode.Tentative)
                     {
                         aftEntry.SetTentativeInsert();
                     }
@@ -77,7 +77,7 @@ namespace Orleans.Indexing
                 }
 
                 aftEntry = new HashIndexSingleBucketEntry<V>();
-                aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
+                aftEntry.Add(updatedGrain, indexUpdateMode, isUniqueIndex);
                 state.IndexMap.Add(afterImage, aftEntry);
                 return true;
             }
@@ -93,14 +93,14 @@ namespace Orleans.Indexing
                     {
                         if (aftEntry.Values.Contains(updatedGrain))
                         {
-                            if (isTentativeUpdate)
+                            if (indexUpdateMode == IndexUpdateMode.Tentative)
                             {
                                 aftEntry.SetTentativeInsert();
                             }
                             else
                             {
                                 aftEntry.ClearTentativeFlag();
-                                befEntry.Remove(updatedGrain, isTentativeUpdate, isUniqueIndex);
+                                befEntry.Remove(updatedGrain, indexUpdateMode, isUniqueIndex);
                             }
                         }
                         else
@@ -111,15 +111,15 @@ namespace Orleans.Indexing
                                         $"The uniqueness property of index {idxMetaData.IndexName} is would be violated for an update operation" +
                                         $" for before-image = {befImg}, after-image = {aftImg} and grain = {updatedGrain.GetPrimaryKey()}");
                             }
-                            befEntry.Remove(updatedGrain, isTentativeUpdate, isUniqueIndex);
-                            aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
+                            befEntry.Remove(updatedGrain, indexUpdateMode, isUniqueIndex);
+                            aftEntry.Add(updatedGrain, indexUpdateMode, isUniqueIndex);
                         }
                     }
                     else
                     {
                         aftEntry = new HashIndexSingleBucketEntry<V>();
-                        befEntry.Remove(updatedGrain, isTentativeUpdate, isUniqueIndex);
-                        aftEntry.Add(updatedGrain, isTentativeUpdate, isUniqueIndex);
+                        befEntry.Remove(updatedGrain, indexUpdateMode, isUniqueIndex);
+                        aftEntry.Add(updatedGrain, indexUpdateMode, isUniqueIndex);
                         state.IndexMap.Add(aftImg, aftEntry);
                     }
                 }
@@ -158,7 +158,7 @@ namespace Orleans.Indexing
 
                 if (state.IndexMap.TryGetValue(befImg, out befEntry) && befEntry.Values.Contains(updatedGrain))
                 {
-                    befEntry.Remove(updatedGrain, isTentativeUpdate, isUniqueIndex);
+                    befEntry.Remove(updatedGrain, indexUpdateMode, isUniqueIndex);
                     if (state.IndexStatus != IndexStatus.Available)
                     {
                         fixIndexUnavailableOnDelete = true;

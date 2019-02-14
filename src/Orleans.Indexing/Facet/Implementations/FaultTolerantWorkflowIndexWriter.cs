@@ -74,8 +74,7 @@ namespace Orleans.Indexing.Facet
         /// <param name="updateIndexesEagerly">whether indexes should be updated eagerly or lazily</param>
         /// <param name="onlyUniqueIndexesWereUpdated">a flag to determine whether only unique indexes were updated</param>
         /// <param name="numberOfUniqueIndexesUpdated">determine the number of updated unique indexes</param>
-        /// <param name="writeStateIfConstraintsAreNotViolated">whether writing back
-        ///             the state to the storage should be done if no constraint is violated</param>
+        /// <param name="writeStateIfConstraintsAreNotViolated">whether the state should be written to storage if no constraint is violated</param>
         private protected override async Task ApplyIndexUpdates(InterfaceToUpdatesMap interfaceToUpdatesMap,
                                                                 bool updateIndexesEagerly, bool onlyUniqueIndexesWereUpdated,
                                                                 int numberOfUniqueIndexesUpdated, bool writeStateIfConstraintsAreNotViolated)

@@ -13,7 +13,7 @@ namespace Orleans.Indexing.Facet
     /// Base class for the IIndexWriter facet that is implemented by fault-tolerant workflow-based indexing.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
-    public class FaultTolerantWorkflowIndexWriterAttribute : Attribute, IFacetMetadata, IFaultTolerantWorkflowIndexWriterAttribute, IIndexWriterConfiguration
+    public class FaultTolerantWorkflowIndexWriterAttribute : IndexWriterAttribute, IFacetMetadata, IFaultTolerantWorkflowIndexWriterAttribute, IIndexWriterConfiguration
     {
         public string StorageName { get; }
 

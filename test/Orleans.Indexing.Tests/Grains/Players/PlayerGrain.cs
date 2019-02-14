@@ -12,7 +12,7 @@ namespace Orleans.Indexing.Tests
     {
         public PlayerGrainNonFaultTolerant(IIndexWriter<TGrainState> indexWriter) : base(indexWriter)
         {
-            Debug.Assert(this.GetType().GetIndexScheme() == IndexScheme.NonFaultTolerantWorkflow);
+            Debug.Assert(this.GetType().GetConsistencyScheme() == ConsistencyScheme.NonFaultTolerantWorkflow);
         }
     }
 
@@ -21,7 +21,7 @@ namespace Orleans.Indexing.Tests
     {
         public PlayerGrainFaultTolerant(IIndexWriter<TGrainState> indexWriter) : base(indexWriter)
         {
-            Debug.Assert(this.GetType().GetIndexScheme() == IndexScheme.FaultTolerantWorkflow);
+            Debug.Assert(this.GetType().GetConsistencyScheme() == ConsistencyScheme.FaultTolerantWorkflow);
         }
     }
 

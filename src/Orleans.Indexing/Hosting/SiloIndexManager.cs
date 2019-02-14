@@ -1,8 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Orleans.ApplicationParts;
+using Orleans.Core;
 using Orleans.Runtime;
 using Orleans.Services;
+using Orleans.Storage;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -44,5 +46,8 @@ namespace Orleans.Indexing
 
         internal T GetGrainService<T>(GrainReference grainReference) where T : IGrainService
             => this.Silo.GetGrainService<T>(grainReference);
+
+        internal IStorage<TGrainState> GetStorageBridge<TGrainState>(Grain grain) where TGrainState : class, new()
+            => new StateStorageBridge<TGrainState>(grain.GetType().FullName, grain.GrainReference, grain.GetGrainStorage(this.ServiceProvider), this.LoggerFactory);
     }
 }
