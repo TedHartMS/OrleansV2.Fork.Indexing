@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Orleans.Concurrency;
+using Orleans.Core;
 
 namespace Orleans.Indexing.Facet
 {
@@ -10,6 +11,7 @@ namespace Orleans.Indexing.Facet
                                                                  IFaultTolerantWorkflowIndexWriter<TGrainState> where TGrainState : class, new()
     {
         private readonly IGrainFactory _grainFactory;    // TODO: standardize leading _ or not; and don't do this._
+        IStorage<FaultTolerantIndexableGrainStateWrapper<TGrainState>> storage;
 
         public FaultTolerantWorkflowIndexWriter(
                 IServiceProvider sp,
@@ -23,7 +25,7 @@ namespace Orleans.Indexing.Facet
 
         private bool _hasAnyTotalIndex;
 
-        private FaultTolerantIndexableGrainStateWrapper<TGrainState> ftWrappedState;
+        private FaultTolerantIndexableGrainStateWrapper<TGrainState> ftWrappedState => this.storage.State;
 
         internal override IDictionary<Type, IIndexWorkflowQueue> WorkflowQueues
         {
@@ -37,24 +39,21 @@ namespace Orleans.Indexing.Facet
             set => this.ftWrappedState.ActiveWorkflowsSet = value;
         }
 
-        public async override Task OnActivateAsync(Grain grain, IndexableGrainStateWrapper<TGrainState> wrappedState,
-                                                   Func<Task> writeGrainStateFunc, Func<Task> onGrainActivateFunc)
+        public async override Task OnActivateAsync(Grain grain, Func<Task> onGrainActivateFunc)
         {
-            this.ftWrappedState = wrappedState as FaultTolerantIndexableGrainStateWrapper<TGrainState>;
-            if (this.ftWrappedState == null)
-            {
-                throw new IndexException($"Grain type {grain.GetType().Name} state must be wrapped by FaultTolerantIndexableGrainStateWrapper");
-            }
+            this.storage = base.SiloIndexManager.GetStorageBridge<FaultTolerantIndexableGrainStateWrapper<TGrainState>>(grain);
 
-            // In order to initialize base.State etc. this must be called here; it's called in base.OnActivateAsync and will no-op the second time.
-            base.InitOnActivate(grain, wrappedState, writeGrainStateFunc);
+            // In order to initialize base.wrappedState etc. this must be called here.
+            await base.PreActivate(grain,
+                                   async () => { await this.storage.ReadStateAsync(); return this.storage.State; },
+                                   () => this.storage.WriteStateAsync());
 
             // If the list of active workflows is null or empty we can assume that we were not previously activated
             // or did not have any incomplete workflow queue items in a prior activation.
             if (this.ActiveWorkflowsSet == null || this.ActiveWorkflowsSet.Count == 0)
             {
                 this.WorkflowQueues = null;
-                await base.OnActivateAsync(grain, wrappedState, onGrainActivateFunc, writeGrainStateFunc);
+                await base.FinishActivateAsync(onGrainActivateFunc);
             }
             else
             {
@@ -62,7 +61,7 @@ namespace Orleans.Indexing.Facet
                 this.PruneWorkflowQueuesForMissingInterfaceTypes();
                 await this.HandleRemainingWorkflows()
                            .ContinueWith(t => Task.WhenAll(this.PruneActiveWorkflowsSetFromAlreadyHandledWorkflows(t.Result),
-                                                           base.OnActivateAsync(grain, wrappedState, onGrainActivateFunc, writeGrainStateFunc)));
+                                                           base.FinishActivateAsync(onGrainActivateFunc)));
             }
             this._hasAnyTotalIndex = this._grainIndexes.HasAnyTotalIndex;
         }

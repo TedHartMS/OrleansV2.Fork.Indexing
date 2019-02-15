@@ -1,19 +1,35 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Orleans.Core;
 
 namespace Orleans.Indexing.Facet
 {
     public class NonFaultTolerantWorkflowIndexWriter<TGrainState> : WorkflowIndexWriterBase<TGrainState>,
                                                                     INonFaultTolerantWorkflowIndexWriter<TGrainState> where TGrainState : class, new()
     {
+        IStorage<IndexableGrainStateWrapper<TGrainState>> storage;
+
         public NonFaultTolerantWorkflowIndexWriter(
                 IServiceProvider sp,
                 IIndexWriterConfiguration config
             ) : base(sp, config)
         {
             base.getWorkflowIdFunc = () => Guid.NewGuid();
+        }
+
+        public override async Task OnActivateAsync(Grain grain, Func<Task> onGrainActivateFunc)
+        {
+            Debug.Assert(!(this is FaultTolerantWorkflowIndexWriter<TGrainState>)); // Separate overrides
+            this.storage = base.SiloIndexManager.GetStorageBridge<IndexableGrainStateWrapper<TGrainState>>(grain);
+
+            // In order to initialize base.wrappedState etc. this must be called here.
+            await base.PreActivate(grain,
+                                   async () => { await this.storage.ReadStateAsync(); return this.storage.State; },
+                                   () => this.storage.WriteStateAsync());
+            await base.FinishActivateAsync(onGrainActivateFunc);
         }
 
         /// <summary>
