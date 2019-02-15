@@ -9,7 +9,7 @@ namespace Orleans.Indexing.Facet
     /// The base interface definition for a class that implements the indexing facet of a grain.
     /// </summary>
     /// <typeparam name="TGrainState">The state implementation class of a <see cref="Grain{TGrainState}"/>.</typeparam>
-    public interface IIndexWriter<TGrainState> where TGrainState : new()
+    public interface IIndexedState<TGrainState> where TGrainState : new()
     {
         /// <summary>
         /// The persistent state of the grain; includes values for indexed and non-indexed properties.

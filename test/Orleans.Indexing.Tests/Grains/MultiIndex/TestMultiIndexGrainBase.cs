@@ -10,16 +10,16 @@ namespace Orleans.Indexing.Tests
     internal class TestMultiIndexGrainBase<TGrainState> where TGrainState : class, ITestMultiIndexState, new()
     {
         // This is populated by Orleans.Indexing with the indexes from the implemented interfaces on this class.
-        internal readonly IIndexWriter<TGrainState> IndexWriter;
+        internal readonly IIndexedState<TGrainState> IndexedState;
 
         internal bool IsUniqueIntIndexed;
         internal bool IsUniqueStringIndexed;
         internal bool IsNonUniqueIntIndexed;
         internal bool IsNonUniqueStringIndexed;
 
-        internal TestMultiIndexGrainBase(Type grainClassType, IIndexWriter<TGrainState> writer)
+        internal TestMultiIndexGrainBase(Type grainClassType, IIndexedState<TGrainState> indexedState)
         {
-            this.IndexWriter = writer;
+            this.IndexedState = indexedState;
 
             var grainInterfaceTypes = ApplicationPartsIndexableGrainLoader.EnumerateIndexedInterfacesForAGrainClassType(grainClassType).ToArray();
             Assert.Single(grainInterfaceTypes);
@@ -41,6 +41,6 @@ namespace Orleans.Indexing.Tests
         }
 
         internal async Task SetProperty(Action setterAction, bool retry)
-            => await IndexingTestUtils.SetPropertyAndWriteStateAsync(setterAction, this.IndexWriter.WriteAsync, this.IndexWriter.ReadAsync, retry);
+            => await IndexingTestUtils.SetPropertyAndWriteStateAsync(setterAction, this.IndexedState.WriteAsync, this.IndexedState.ReadAsync, retry);
     }
 }

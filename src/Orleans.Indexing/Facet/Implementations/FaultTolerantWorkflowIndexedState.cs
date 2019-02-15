@@ -7,15 +7,15 @@ using Orleans.Core;
 
 namespace Orleans.Indexing.Facet
 {
-    public class FaultTolerantWorkflowIndexWriter<TGrainState> : NonFaultTolerantWorkflowIndexWriter<TGrainState>,
-                                                                 IFaultTolerantWorkflowIndexWriter<TGrainState> where TGrainState : class, new()
+    public class FaultTolerantWorkflowIndexedState<TGrainState> : NonFaultTolerantWorkflowIndexedState<TGrainState>,
+                                                                 IFaultTolerantWorkflowIndexedState<TGrainState> where TGrainState : class, new()
     {
         private readonly IGrainFactory _grainFactory;    // TODO: standardize leading _ or not; and don't do this._
-        IStorage<FaultTolerantIndexableGrainStateWrapper<TGrainState>> storage;
+        IStorage<FaultTolerantIndexedGrainStateWrapper<TGrainState>> storage;
 
-        public FaultTolerantWorkflowIndexWriter(
+        public FaultTolerantWorkflowIndexedState(
                 IServiceProvider sp,
-                IIndexWriterConfiguration config,
+                IIndexedStateConfiguration config,
                 IGrainFactory grainFactory
             ) : base(sp, config)
         {
@@ -25,7 +25,7 @@ namespace Orleans.Indexing.Facet
 
         private bool _hasAnyTotalIndex;
 
-        private FaultTolerantIndexableGrainStateWrapper<TGrainState> ftWrappedState => this.storage.State;
+        private FaultTolerantIndexedGrainStateWrapper<TGrainState> ftWrappedState => this.storage.State;
 
         internal override IDictionary<Type, IIndexWorkflowQueue> WorkflowQueues
         {
@@ -41,7 +41,7 @@ namespace Orleans.Indexing.Facet
 
         public async override Task OnActivateAsync(Grain grain, Func<Task> onGrainActivateFunc)
         {
-            this.storage = base.SiloIndexManager.GetStorageBridge<FaultTolerantIndexableGrainStateWrapper<TGrainState>>(grain);
+            this.storage = base.SiloIndexManager.GetStorageBridge<FaultTolerantIndexedGrainStateWrapper<TGrainState>>(grain);
 
             // In order to initialize base.wrappedState etc. this must be called here.
             await base.PreActivate(grain,

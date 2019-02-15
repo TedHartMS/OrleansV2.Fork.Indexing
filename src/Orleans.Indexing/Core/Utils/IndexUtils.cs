@@ -194,17 +194,17 @@ namespace Orleans.Indexing
             foreach (var ctor in grainClassType.GetConstructors())
             {
                 var ctorHasFacet = false;
-                foreach (var attr in ctor.GetParameters().SelectMany(p => p.GetCustomAttributes<IndexWriterAttribute>()))
+                foreach (var attr in ctor.GetParameters().SelectMany(p => p.GetCustomAttributes<IndexedStateAttribute>()))
                 {
                     ctorHasFacet = ctorHasFacet
                         ? throw new IndexConfigurationException($"Grain type {grainClassType.Name}: a ctor cannot have two Indexing facet specifications")
                         : true;
                     switch (attr)
                     {
-                        case IFaultTolerantWorkflowIndexWriterAttribute _:
+                        case IFaultTolerantWorkflowIndexedStateAttribute _:
                             setScheme(ConsistencyScheme.FaultTolerantWorkflow);
                             break;
-                        case INonFaultTolerantWorkflowIndexWriterAttribute _:
+                        case INonFaultTolerantWorkflowIndexedStateAttribute _:
                             setScheme(ConsistencyScheme.NonFaultTolerantWorkflow);
                             break;
                         default:

@@ -41,11 +41,11 @@ namespace Orleans.Indexing
             services.AddFromExisting<IndexManager, SiloIndexManager>();
 
             // Facet Factory and Mappers
-            services.AddTransient<IIndexWriterFactory, IndexWriterFactory>()
-                    .AddSingleton(typeof(IAttributeToFactoryMapper<NonFaultTolerantWorkflowIndexWriterAttribute>),
-                                  typeof(NonFaultTolerantWorkflowIndexWriterAttributeMapper))
-                    .AddSingleton(typeof(IAttributeToFactoryMapper<FaultTolerantWorkflowIndexWriterAttribute>),
-                                  typeof(FaultTolerantWorkflowIndexWriterAttributeMapper));
+            services.AddTransient<IIndexedStateFactory, IndexedStateFactory>()
+                    .AddSingleton(typeof(IAttributeToFactoryMapper<NonFaultTolerantWorkflowIndexedStateAttribute>),
+                                  typeof(NonFaultTolerantWorkflowIndexedStateAttributeMapper))
+                    .AddSingleton(typeof(IAttributeToFactoryMapper<FaultTolerantWorkflowIndexedStateAttribute>),
+                                  typeof(FaultTolerantWorkflowIndexedStateAttributeMapper));
             return services;
         }
     }

@@ -33,9 +33,9 @@ namespace Orleans.Indexing.Tests
     public class NFT_Grain_UIUSNINS_XI_EG_PK : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_XI_EG_PK
     {
         public NFT_Grain_UIUSNINS_XI_EG_PK(
-            [NonFaultTolerantWorkflowIndexWriter]
-            IIndexWriter<TestMultiIndexState> indexWriter)
-            : base(indexWriter) { }
+            [NonFaultTolerantWorkflowIndexedState]
+            IIndexedState<TestMultiIndexState> indexedState)
+            : base(indexedState) { }
     }
     #endregion // PartitionedPerKey
 
@@ -71,9 +71,9 @@ namespace Orleans.Indexing.Tests
     public class NFT_Grain_UIUSNINS_XI_EG_SB : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_XI_EG_SB
     {
         public NFT_Grain_UIUSNINS_XI_EG_SB(
-            [NonFaultTolerantWorkflowIndexWriter]
-            IIndexWriter<TestMultiIndexState> indexWriter)
-            : base(indexWriter) { }
+            [NonFaultTolerantWorkflowIndexedState]
+            IIndexedState<TestMultiIndexState> indexedState)
+            : base(indexedState) { }
     }
     #endregion // SingleBucket
 

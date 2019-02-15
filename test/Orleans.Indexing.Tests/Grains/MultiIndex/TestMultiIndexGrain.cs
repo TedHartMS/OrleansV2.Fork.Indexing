@@ -10,14 +10,14 @@ namespace Orleans.Indexing.Tests
     public abstract class TestMultiIndexGrainNonFaultTolerant<TGrainState> : TestMultiIndexGrain<TGrainState>
         where TGrainState : class, ITestMultiIndexState, new()
     {
-        public TestMultiIndexGrainNonFaultTolerant(IIndexWriter<TGrainState> indexWriter) : base(indexWriter)
+        public TestMultiIndexGrainNonFaultTolerant(IIndexedState<TGrainState> indexedState) : base(indexedState)
             => Debug.Assert(this.GetType().GetConsistencyScheme() == ConsistencyScheme.NonFaultTolerantWorkflow);
     }
 
     public abstract class TestMultiIndexGrainFaultTolerant<TGrainState> : TestMultiIndexGrain<TGrainState>
         where TGrainState : class, ITestMultiIndexState, new()
     {
-        public TestMultiIndexGrainFaultTolerant(IIndexWriter<TGrainState> indexWriter) : base(indexWriter)
+        public TestMultiIndexGrainFaultTolerant(IIndexedState<TGrainState> indexedState) : base(indexedState)
             => Debug.Assert(this.GetType().GetConsistencyScheme() == ConsistencyScheme.FaultTolerantWorkflow);
     }
 
@@ -26,7 +26,7 @@ namespace Orleans.Indexing.Tests
         where TGrainState : class, ITestMultiIndexState, new()
     {
         private readonly TestMultiIndexGrainBase<TGrainState> testBase;
-        private TGrainState State => this.testBase.IndexWriter.State;
+        private TGrainState State => this.testBase.IndexedState.State;
 
         public Task<string> GetUnIndexedString() => Task.FromResult(this.State.UnIndexedString);
         public Task SetUnIndexedString(string value) => this.testBase.SetProperty(() => this.State.UnIndexedString = value, retry:false);
@@ -49,17 +49,17 @@ namespace Orleans.Indexing.Tests
             return Task.CompletedTask;
         }
 
-        public TestMultiIndexGrain(IIndexWriter<TGrainState> indexWriter) =>
-            this.testBase = new TestMultiIndexGrainBase<TGrainState>(this.GetType(), indexWriter);
+        public TestMultiIndexGrain(IIndexedState<TGrainState> indexedState) =>
+            this.testBase = new TestMultiIndexGrainBase<TGrainState>(this.GetType(), indexedState);
 
         #region Facet methods - required overrides of Grain<TGrainState>
-        public override Task OnActivateAsync() => this.testBase.IndexWriter.OnActivateAsync(this, base.OnActivateAsync);
-        public override Task OnDeactivateAsync() => this.testBase.IndexWriter.OnDeactivateAsync(() => Task.CompletedTask);
+        public override Task OnActivateAsync() => this.testBase.IndexedState.OnActivateAsync(this, base.OnActivateAsync);
+        public override Task OnDeactivateAsync() => this.testBase.IndexedState.OnDeactivateAsync(() => Task.CompletedTask);
         #endregion Facet methods - required overrides of Grain<TGrainState>
 
         #region Required shims for IIndexableGrain methods for fault tolerance
-        public Task<Immutable<System.Collections.Generic.HashSet<Guid>>> GetActiveWorkflowIdsSet() => this.testBase.IndexWriter.GetActiveWorkflowIdsSet();
-        public Task RemoveFromActiveWorkflowIds(System.Collections.Generic.HashSet<Guid> removedWorkflowId) => this.testBase.IndexWriter.RemoveFromActiveWorkflowIds(removedWorkflowId);
+        public Task<Immutable<System.Collections.Generic.HashSet<Guid>>> GetActiveWorkflowIdsSet() => this.testBase.IndexedState.GetActiveWorkflowIdsSet();
+        public Task RemoveFromActiveWorkflowIds(System.Collections.Generic.HashSet<Guid> removedWorkflowId) => this.testBase.IndexedState.RemoveFromActiveWorkflowIds(removedWorkflowId);
         #endregion Required shims for IIndexableGrain methods for fault tolerance
     }
 }

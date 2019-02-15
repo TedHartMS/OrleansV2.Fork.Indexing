@@ -1,4 +1,3 @@
-using System;
 using Orleans.Indexing.Facet;
 
 namespace Orleans.Indexing.Tests
@@ -9,8 +8,8 @@ namespace Orleans.Indexing.Tests
     public class Player1GrainNonFaultTolerantLazy : PlayerGrainNonFaultTolerant<PlayerGrainState>, IPlayer1GrainNonFaultTolerantLazy
     {
         public Player1GrainNonFaultTolerantLazy(
-            [NonFaultTolerantWorkflowIndexWriter]
-            IIndexWriter<PlayerGrainState> indexWriter)
-            : base(indexWriter) { }
+            [NonFaultTolerantWorkflowIndexedState]
+            IIndexedState<PlayerGrainState> indexedState)
+            : base(indexedState) { }
     }
 }

@@ -10,15 +10,15 @@ using Orleans.Runtime;
 
 namespace Orleans.Indexing.Facet
 {
-    public abstract class WorkflowIndexWriterBase<TGrainState> : IIndexWriter<TGrainState> where TGrainState : class, new()
+    public abstract class WorkflowIndexedStateBase<TGrainState> : IIndexedState<TGrainState> where TGrainState : class, new()
     {
         private protected readonly IServiceProvider ServiceProvider;
-        private protected readonly IIndexWriterConfiguration WriterConfig;  // TODO use this
+        private protected readonly IIndexedStateConfiguration IndexedStateConfig;  // TODO use this
 
         private Grain grain;
         private IIndexableGrain iIndexableGrain;
-        private IndexableGrainStateWrapper<TGrainState> wrappedState;
-        private protected Func<Task<IndexableGrainStateWrapper<TGrainState>>> readGrainStateFunc;
+        private IndexedGrainStateWrapper<TGrainState> wrappedState;
+        private protected Func<Task<IndexedGrainStateWrapper<TGrainState>>> readGrainStateFunc;
         private protected Func<Task> writeGrainStateFunc;
 
         private protected Func<Guid> getWorkflowIdFunc;
@@ -37,17 +37,17 @@ namespace Orleans.Indexing.Facet
         private protected GrainIndexes _grainIndexes;
         private protected bool _hasAnyUniqueIndex;
 
-        public WorkflowIndexWriterBase(IServiceProvider sp, IIndexWriterConfiguration config)
+        public WorkflowIndexedStateBase(IServiceProvider sp, IIndexedStateConfiguration config)
         {
             this.ServiceProvider = sp;
-            this.WriterConfig = config;
+            this.IndexedStateConfig = config;
         }
 
         // IndexManager (and therefore logger) cannot be set in ctor because Grain activation has not yet set base.Runtime.
         internal SiloIndexManager SiloIndexManager => IndexManager.GetSiloIndexManager(ref this.__siloIndexManager, this.ServiceProvider);
         private SiloIndexManager __siloIndexManager;
 
-        private ILogger Logger => this.__logger ?? (this.__logger = this.SiloIndexManager.LoggerFactory.CreateLoggerWithFullCategoryName<WorkflowIndexWriterBase<TGrainState>>());
+        private ILogger Logger => this.__logger ?? (this.__logger = this.SiloIndexManager.LoggerFactory.CreateLoggerWithFullCategoryName<WorkflowIndexedStateBase<TGrainState>>());
         private ILogger __logger;
 
         protected SiloAddress BaseSiloAddress => this.SiloIndexManager.SiloAddress;
@@ -81,7 +81,7 @@ namespace Orleans.Indexing.Facet
 
         #endregion public API
 
-        private protected async Task PreActivate(Grain grain, Func<Task<IndexableGrainStateWrapper<TGrainState>>> readGrainStateFunc, Func<Task> writeGrainStateFunc)
+        private protected async Task PreActivate(Grain grain, Func<Task<IndexedGrainStateWrapper<TGrainState>>> readGrainStateFunc, Func<Task> writeGrainStateFunc)
         {
             if (this.grain != null) // Already called
             {
@@ -97,7 +97,7 @@ namespace Orleans.Indexing.Facet
             if (!GrainIndexes.CreateInstance(this.SiloIndexManager.IndexRegistry, this.grain.GetType(), out this._grainIndexes)
                 || !this._grainIndexes.HasAnyIndexes)
             {
-                throw new InvalidOperationException("IndexWriter should not be called for a Grain class with no indexes");
+                throw new InvalidOperationException("IndexedState should not be used for a Grain class with no indexes");
             }
 
             if (!this.wrappedState.AreNullValuesInitialized )
@@ -199,7 +199,7 @@ namespace Orleans.Indexing.Facet
         /// <param name="interfaceToUpdatesMap">the dictionary of updates for each index of each interface</param>
         /// <param name="updateIndexTypes">indicates whether unique and/or non-unique indexes should be updated</param>
         /// <param name="isTentative">indicates whether updates to indexes should be tentatively done. That is, the update
-        ///     won't be visible to readers, but prevents writers from overwriting them an violating constraints</param>
+        ///     won't be visible to readers, but prevents writers from overwriting them and violating constraints</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private protected Task ApplyIndexUpdatesEagerly(InterfaceToUpdatesMap interfaceToUpdatesMap,
                                                     UpdateIndexType updateIndexTypes, bool isTentative = false)
@@ -212,7 +212,7 @@ namespace Orleans.Indexing.Facet
         /// <param name="updates">the dictionary of updates for each index</param>
         /// <param name="updateIndexTypes">indicates whether unique and/or non-unique indexes should be updated</param>
         /// <param name="isTentative">indicates whether updates to indexes should be tentatively done. That is, the update
-        ///     won't be visible to readers, but prevents writers from overwriting them an violating constraints</param>
+        ///     won't be visible to readers, but prevents writers from overwriting them and violating constraints</param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private protected Task ApplyIndexUpdatesEagerly(Type grainInterfaceType, IReadOnlyDictionary<string, IMemberUpdate> updates,
@@ -310,7 +310,7 @@ namespace Orleans.Indexing.Facet
                         this.grain.AsReference<IIndexableGrain>(this.SiloIndexManager, grainInterfaceType).GetHashCode(), this.BaseSiloAddress));
         }
 
-        // IIndexableGrain methods; these are overridden only by FaultTolerantWorkflowIndexWriter.
+        // IIndexableGrain methods; these are overridden only by FaultTolerantWorkflowIndexedState.
         public virtual Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsSet() => throw new NotImplementedException("GetActiveWorkflowIdsSet");
         public virtual Task RemoveFromActiveWorkflowIds(HashSet<Guid> removedWorkflowIds) => throw new NotImplementedException("RemoveFromActiveWorkflowIds");
 

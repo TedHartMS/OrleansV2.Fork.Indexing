@@ -7,14 +7,14 @@ using Orleans.Core;
 
 namespace Orleans.Indexing.Facet
 {
-    public class NonFaultTolerantWorkflowIndexWriter<TGrainState> : WorkflowIndexWriterBase<TGrainState>,
-                                                                    INonFaultTolerantWorkflowIndexWriter<TGrainState> where TGrainState : class, new()
+    public class NonFaultTolerantWorkflowIndexedState<TGrainState> : WorkflowIndexedStateBase<TGrainState>,
+                                                                    INonFaultTolerantWorkflowIndexedState<TGrainState> where TGrainState : class, new()
     {
-        IStorage<IndexableGrainStateWrapper<TGrainState>> storage;
+        IStorage<IndexedGrainStateWrapper<TGrainState>> storage;
 
-        public NonFaultTolerantWorkflowIndexWriter(
+        public NonFaultTolerantWorkflowIndexedState(
                 IServiceProvider sp,
-                IIndexWriterConfiguration config
+                IIndexedStateConfiguration config
             ) : base(sp, config)
         {
             base.getWorkflowIdFunc = () => Guid.NewGuid();
@@ -22,8 +22,8 @@ namespace Orleans.Indexing.Facet
 
         public override async Task OnActivateAsync(Grain grain, Func<Task> onGrainActivateFunc)
         {
-            Debug.Assert(!(this is FaultTolerantWorkflowIndexWriter<TGrainState>)); // Separate overrides
-            this.storage = base.SiloIndexManager.GetStorageBridge<IndexableGrainStateWrapper<TGrainState>>(grain);
+            Debug.Assert(!(this is FaultTolerantWorkflowIndexedState<TGrainState>)); // Separate overrides
+            this.storage = base.SiloIndexManager.GetStorageBridge<IndexedGrainStateWrapper<TGrainState>>(grain);
 
             // In order to initialize base.wrappedState etc. this must be called here.
             await base.PreActivate(grain,

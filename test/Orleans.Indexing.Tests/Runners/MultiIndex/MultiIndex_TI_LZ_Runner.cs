@@ -49,17 +49,17 @@ namespace Orleans.Indexing.Tests
     public class FT_Grain_UIUSNINS_TI_LZ_PK : TestMultiIndexGrainFaultTolerant<TestMultiIndexState>, IFT_Grain_UIUSNINS_TI_LZ_PK
     {
         public FT_Grain_UIUSNINS_TI_LZ_PK(
-            [FaultTolerantWorkflowIndexWriter]
-            IIndexWriter<TestMultiIndexState> indexWriter)
-            : base(indexWriter) { }
+            [FaultTolerantWorkflowIndexedState]
+            IIndexedState<TestMultiIndexState> indexedState)
+            : base(indexedState) { }
     }
 
     public class NFT_Grain_UIUSNINS_TI_LZ_PK : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_TI_LZ_PK
     {
         public NFT_Grain_UIUSNINS_TI_LZ_PK(
-            [NonFaultTolerantWorkflowIndexWriter]
-            IIndexWriter<TestMultiIndexState> indexWriter)
-            : base(indexWriter) { }
+            [NonFaultTolerantWorkflowIndexedState]
+            IIndexedState<TestMultiIndexState> indexedState)
+            : base(indexedState) { }
     }
     #endregion // PartitionedPerKey
 
@@ -111,17 +111,17 @@ namespace Orleans.Indexing.Tests
     public class FT_Grain_UIUSNINS_TI_LZ_SB : TestMultiIndexGrainFaultTolerant<TestMultiIndexState>, IFT_Grain_UIUSNINS_TI_LZ_SB
     {
         public FT_Grain_UIUSNINS_TI_LZ_SB(
-            [FaultTolerantWorkflowIndexWriter]
-            IIndexWriter<TestMultiIndexState> indexWriter)
-            : base(indexWriter) { }
+            [FaultTolerantWorkflowIndexedState]
+            IIndexedState<TestMultiIndexState> indexedState)
+            : base(indexedState) { }
     }
 
     public class NFT_Grain_UIUSNINS_TI_LZ_SB : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_TI_LZ_SB
     {
         public NFT_Grain_UIUSNINS_TI_LZ_SB(
-            [NonFaultTolerantWorkflowIndexWriter]
-            IIndexWriter<TestMultiIndexState> indexWriter)
-            : base(indexWriter) { }
+            [NonFaultTolerantWorkflowIndexedState]
+            IIndexedState<TestMultiIndexState> indexedState)
+            : base(indexedState) { }
     }
     #endregion // SingleBucket
 

@@ -3,8 +3,8 @@ using Orleans.Indexing;
 using Orleans.Indexing.Facet;
 using System.Runtime.CompilerServices;
 
-[assembly: GenerateSerializer(typeof(IndexableGrainStateWrapper<>))]
-[assembly: GenerateSerializer(typeof(FaultTolerantIndexableGrainStateWrapper<>))]
+[assembly: GenerateSerializer(typeof(IndexedGrainStateWrapper<>))]
+[assembly: GenerateSerializer(typeof(FaultTolerantIndexedGrainStateWrapper<>))]
 [assembly: GenerateSerializer(typeof(IndexWorkflowQueueState))]
 [assembly: GenerateSerializer(typeof(IndexWorkflowQueueEntry))]
 [assembly: GenerateSerializer(typeof(IndexWorkflowRecord))]

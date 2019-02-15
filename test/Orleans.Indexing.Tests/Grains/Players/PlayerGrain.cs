@@ -10,14 +10,14 @@ namespace Orleans.Indexing.Tests
     public abstract class PlayerGrainNonFaultTolerant<TGrainState> : PlayerGrain<TGrainState>
         where TGrainState : PlayerGrainState, new()
     {
-        public PlayerGrainNonFaultTolerant(IIndexWriter<TGrainState> indexWriter) : base(indexWriter)
+        public PlayerGrainNonFaultTolerant(IIndexedState<TGrainState> indexedState) : base(indexedState)
             => Debug.Assert(this.GetType().GetConsistencyScheme() == ConsistencyScheme.NonFaultTolerantWorkflow);
     }
 
     public abstract class PlayerGrainFaultTolerant<TGrainState> : PlayerGrain<TGrainState>
         where TGrainState : PlayerGrainState, new()
     {
-        public PlayerGrainFaultTolerant(IIndexWriter<TGrainState> indexWriter) : base(indexWriter)
+        public PlayerGrainFaultTolerant(IIndexedState<TGrainState> indexedState) : base(indexedState)
             => Debug.Assert(this.GetType().GetConsistencyScheme() == ConsistencyScheme.FaultTolerantWorkflow);
     }
 
@@ -29,9 +29,9 @@ namespace Orleans.Indexing.Tests
         where TGrainState : PlayerGrainState, new()
     {
         // This is populated by Orleans.Indexing with the indexes from the implemented interfaces on this class.
-        private readonly IIndexWriter<TGrainState> indexWriter;
+        private readonly IIndexedState<TGrainState> indexedState;
 
-        private TGrainState State => this.indexWriter.State;
+        private TGrainState State => this.indexedState.State;
 
         public string Email => this.State.Email;
         public string Location => this.State.Location;
@@ -40,14 +40,14 @@ namespace Orleans.Indexing.Tests
         public Task<string> GetLocation() => Task.FromResult(this.Location);
 
         public async Task SetLocation(string value)
-            => await IndexingTestUtils.SetPropertyAndWriteStateAsync(() => this.State.Location = value, this.indexWriter.WriteAsync, this.indexWriter.ReadAsync, retry:true);
+            => await IndexingTestUtils.SetPropertyAndWriteStateAsync(() => this.State.Location = value, this.indexedState.WriteAsync, this.indexedState.ReadAsync, retry:true);
 
         public Task<int> GetScore() => Task.FromResult(this.Score);
 
         public Task SetScore(int score)
         {
             this.State.Score = score;
-            return this.indexWriter.WriteAsync();
+            return this.indexedState.WriteAsync();
         }
 
         public Task<string> GetEmail() => Task.FromResult(this.Email);
@@ -55,7 +55,7 @@ namespace Orleans.Indexing.Tests
         public Task SetEmail(string email)
         {
             this.State.Email = email;
-            return this.indexWriter.WriteAsync();
+            return this.indexedState.WriteAsync();
         }
 
         public Task Deactivate()
@@ -64,19 +64,19 @@ namespace Orleans.Indexing.Tests
             return Task.CompletedTask;
         }
 
-        public PlayerGrain(IIndexWriter<TGrainState> indexWriter)
+        public PlayerGrain(IIndexedState<TGrainState> indexedState)
         {
-            this.indexWriter = indexWriter;
+            this.indexedState = indexedState;
         }
 
         #region Facet methods - required overrides of Grain<TGrainState>
-        public override Task OnActivateAsync() => this.indexWriter.OnActivateAsync(this, base.OnActivateAsync);
-        public override Task OnDeactivateAsync() => this.indexWriter.OnDeactivateAsync(() => Task.CompletedTask);
+        public override Task OnActivateAsync() => this.indexedState.OnActivateAsync(this, base.OnActivateAsync);
+        public override Task OnDeactivateAsync() => this.indexedState.OnDeactivateAsync(() => Task.CompletedTask);
         #endregion Facet methods - required overrides of Grain<TGrainState>
 
         #region Required shims for IIndexableGrain methods for fault tolerance
-        public Task<Immutable<System.Collections.Generic.HashSet<Guid>>> GetActiveWorkflowIdsSet() => this.indexWriter.GetActiveWorkflowIdsSet();
-        public Task RemoveFromActiveWorkflowIds(System.Collections.Generic.HashSet<Guid> removedWorkflowId) => this.indexWriter.RemoveFromActiveWorkflowIds(removedWorkflowId);
+        public Task<Immutable<System.Collections.Generic.HashSet<Guid>>> GetActiveWorkflowIdsSet() => this.indexedState.GetActiveWorkflowIdsSet();
+        public Task RemoveFromActiveWorkflowIds(System.Collections.Generic.HashSet<Guid> removedWorkflowId) => this.indexedState.RemoveFromActiveWorkflowIds(removedWorkflowId);
         #endregion Required shims for IIndexableGrain methods for fault tolerance
     }
 }

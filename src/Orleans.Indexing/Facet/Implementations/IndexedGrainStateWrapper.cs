@@ -7,7 +7,7 @@ namespace Orleans.Indexing.Facet
     /// </summary>
     /// <typeparam name="TGrainState">the type of user state</typeparam>
     [Serializable]
-    public class IndexableGrainStateWrapper<TGrainState>
+    public class IndexedGrainStateWrapper<TGrainState>
         where TGrainState: new()
     {
         /// <summary>

@@ -52,9 +52,9 @@ namespace Orleans.Indexing.Tests.MultiInterface
                                                INFT_Grain_Person_AI_EG_PK, INFT_Grain_Job_AI_EG_PK, INFT_Grain_Employee_AI_EG_PK
     {
         public NFT_Grain_Employee_AI_EG_PK(
-            [NonFaultTolerantWorkflowIndexWriter]
-            IIndexWriter<EmployeeGrainState> indexWriter)
-            : base(indexWriter) { }
+            [NonFaultTolerantWorkflowIndexedState]
+            IIndexedState<EmployeeGrainState> indexedState)
+            : base(indexedState) { }
     }
     #endregion // PartitionedPerKey
 
@@ -102,9 +102,9 @@ namespace Orleans.Indexing.Tests.MultiInterface
                                                INFT_Grain_Person_AI_EG_PS, INFT_Grain_Job_AI_EG_PS, INFT_Grain_Employee_AI_EG_PS
     {
         public NFT_Grain_Employee_AI_EG_PS(
-            [NonFaultTolerantWorkflowIndexWriter]
-            IIndexWriter<EmployeeGrainState> indexWriter)
-            : base(indexWriter) { }
+            [NonFaultTolerantWorkflowIndexedState]
+            IIndexedState<EmployeeGrainState> indexedState)
+            : base(indexedState) { }
     }
     #endregion // PartitionedPerSilo
 
@@ -152,9 +152,9 @@ namespace Orleans.Indexing.Tests.MultiInterface
                                                INFT_Grain_Person_AI_EG_SB, INFT_Grain_Job_AI_EG_SB, INFT_Grain_Employee_AI_EG_SB
     {
         public NFT_Grain_Employee_AI_EG_SB(
-            [NonFaultTolerantWorkflowIndexWriter]
-            IIndexWriter<EmployeeGrainState> indexWriter)
-            : base(indexWriter) { }
+            [NonFaultTolerantWorkflowIndexedState]
+            IIndexedState<EmployeeGrainState> indexedState)
+            : base(indexedState) { }
     }
     #endregion // SingleBucket
 
