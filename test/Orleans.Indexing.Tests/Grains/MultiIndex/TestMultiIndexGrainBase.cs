@@ -17,14 +17,9 @@ namespace Orleans.Indexing.Tests
         internal bool IsNonUniqueIntIndexed;
         internal bool IsNonUniqueStringIndexed;
 
-        private readonly Func<Task> writeStateFunc;
-        private readonly Func<Task> readStateFunc;
-
-        internal TestMultiIndexGrainBase(Type grainClassType, IIndexWriter<TGrainState> writer, Func<Task> wsf, Func<Task> rsf)
+        internal TestMultiIndexGrainBase(Type grainClassType, IIndexWriter<TGrainState> writer)
         {
             this.IndexWriter = writer;
-            this.writeStateFunc = wsf;
-            this.readStateFunc = rsf;
 
             var grainInterfaceTypes = ApplicationPartsIndexableGrainLoader.EnumerateIndexedInterfacesForAGrainClassType(grainClassType).ToArray();
             Assert.Single(grainInterfaceTypes);
@@ -46,6 +41,6 @@ namespace Orleans.Indexing.Tests
         }
 
         internal async Task SetProperty(Action setterAction, bool retry)
-            => await IndexingTestUtils.SetPropertyAndWriteStateAsync(setterAction, this.writeStateFunc, this.readStateFunc, retry);
+            => await IndexingTestUtils.SetPropertyAndWriteStateAsync(setterAction, this.IndexWriter.WriteAsync, this.IndexWriter.ReadAsync, retry);
     }
 }

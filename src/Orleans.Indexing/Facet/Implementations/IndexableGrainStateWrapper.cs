@@ -13,7 +13,7 @@ namespace Orleans.Indexing.Facet
         /// <summary>
         /// Indicates whether the grain was read from storage (used on startup to set null values).
         /// </summary>
-        public bool IsPersisted;
+        public bool AreNullValuesInitialized;
 
         /// <summary>
         /// The actual user state.

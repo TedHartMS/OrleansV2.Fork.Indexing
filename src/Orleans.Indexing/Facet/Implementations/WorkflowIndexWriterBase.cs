@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -17,6 +18,7 @@ namespace Orleans.Indexing.Facet
         private Grain grain;
         private IIndexableGrain iIndexableGrain;
         private IndexableGrainStateWrapper<TGrainState> wrappedState;
+        private protected Func<Task<IndexableGrainStateWrapper<TGrainState>>> readGrainStateFunc;
         private protected Func<Task> writeGrainStateFunc;
 
         private protected Func<Guid> getWorkflowIdFunc;
@@ -55,16 +57,9 @@ namespace Orleans.Indexing.Facet
 
         #region public API
 
-        public virtual Task OnActivateAsync(Grain grain, IndexableGrainStateWrapper<TGrainState> wrappedState, Func<Task> writeGrainStateFunc,
-                                            Func<Task> onGrainActivateFunc)
-        {
-            this.InitOnActivate(grain, wrappedState, writeGrainStateFunc);
+        public TGrainState State => this.wrappedState.UserState;
 
-            this.Logger.Trace($"Activating indexable grain of type {this.grain.GetType().Name} in silo {this.SiloIndexManager.SiloAddress}.");
-
-            // Insert the current grain to the active indexes defined on this grain and at the same time call OnActivateAsync of the base class
-            return Task.WhenAll(this.InsertIntoActiveIndexes(), onGrainActivateFunc());
-        }
+        public abstract Task OnActivateAsync(Grain grain, Func<Task> onGrainActivateFunc);
 
         public virtual Task OnDeactivateAsync(Func<Task> onGrainDeactivateFunc)
         {
@@ -72,10 +67,11 @@ namespace Orleans.Indexing.Facet
             return Task.WhenAll(this.RemoveFromActiveIndexes(), onGrainDeactivateFunc());
         }
 
+        public async Task ReadAsync() => this.wrappedState = await this.readGrainStateFunc();
+
         public async Task WriteAsync()
         {
             this._grainIndexes.MapStateToProperties(this.wrappedState.UserState);
-            this.wrappedState.IsPersisted = true;
 
             // UpdateIndexes kicks off the sequence that eventually goes through virtual/overridden ApplyIndexUpdates, which in turn calls
             // writeGrainStateFunc() appropriately to ensure that only the successfully persisted bits are indexed, and the indexes are updated
@@ -85,29 +81,42 @@ namespace Orleans.Indexing.Facet
 
         #endregion public API
 
-        private protected void InitOnActivate(Grain grain, IndexableGrainStateWrapper<TGrainState> wrappedState, Func<Task> writeGrainStateFunc)
+        private protected async Task PreActivate(Grain grain, Func<Task<IndexableGrainStateWrapper<TGrainState>>> readGrainStateFunc, Func<Task> writeGrainStateFunc)
         {
-            if (this.grain != null)
+            if (this.grain != null) // Already called
             {
                 return;
             }
             this.grain = grain;
             this.iIndexableGrain = this.grain.AsReference<IIndexableGrain>(this.SiloIndexManager);
-            this.wrappedState = wrappedState;
+            this.readGrainStateFunc = readGrainStateFunc;
             this.writeGrainStateFunc = writeGrainStateFunc;
 
-            if (!GrainIndexes.CreateInstance(this.SiloIndexManager.IndexRegistry, this.grain.GetType(), out this._grainIndexes))
+            await this.ReadAsync();
+
+            if (!GrainIndexes.CreateInstance(this.SiloIndexManager.IndexRegistry, this.grain.GetType(), out this._grainIndexes)
+                || !this._grainIndexes.HasAnyIndexes)
             {
                 throw new InvalidOperationException("IndexWriter should not be called for a Grain class with no indexes");
             }
 
-            if (!this.wrappedState.IsPersisted)
+            if (!this.wrappedState.AreNullValuesInitialized )
             {
                 IndexUtils.SetNullValues(this.wrappedState.UserState, this._grainIndexes.PropertyNullValues);
+                this.wrappedState.AreNullValuesInitialized = true;
             }
 
             this._hasAnyUniqueIndex = this._grainIndexes.HasAnyUniqueIndex;
             this._grainIndexes.AddMissingBeforeImages(this.wrappedState.UserState);
+        }
+
+        public Task FinishActivateAsync(Func<Task> onGrainActivateFunc)
+        {
+            Debug.Assert(this.grain != null, "InitOnActivate not called");
+            this.Logger.Trace($"Activating indexable grain of type {this.grain.GetType().Name} in silo {this.SiloIndexManager.SiloAddress}.");
+
+            // Insert the current grain to the active indexes defined on this grain and at the same time call OnActivateAsync of the base class
+            return Task.WhenAll(this.InsertIntoActiveIndexes(), onGrainActivateFunc());
         }
 
         /// <summary>
@@ -148,13 +157,6 @@ namespace Orleans.Indexing.Facet
         /// <param name="writeStateIfConstraintsAreNotViolated">whether to write back the state to the storage if no constraint is violated</param>
         private protected Task UpdateIndexes(IndexUpdateReason updateReason, bool onlyUpdateActiveIndexes, bool writeStateIfConstraintsAreNotViolated)
         {
-            // If there are no indexes defined on this grain, then only the grain state
-            // should be written back to the storage (if requested, otherwise nothing should be done)
-            if (!this._grainIndexes.HasAnyIndexes)  // TODO - do we ever allow this?
-            {
-                return writeStateIfConstraintsAreNotViolated ? this.writeGrainStateFunc() : Task.CompletedTask;
-            }
-
             // A flag to determine whether only unique indexes were updated
             var onlyUniqueIndexesWereUpdated = this._hasAnyUniqueIndex;
 

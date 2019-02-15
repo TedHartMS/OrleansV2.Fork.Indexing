@@ -12,23 +12,19 @@ namespace Orleans.Indexing.Facet
     public interface IIndexWriter<TGrainState> where TGrainState : new()
     {
         /// <summary>
-        /// The <see cref="Grain.OnActivateAsync()"/> implementation must call this; in turn, this
-        /// calls <paramref name="writeGrainStateFunc"/> if needed and then <paramref name="onGrainActivateFunc"/>, in
-        /// which the grain implementation should do any additional activation logic if desired.
+        /// The persistent state of the grain; includes values for indexed and non-indexed properties.
+        /// </summary>
+        TGrainState State { get; }
+
+        /// <summary>
+        /// The <see cref="Grain.OnActivateAsync()"/> implementation must call this; in turn, this calls
+        /// <paramref name="onGrainActivateFunc"/>, in which the grain implementation does any additional activation logic needed.
         /// </summary>
         /// <param name="grain">The grain to manage indexes for</param>
-        /// <param name="wrappedState">The state for <paramref name="grain"/>, which is either the base grain state from
-        ///     <see cref="Grain{TGrainState}"/> or a local state member if <paramref name="grain"/> inherits directly
-        ///     from <see cref="Grain"/>.</param>
-        /// <param name="writeGrainStateFunc">If <paramref name="grain"/>" inherits from <see cref="Grain{TGrainState}"/>,
-        ///     this is usually a lambda that calls "base.WriteStateAsync()". Otherwise it is either a custom persistence
-        ///     call or simply "() => Task.CompletedTask". It is called in parallel with inserting grain update operations
-        ///     into the silo index workflows.</param>
         /// <param name="onGrainActivateFunc">If <paramref name="grain"/> implements custom activation logic, it supplies
         ///     a lambda to do so here, or may simply pass "() => Task.CompletedTask". It is called in parallel with
         ///     inserting grain indexes into the silo index collections and later during <see cref="WriteAsync()"/>.</param>
-        Task OnActivateAsync(Grain grain, IndexableGrainStateWrapper<TGrainState> wrappedState, Func<Task> writeGrainStateFunc,
-                             Func<Task> onGrainActivateFunc);
+        Task OnActivateAsync(Grain grain, Func<Task> onGrainActivateFunc);
 
         /// <summary>
         /// The <see cref="Grain.OnDeactivateAsync()"/> implementation must call this; in turn, this
@@ -41,15 +37,15 @@ namespace Orleans.Indexing.Facet
         Task OnDeactivateAsync(Func<Task> onGrainDeactivateFunc);
 
         /// <summary>
-        /// The <see cref="Grain{TGrainState}.WriteStateAsync()"/> implementation must call this; in turn, this calls
-        /// onGrainActivateFunc passed to <see cref="OnActivateAsync(Grain, IndexableGrainStateWrapper{TGrainState}, Func{Task}, Func{Task})"/> 
-        /// in parallel with inserting grain update operations into the silo index workflows.
+        /// Reads current grain state from the storage provider. Erases any updates to indexed and non-indexed properties.
         /// </summary>
-        /// <remarks>
+        Task ReadAsync();
+
+        /// <summary>
         /// Coordinates the writing of all indexed interfaces defined on the grain. It will retrieve this from cached
         /// per-grain-class list of indexes and properties to do the mapping, and maps the State structure to the various
-        /// TProperties structures. If workflow-based, it includes the grain state update in the workflow appropriately.
-        /// </remarks>
+        /// TProperties structures. It includes the grain state update in the workflow appropriately.
+        /// </summary>
         Task WriteAsync();
 
         /// <summary>

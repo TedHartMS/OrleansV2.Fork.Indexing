@@ -94,7 +94,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     }
 
 #if ALLOW_FT_ACTIVE
-    public class FT_Grain_Employee_TI_LZ_PK : TestEmployeeGrain<EmployeeGrainState, FaultTolerantIndexableGrainStateWrapper<EmployeeGrainState>>,
+    public class FT_Grain_Employee_TI_LZ_PK : TestEmployeeGrain<EmployeeGrainState>,
                                               IFT_Grain_Person_TI_LZ_PK, IFT_Grain_Job_TI_LZ_PK, IFT_Grain_Employee_TI_LZ_PK
     {
         public FT_Grain_Employee_TI_LZ_PK(
@@ -104,7 +104,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     }
 #endif // ALLOW_FT_ACTIVE
 
-    public class NFT_Grain_Employee_TI_LZ_PK : TestEmployeeGrain<EmployeeGrainState, IndexableGrainStateWrapper<EmployeeGrainState>>,
+    public class NFT_Grain_Employee_TI_LZ_PK : TestEmployeeGrain<EmployeeGrainState>,
                                                INFT_Grain_Person_TI_LZ_PK, INFT_Grain_Job_TI_LZ_PK, INFT_Grain_Employee_TI_LZ_PK
     {
         public NFT_Grain_Employee_TI_LZ_PK(
@@ -207,7 +207,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     }
 
 #if ALLOW_FT_ACTIVE
-    public class FT_Grain_Employee_TI_LZ_SB : TestEmployeeGrain<EmployeeGrainState, FaultTolerantIndexableGrainStateWrapper<EmployeeGrainState>>,
+    public class FT_Grain_Employee_TI_LZ_SB : TestEmployeeGrain<EmployeeGrainState>,
                                               IFT_Grain_Person_TI_LZ_SB, IFT_Grain_Job_TI_LZ_SB, IFT_Grain_Employee_TI_LZ_SB
     {
         public FT_Grain_Employee_TI_LZ_SB(
@@ -217,7 +217,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     }
 #endif // ALLOW_FT_ACTIVE
 
-    public class NFT_Grain_Employee_TI_LZ_SB : TestEmployeeGrain<EmployeeGrainState, IndexableGrainStateWrapper<EmployeeGrainState>>,
+    public class NFT_Grain_Employee_TI_LZ_SB : TestEmployeeGrain<EmployeeGrainState>,
                                                INFT_Grain_Person_TI_LZ_SB, INFT_Grain_Job_TI_LZ_SB, INFT_Grain_Employee_TI_LZ_SB
     {
         public NFT_Grain_Employee_TI_LZ_SB(

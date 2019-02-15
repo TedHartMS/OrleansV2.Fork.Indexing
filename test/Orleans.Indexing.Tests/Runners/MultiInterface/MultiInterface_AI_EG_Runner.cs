@@ -48,7 +48,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     {
     }
 
-    public class NFT_Grain_Employee_AI_EG_PK : TestEmployeeGrain<EmployeeGrainState, IndexableGrainStateWrapper<EmployeeGrainState>>,
+    public class NFT_Grain_Employee_AI_EG_PK : TestEmployeeGrain<EmployeeGrainState>,
                                                INFT_Grain_Person_AI_EG_PK, INFT_Grain_Job_AI_EG_PK, INFT_Grain_Employee_AI_EG_PK
     {
         public NFT_Grain_Employee_AI_EG_PK(
@@ -98,7 +98,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     {
     }
 
-    public class NFT_Grain_Employee_AI_EG_PS : TestEmployeeGrain<EmployeeGrainState, IndexableGrainStateWrapper<EmployeeGrainState>>,
+    public class NFT_Grain_Employee_AI_EG_PS : TestEmployeeGrain<EmployeeGrainState>,
                                                INFT_Grain_Person_AI_EG_PS, INFT_Grain_Job_AI_EG_PS, INFT_Grain_Employee_AI_EG_PS
     {
         public NFT_Grain_Employee_AI_EG_PS(
@@ -148,7 +148,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
     {
     }
 
-    public class NFT_Grain_Employee_AI_EG_SB : TestEmployeeGrain<EmployeeGrainState, IndexableGrainStateWrapper<EmployeeGrainState>>,
+    public class NFT_Grain_Employee_AI_EG_SB : TestEmployeeGrain<EmployeeGrainState>,
                                                INFT_Grain_Person_AI_EG_SB, INFT_Grain_Job_AI_EG_SB, INFT_Grain_Employee_AI_EG_SB
     {
         public NFT_Grain_Employee_AI_EG_SB(
