@@ -5,7 +5,7 @@ namespace Orleans.Indexing.Facet
     /// implementation that is not fault-tolerant.
     /// </summary>
     /// <typeparam name="TGrainState">The state implementation class of a <see cref="Grain{TGrainState}"/>.</typeparam>
-    public interface INonFaultTolerantWorkflowIndexWriter<TGrainState> : IIndexWriter<TGrainState> where TGrainState : new()
+    public interface INonFaultTolerantWorkflowIndexedState<TGrainState> : IIndexedState<TGrainState> where TGrainState : new()
     {
     }
 }

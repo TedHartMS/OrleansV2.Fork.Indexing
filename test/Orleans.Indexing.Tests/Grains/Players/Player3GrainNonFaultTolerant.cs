@@ -8,8 +8,8 @@ namespace Orleans.Indexing.Tests
     public class Player3GrainNonFaultTolerant : PlayerGrainNonFaultTolerant<PlayerGrainState>, IPlayer3GrainNonFaultTolerant
     {
         public Player3GrainNonFaultTolerant(
-            [NonFaultTolerantWorkflowIndexWriter]
-            IIndexWriter<PlayerGrainState> indexWriter)
-            : base(indexWriter) { }
+            [NonFaultTolerantWorkflowIndexedState]
+            IIndexedState<PlayerGrainState> indexedState)
+            : base(indexedState) { }
     }
 }

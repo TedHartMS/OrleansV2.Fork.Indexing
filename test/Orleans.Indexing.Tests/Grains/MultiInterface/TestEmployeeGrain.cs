@@ -11,9 +11,9 @@ namespace Orleans.Indexing.Tests.MultiInterface
         where TGrainState : class, IEmployeeGrainState, new()
     {
         // This is populated by Orleans.Indexing with the indexes from the implemented interfaces on this class.
-        private readonly IIndexWriter<TGrainState> indexWriter;
+        private readonly IIndexedState<TGrainState> indexedState;
 
-        private IEmployeeGrainState State => indexWriter.State;
+        private IEmployeeGrainState State => indexedState.State;
 
         // This illustrates implementing the Grain interfaces to get and set the properties.
         #region IPersonInterface
@@ -42,20 +42,20 @@ namespace Orleans.Indexing.Tests.MultiInterface
         public Task SetSalary(int value) { this.State.Salary = value; return Task.CompletedTask; }
         #endregion IEmployeeGrainState - not indexed
 
-        public Task WriteState() => this.indexWriter.WriteAsync();
+        public Task WriteState() => this.indexedState.WriteAsync();
 
         public Task Deactivate() { base.DeactivateOnIdle(); return Task.CompletedTask; }
 
-        protected TestEmployeeGrain(IIndexWriter<TGrainState> indexWriter) => this.indexWriter = indexWriter;
+        protected TestEmployeeGrain(IIndexedState<TGrainState> indexedState) => this.indexedState = indexedState;
 
         #region Facet methods - required overrides of Grain<TGrainState>
-        public override Task OnActivateAsync() => this.indexWriter.OnActivateAsync(this, base.OnActivateAsync);
-        public override Task OnDeactivateAsync() => this.indexWriter.OnDeactivateAsync(() => Task.CompletedTask);
+        public override Task OnActivateAsync() => this.indexedState.OnActivateAsync(this, base.OnActivateAsync);
+        public override Task OnDeactivateAsync() => this.indexedState.OnDeactivateAsync(() => Task.CompletedTask);
         #endregion Facet methods - required overrides of Grain<TGrainState>
 
         #region Required shims for IIndexableGrain methods for fault tolerance
-        public Task<Immutable<System.Collections.Generic.HashSet<Guid>>> GetActiveWorkflowIdsSet() => this.indexWriter.GetActiveWorkflowIdsSet();
-        public Task RemoveFromActiveWorkflowIds(System.Collections.Generic.HashSet<Guid> removedWorkflowId) => this.indexWriter.RemoveFromActiveWorkflowIds(removedWorkflowId);
+        public Task<Immutable<System.Collections.Generic.HashSet<Guid>>> GetActiveWorkflowIdsSet() => this.indexedState.GetActiveWorkflowIdsSet();
+        public Task RemoveFromActiveWorkflowIds(System.Collections.Generic.HashSet<Guid> removedWorkflowId) => this.indexedState.RemoveFromActiveWorkflowIds(removedWorkflowId);
         #endregion Required shims for IIndexableGrain methods for fault tolerance
     }
 }

@@ -11,9 +11,9 @@ namespace Orleans.Indexing.Tests
     public class Player5Grain : PlayerGrainFaultTolerant<PlayerGrainState>, IPlayer5Grain
     {
         public Player5Grain(
-            [FaultTolerantWorkflowIndexWriter]
-            IIndexWriter<PlayerGrainState> indexWriter)
-            : base(indexWriter) { }
+            [FaultTolerantWorkflowIndexedState]
+            IIndexedState<PlayerGrainState> indexedState)
+            : base(indexedState) { }
     }
 #endif // ALLOW_FT_ACTIVE
 }

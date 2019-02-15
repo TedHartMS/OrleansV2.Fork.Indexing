@@ -4,9 +4,9 @@ using Orleans.Runtime;
 
 namespace Orleans.Indexing.Facet
 {
-    abstract class IndexWriterAttributeMapperBase
+    abstract class IndexedStateAttributeMapperBase
     {
-        public Factory<IGrainActivationContext, object> GetFactory(MethodInfo creator, ParameterInfo parameter, IIndexWriterConfiguration config)
+        public Factory<IGrainActivationContext, object> GetFactory(MethodInfo creator, ParameterInfo parameter, IIndexedStateConfiguration config)
         {
             // Use generic type args to specialize the generic method and create the factory lambda.
             var genericCreate = creator.MakeGenericMethod(parameter.ParameterType.GetGenericArguments());
@@ -16,7 +16,7 @@ namespace Orleans.Indexing.Facet
 
         private object Create(IGrainActivationContext context, MethodInfo genericCreate, object[] args)
         {
-            var factory = context.ActivationServices.GetRequiredService<IIndexWriterFactory>();
+            var factory = context.ActivationServices.GetRequiredService<IIndexedStateFactory>();
             return genericCreate.Invoke(factory, args);
         }
     }
