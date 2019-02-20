@@ -45,6 +45,7 @@ namespace Orleans.Indexing.Tests
     {
     }
 
+    [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
     public class FT_Grain_UIUSNINS_DSMI_LZ_PK : TestMultiIndexGrainFaultTolerant<TestMultiIndexState>, IFT_Grain_UIUSNINS_DSMI_LZ_PK
     {
         public FT_Grain_UIUSNINS_DSMI_LZ_PK(
@@ -53,6 +54,7 @@ namespace Orleans.Indexing.Tests
             : base(indexedState) { }
     }
 
+    [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
     public class NFT_Grain_UIUSNINS_DSMI_LZ_PK : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_DSMI_LZ_PK
     {
         public NFT_Grain_UIUSNINS_DSMI_LZ_PK(
@@ -101,6 +103,7 @@ namespace Orleans.Indexing.Tests
     {
     }
 
+    [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
     public class FT_Grain_UIUSNINS_DSMI_LZ_PS : TestMultiIndexGrainFaultTolerant<TestMultiIndexState>, IFT_Grain_UIUSNINS_DSMI_LZ_PS
     {
         public FT_Grain_UIUSNINS_DSMI_LZ_PS(
@@ -109,6 +112,7 @@ namespace Orleans.Indexing.Tests
             : base(indexedState) { }
     }
 
+    [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
     public class NFT_Grain_UIUSNINS_DSMI_LZ_PS : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_DSMI_LZ_PS
     {
         public NFT_Grain_UIUSNINS_DSMI_LZ_PS(
@@ -157,6 +161,7 @@ namespace Orleans.Indexing.Tests
     {
     }
 
+    [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
     public class FT_Grain_UIUSNINS_DSMI_LZ_SB : TestMultiIndexGrainFaultTolerant<TestMultiIndexState>, IFT_Grain_UIUSNINS_DSMI_LZ_SB
     {
         public FT_Grain_UIUSNINS_DSMI_LZ_SB(
@@ -165,6 +170,7 @@ namespace Orleans.Indexing.Tests
             : base(indexedState) { }
     }
 
+    [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
     public class NFT_Grain_UIUSNINS_DSMI_LZ_SB : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_DSMI_LZ_SB
     {
         public NFT_Grain_UIUSNINS_DSMI_LZ_SB(
