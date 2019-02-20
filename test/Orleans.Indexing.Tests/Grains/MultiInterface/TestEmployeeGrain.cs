@@ -1,4 +1,3 @@
-using Orleans.Providers;
 using System.Threading.Tasks;
 using Orleans.Concurrency;
 using Orleans.Indexing.Facet;
@@ -6,7 +5,6 @@ using System;
 
 namespace Orleans.Indexing.Tests.MultiInterface
 {
-    [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
     public abstract class TestEmployeeGrain<TGrainState> : Grain
         where TGrainState : class, IEmployeeGrainState, new()
     {

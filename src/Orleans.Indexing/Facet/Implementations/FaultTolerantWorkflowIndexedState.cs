@@ -8,7 +8,7 @@ using Orleans.Core;
 namespace Orleans.Indexing.Facet
 {
     public class FaultTolerantWorkflowIndexedState<TGrainState> : NonFaultTolerantWorkflowIndexedState<TGrainState>,
-                                                                 IFaultTolerantWorkflowIndexedState<TGrainState> where TGrainState : class, new()
+                                                                  IFaultTolerantWorkflowIndexedState<TGrainState> where TGrainState : class, new()
     {
         private readonly IGrainFactory _grainFactory;    // TODO: standardize leading _ or not; and don't do this._
         IStorage<FaultTolerantIndexedGrainStateWrapper<TGrainState>> storage;
@@ -41,7 +41,7 @@ namespace Orleans.Indexing.Facet
 
         public async override Task OnActivateAsync(Grain grain, Func<Task> onGrainActivateFunc)
         {
-            this.storage = base.SiloIndexManager.GetStorageBridge<FaultTolerantIndexedGrainStateWrapper<TGrainState>>(grain);
+            this.storage = base.SiloIndexManager.GetStorageBridge<FaultTolerantIndexedGrainStateWrapper<TGrainState>>(grain, base.IndexedStateConfig.StorageName);
 
             // In order to initialize base.wrappedState etc. this must be called here.
             await base.PreActivate(grain,

@@ -7,5 +7,6 @@ namespace Orleans.Indexing.Facet
     /// </summary>
     public class IndexedStateAttribute : Attribute
     {
+        public string StorageName { get; private protected set; }
     }
 }

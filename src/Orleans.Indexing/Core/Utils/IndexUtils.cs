@@ -6,6 +6,8 @@ using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Orleans.Runtime;
 using Orleans.Indexing.Facet;
+using Microsoft.Extensions.DependencyInjection;
+using Orleans.Storage;
 
 namespace Orleans.Indexing
 {
@@ -207,6 +209,9 @@ namespace Orleans.Indexing
                         case INonFaultTolerantWorkflowIndexedStateAttribute _:
                             setScheme(ConsistencyScheme.NonFaultTolerantWorkflow);
                             break;
+//TODO                        case ITransactionalIndexedStateAttribute _:
+//                            setScheme(ConsistencyScheme.Transactional);
+//                            break;
                         default:
                             throw new IndexConfigurationException($"Grain type {grainClassType.Name} has an unknown Indexing Facet constructor attribute {attr.GetType().Name}");
                     }
@@ -214,6 +219,15 @@ namespace Orleans.Indexing
             }
 
             return scheme ?? throw new IndexConfigurationException($"Grain type {grainClassType.Name} has no Indexing Facet constructor argument specified");
+        }
+
+        internal static IGrainStorage GetGrainStorage(IServiceProvider services, string storageName)
+        {
+            var storageProvider = !string.IsNullOrEmpty(storageName)
+                ? services.GetServiceByName<IGrainStorage>(storageName)
+                : services.GetService<IGrainStorage>();
+            string failedProviderName() => string.IsNullOrEmpty(storageName) ? "default storage provider" : $"storage provider with the name {storageName}";
+            return storageProvider ?? throw new IndexConfigurationException($"No {failedProviderName()} was found while attempting to create index state storage.");
         }
 
         internal static bool IsIndexInterfaceType(this Type indexType)

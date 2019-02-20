@@ -4,26 +4,26 @@ using System.Threading.Tasks;
 using Orleans;
 using Orleans.Concurrency;
 using Orleans.Providers;
-using Orleans.Indexing.Facets;
+using Orleans.Indexing.Facet;
 using Orleans.Indexing;
 
 using SportsTeamIndexing.Interfaces;
 
 namespace SportsTeamIndexing.Grains
 {
-    [StorageProvider(ProviderName = SportsTeamGrain.GrainStore)]
-    public class SportsTeamGrain : Grain<IndexableGrainStateWrapper<SportsTeamState>>, ISportsTeamGrain, IIndexableGrain<SportsTeamIndexedProperties>
+    [StorageProvider(ProviderName = SportsTeamGrain.GrainStoreName)]
+    public class SportsTeamGrain : Grain, ISportsTeamGrain, IIndexableGrain<SportsTeamIndexedProperties>
     {
         // This must be configured when setting up the Silo; see SiloHost.cs StartSilo().
-        public const string GrainStore = "SportsTeamGrainMemoryStore";
+        public const string GrainStoreName = "SportsTeamGrainMemoryStore";
 
-        IIndexWriter<SportsTeamState> indexWriter;
+        IIndexedState<SportsTeamState> indexedState;
 
-        SportsTeamState TeamState => base.State.UserState;
+        SportsTeamState TeamState => indexedState.State;
 
         public SportsTeamGrain(
-            [NonFaultTolerantWorkflowIndexWriter]
-            IIndexWriter<SportsTeamState> indexWriter) => this.indexWriter = indexWriter;
+            [NonFaultTolerantWorkflowIndexedState(GrainStoreName)]
+            IIndexedState<SportsTeamState> indexedState) => this.indexedState = indexedState;
 
         public Task<string> GetName() => Task.FromResult(this.TeamState.Name);
         public Task SetName(string name) => this.SetProperty(() => this.TeamState.Name = name);
@@ -43,7 +43,7 @@ namespace SportsTeamIndexing.Grains
         public async Task SaveAsync()
         {
             Console.WriteLine($"Grain {await this.GetQualifiedName()} SaveAsync");
-            await this.WriteStateAsync();
+            await this.indexedState.WriteAsync();
         }
 
         private Task SetProperty(Action action)
@@ -53,17 +53,16 @@ namespace SportsTeamIndexing.Grains
         }
 
         #region Facet methods - required overrides of Grain<TGrainState>
-        public override Task OnActivateAsync() => this.indexWriter.OnActivateAsync(this, base.State, () => base.WriteStateAsync(), () => Task.CompletedTask);
-        public override Task OnDeactivateAsync() => this.indexWriter.OnDeactivateAsync(() => Task.CompletedTask);
-        protected override Task WriteStateAsync() => this.indexWriter.WriteAsync();
+        public override Task OnActivateAsync() => this.indexedState.OnActivateAsync(this, () => Task.CompletedTask);
+        public override Task OnDeactivateAsync() => this.indexedState.OnDeactivateAsync(() => Task.CompletedTask);
         #endregion Facet methods - required overrides of Grain<TGrainState>
 
         // TODO remove when facetization is complete; for now it just makes the compiler happy
         public Task<object> ExtractIndexImage(IIndexUpdateGenerator iUpdateGen) => throw new NotImplementedException();
 
         #region required implementations of IIndexableGrain methods; they are only called for FaultTolerant index writing
-        public Task<Immutable<System.Collections.Generic.HashSet<Guid>>> GetActiveWorkflowIdsSet() => this.indexWriter.GetActiveWorkflowIdsSet();
-        public Task RemoveFromActiveWorkflowIds(System.Collections.Generic.HashSet<Guid> removedWorkflowId) => this.indexWriter.RemoveFromActiveWorkflowIds(removedWorkflowId);
+        public Task<Immutable<System.Collections.Generic.HashSet<Guid>>> GetActiveWorkflowIdsSet() => this.indexedState.GetActiveWorkflowIdsSet();
+        public Task RemoveFromActiveWorkflowIds(System.Collections.Generic.HashSet<Guid> removedWorkflowId) => this.indexedState.RemoveFromActiveWorkflowIds(removedWorkflowId);
         #endregion required implementations of IIndexableGrain methods
     }
 }
