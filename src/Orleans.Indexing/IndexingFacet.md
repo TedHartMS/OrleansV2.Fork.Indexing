@@ -29,6 +29,7 @@
     + [Attribute Specification](#attribute-specification)
       - [Indexing Consistency Scheme](#indexing-consistency-scheme)
       - [Storage Provider](#storage-provider)
+        * [Direct Storage Managed Indexes (DSMI)](#direct-storage-managed-indexes-dsmi)
       - [Example Attribute Specification](#example-attribute-specification)
   * [Application Grain Implementation Classes](#application-grain-implementation-classes)
     + [Indexed Grain Implementation Requirements](#indexed-grain-implementation-requirements)
@@ -50,14 +51,14 @@
 - [Orleans Level](#orleans-level)
   * [Reading Property Attributes and Creating Indexes](#reading-property-attributes-and-creating-indexes)
   * [Orleans Indexing Interfaces](#orleans-indexing-interfaces)
-    + [`IIndexableGrain<TProperties>`](#iindexablegrain)
+    + [`IIndexableGrain`](#iindexablegrain)
   * [Orleans Indexing Implementation Classes](#orleans-indexing-implementation-classes)
     + [Inheritance-based (obsolete and removed)](#inheritance-based-obsolete-and-removed)
-      - [`IndexableGrainNonFaultTolerant<TGrainState, TGrainState>`](#indexablegrainnonfaulttolerant)
-      - [`IndexableGrain<TGrainState, TGrainState>`](#indexablegrain)
+      - [`IndexableGrainNonFaultTolerant`](#indexablegrainnonfaulttolerant)
+      - [`IndexableGrain`](#indexablegrain)
     + [Facet-based](#facet-based)
       - [Facet Attribute](#facet-attribute)
-      - [`IIndexedState<TGrainState>`](#iindexedstate)
+      - [`IIndexedState`](#iindexedstate)
   * [Data Integrity Considerations](#data-integrity-considerations)
   * [Active vs Total Index Implementations](#active-vs-total-index-implementations)
 - [Constraints on Indexing](#constraints-on-indexing)
@@ -84,6 +85,7 @@
   * [Adding Explicit TState-to-TProperties Name Mapping](#adding-explicit-tstate-to-tproperties-name-mapping)
   * [Unique Indexes Partitioned Per-Silo](#unique-indexes-partitioned-per-silo)
   * [Fault-Tolerant Active Indexes](#fault-tolerant-active-indexes)
+  * [Clean Up LookupAsync for DSMI](#clean-up-lookupasync-for-dsmi)
 
 <!-- tocstop -->
 
@@ -284,7 +286,24 @@ All of the IndexedStateAttribute subclasses have a constructor of the form:
         public /* class name */(string storageName = null) => base.StorageName = storageName;
 ```
 
-Any `[StorageProvider]` attribute on an indexed grain class is ignored. This effectively means that the grain's storage specification is an aspect of the Indexing facet.
+Any `[StorageProvider]` attribute on an indexed grain class is ignored. This effectively means that the grain's storage specification is an aspect of the Indexing facet. However, there is one additional requirement for Direct Storage Managed Indexes.
+
+###### Direct Storage Managed Indexes (DSMI)
+These indexes are managed entirely by the underlying storage provider: rather than hash buckets maintained by Orleans Indexing, the indexing storage is implemented by the storage provider (such as a database table). For these indexes, Orleans Indexing still relies upon inspecting the [StorageProvider] attribute in order to know what provider to issue a lookup to, for example:
+```c#
+    [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
+    public class MyIndexedGrain : Grain, ...
+    { ... }
+```
+
+
+The storage provider must implement the following method, which is invoked via "dynamic" by Orleans Indexing:
+```c#
+    public async Task<List<GrainReference>> LookupAsync<K>(string grainType, string indexedField, K key)
+    { ... }
+```
+
+Currently the only recognized storage provider is [Orleans.CosmosDB](https://github.com/OrleansContrib/Orleans.CosmosDB).
 
 ##### Example Attribute Specification
 Here is an example of IndexedStateAttribute use; the IIndexedState constructor parameter is instantiated by the Orleans Facet infrastructure based upon the Attribute type and is stored in the Grain class for later use. For more information see the [Grain implementation class](#application-grain-implementation-classes) section below.
@@ -688,3 +707,5 @@ As stated above, Unique Indexes partitioned per Silo (physically) would require 
 The spurious grain reactivation cited above could be handled by omitting grain deactivations from the active workflow IDs, or more generally, by adding a flag to the workflow ID indicating whether it is fault-tolerant. If this is done, it is possible that a grain would enqueue an index-entry removal (pursuant to a grain deactivation), persist its state, and then crash. When the queue is reactivated, perhaps due to a request for the just-deactivated grain, it will process that enqueued index-entry removal. This should not be a problem, because this removal will be done before the index-entry add due to grain activation.
 
 If this is done, there are numerous FT Active tests ifdef'd out by "#if ALLOW_FT_ACTIVE", and one check in the runtime (FaultTolerantWorkflowIndexedState) under "#if !ALLOW_FT_ACTIVE".
+### Clean Up LookupAsync for DSMI
+Currently the DSMI indexes dynamically invoke a LookupAsync method as described [above](#direct-storage-managed-indexes-dsmi). It would be cleaner to define an IOrleansIndexingStorageProvider interface.

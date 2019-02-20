@@ -58,8 +58,7 @@ namespace Orleans.Indexing
         {
             EnsureGrainStorage();
 
-            // Dynamically find its LookupAsync method (currently only CosmosDB supports this). TODO: define IIndexStorageProvider?
-            // In Indexing or in Corleans? The latter would remove the need for Storage Provider consumers to reference Orleans.Indexing.
+            // Dynamically find its LookupAsync method (currently only CosmosDB supports this). TODO: define IOrleansIndexingStorageProvider?
             dynamic indexableStorageProvider = _grainStorage;
 
             var qualifiedField = IndexingConstants.UserStatePrefix + _indexedField;
