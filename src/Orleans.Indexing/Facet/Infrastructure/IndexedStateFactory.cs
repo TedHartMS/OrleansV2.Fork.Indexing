@@ -1,4 +1,3 @@
-using System;
 using Microsoft.Extensions.DependencyInjection;
 using Orleans.Runtime;
 
@@ -6,12 +5,10 @@ namespace Orleans.Indexing.Facet
 {
     public class IndexedStateFactory : IIndexedStateFactory
     {
-        private readonly IServiceProvider activationServices;
+        private readonly IGrainActivationContext activationContext;
 
-        public IndexedStateFactory(IGrainActivationContext context, ITypeResolver typeResolver, IGrainFactory grainFactory)
-        {
-            this.activationServices = context.ActivationServices;
-        }
+        public IndexedStateFactory(IGrainActivationContext activationContext, ITypeResolver typeResolver, IGrainFactory grainFactory)
+            => this.activationContext = activationContext;
 
         public INonFaultTolerantWorkflowIndexedState<TState> CreateNonFaultTolerantWorkflowIndexedState<TState>(IIndexedStateConfiguration config)
             where TState : class, new()
@@ -22,7 +19,6 @@ namespace Orleans.Indexing.Facet
             => this.CreateIndexedState<FaultTolerantWorkflowIndexedState<TState>>(config);
 
         private TWrappedIndexedStateImplementation CreateIndexedState<TWrappedIndexedStateImplementation>(IIndexedStateConfiguration config)
-            => ActivatorUtilities.CreateInstance<TWrappedIndexedStateImplementation>(
-                    this.activationServices, config);
+            => ActivatorUtilities.CreateInstance<TWrappedIndexedStateImplementation>(this.activationContext.ActivationServices, config);
     }
 }

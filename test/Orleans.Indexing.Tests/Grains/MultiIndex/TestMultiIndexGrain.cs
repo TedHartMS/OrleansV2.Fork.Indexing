@@ -21,7 +21,6 @@ namespace Orleans.Indexing.Tests
             => Debug.Assert(this.GetType().GetConsistencyScheme() == ConsistencyScheme.FaultTolerantWorkflow);
     }
 
-    [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
     public abstract class TestMultiIndexGrain<TGrainState> : Grain, ITestMultiIndexGrain
         where TGrainState : class, ITestMultiIndexState, new()
     {

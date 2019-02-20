@@ -24,7 +24,6 @@ namespace Orleans.Indexing.Tests
     /// <summary>
     /// A simple grain that represents a player in a game
     /// </summary>
-    [StorageProvider(ProviderName = IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
     public abstract class PlayerGrain<TGrainState> : Grain, IPlayerGrain
         where TGrainState : PlayerGrainState, new()
     {

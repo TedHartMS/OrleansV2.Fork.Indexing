@@ -98,7 +98,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
                                               IFT_Grain_Person_AI_LZ_PK, IFT_Grain_Job_AI_LZ_PK, IFT_Grain_Employee_AI_LZ_PK
     {
         public FT_Grain_Employee_AI_LZ_PK(
-            [FaultTolerantWorkflowIndexedState]
+            [FaultTolerantWorkflowIndexedState(IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
             IIndexedState<EmployeeGrainState> indexedState)
             : base(indexedState) { }
     }
@@ -108,7 +108,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
                                                INFT_Grain_Person_AI_LZ_PK, INFT_Grain_Job_AI_LZ_PK, INFT_Grain_Employee_AI_LZ_PK
     {
         public NFT_Grain_Employee_AI_LZ_PK(
-            [NonFaultTolerantWorkflowIndexedState]
+            [NonFaultTolerantWorkflowIndexedState(IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
             IIndexedState<EmployeeGrainState> indexedState)
             : base(indexedState) { }
     }
@@ -205,7 +205,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
                                               IFT_Grain_Person_AI_LZ_PS, IFT_Grain_Job_AI_LZ_PS, IFT_Grain_Employee_AI_LZ_PS
     {
         public FT_Grain_Employee_AI_LZ_PS(
-            [FaultTolerantWorkflowIndexedState]
+            [FaultTolerantWorkflowIndexedState(IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
             IIndexedState<EmployeeGrainState> indexedState)
             : base(indexedState) { }
     }
@@ -215,7 +215,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
                                                INFT_Grain_Person_AI_LZ_PS, INFT_Grain_Job_AI_LZ_PS, INFT_Grain_Employee_AI_LZ_PS
     {
         public NFT_Grain_Employee_AI_LZ_PS(
-            [NonFaultTolerantWorkflowIndexedState]
+            [NonFaultTolerantWorkflowIndexedState(IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
             IIndexedState<EmployeeGrainState> indexedState)
             : base(indexedState) { }
     }
@@ -312,7 +312,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
                                               IFT_Grain_Person_AI_LZ_SB, IFT_Grain_Job_AI_LZ_SB, IFT_Grain_Employee_AI_LZ_SB
     {
         public FT_Grain_Employee_AI_LZ_SB(
-            [FaultTolerantWorkflowIndexedState]
+            [FaultTolerantWorkflowIndexedState(IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
             IIndexedState<EmployeeGrainState> indexedState)
             : base(indexedState) { }
     }
@@ -322,7 +322,7 @@ namespace Orleans.Indexing.Tests.MultiInterface
                                                INFT_Grain_Person_AI_LZ_SB, INFT_Grain_Job_AI_LZ_SB, INFT_Grain_Employee_AI_LZ_SB
     {
         public NFT_Grain_Employee_AI_LZ_SB(
-            [NonFaultTolerantWorkflowIndexedState]
+            [NonFaultTolerantWorkflowIndexedState(IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)]
             IIndexedState<EmployeeGrainState> indexedState)
             : base(indexedState) { }
     }

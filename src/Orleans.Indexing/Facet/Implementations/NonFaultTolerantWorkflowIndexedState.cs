@@ -23,9 +23,10 @@ namespace Orleans.Indexing.Facet
         public override async Task OnActivateAsync(Grain grain, Func<Task> onGrainActivateFunc)
         {
             Debug.Assert(!(this is FaultTolerantWorkflowIndexedState<TGrainState>)); // Separate overrides
-            this.storage = base.SiloIndexManager.GetStorageBridge<IndexedGrainStateWrapper<TGrainState>>(grain);
+            this.storage = base.SiloIndexManager.GetStorageBridge<IndexedGrainStateWrapper<TGrainState>>(grain, base.IndexedStateConfig.StorageName);
 
-            // In order to initialize base.wrappedState etc. this must be called here.
+            // In order to initialize base.wrappedState etc. this must be called here; broken out to separate calls
+            // due to FaultTolerantWorkflowIndexedState requirements.
             await base.PreActivate(grain,
                                    async () => { await this.storage.ReadStateAsync(); return this.storage.State; },
                                    () => this.storage.WriteStateAsync());

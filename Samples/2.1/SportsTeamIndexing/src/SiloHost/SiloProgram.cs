@@ -39,7 +39,7 @@ namespace OrleansSiloHost
         {
             // define the cluster configuration
             var builder = new SiloHostBuilder()
-                .AddMemoryGrainStorage(SportsTeamGrain.GrainStore)
+                .AddMemoryGrainStorage(SportsTeamGrain.GrainStoreName)
                 .AddMemoryGrainStorage("PubSubStore") // PubSubStore service is needed for the streams underlying OrleansQueryResults
                 .UseLocalhostClustering(gatewayPort: 30002)
                 .Configure<ClusterOptions>(options =>

@@ -47,7 +47,7 @@ namespace Orleans.Indexing
         internal T GetGrainService<T>(GrainReference grainReference) where T : IGrainService
             => this.Silo.GetGrainService<T>(grainReference);
 
-        internal IStorage<TGrainState> GetStorageBridge<TGrainState>(Grain grain) where TGrainState : class, new()
-            => new StateStorageBridge<TGrainState>(grain.GetType().FullName, grain.GrainReference, grain.GetGrainStorage(this.ServiceProvider), this.LoggerFactory);
+        internal IStorage<TGrainState> GetStorageBridge<TGrainState>(Grain grain, string storageName) where TGrainState : class, new()
+            => new StateStorageBridge<TGrainState>(grain.GetType().FullName, grain.GrainReference, IndexUtils.GetGrainStorage(this.ServiceProvider, storageName), this.LoggerFactory);
     }
 }

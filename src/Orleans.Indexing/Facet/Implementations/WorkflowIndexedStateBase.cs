@@ -13,7 +13,7 @@ namespace Orleans.Indexing.Facet
     public abstract class WorkflowIndexedStateBase<TGrainState> : IIndexedState<TGrainState> where TGrainState : class, new()
     {
         private protected readonly IServiceProvider ServiceProvider;
-        private protected readonly IIndexedStateConfiguration IndexedStateConfig;  // TODO use this
+        private protected readonly IIndexedStateConfiguration IndexedStateConfig;
 
         private Grain grain;
         private IIndexableGrain iIndexableGrain;

@@ -29,11 +29,10 @@ namespace Orleans.Indexing.Tests
     {
     }
 
-    [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
     public class NFT_Grain_UIUSNINS_DSMI_EG_PK : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_DSMI_EG_PK
     {
         public NFT_Grain_UIUSNINS_DSMI_EG_PK(
-            [NonFaultTolerantWorkflowIndexedState]
+            [NonFaultTolerantWorkflowIndexedState(IndexingTestConstants.CosmosDBGrainStorage)]
             IIndexedState<TestMultiIndexState> indexedState)
             : base(indexedState) { }
     }
@@ -62,11 +61,10 @@ namespace Orleans.Indexing.Tests
     {
     }
 
-    [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
     public class NFT_Grain_UIUSNINS_DSMI_EG_PS : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_DSMI_EG_PS
     {
         public NFT_Grain_UIUSNINS_DSMI_EG_PS(
-            [NonFaultTolerantWorkflowIndexedState]
+            [NonFaultTolerantWorkflowIndexedState(IndexingTestConstants.CosmosDBGrainStorage)]
             IIndexedState<TestMultiIndexState> indexedState)
             : base(indexedState) { }
     }
@@ -95,11 +93,10 @@ namespace Orleans.Indexing.Tests
     {
     }
 
-    [StorageProvider(ProviderName = IndexingTestConstants.CosmosDBGrainStorage)]
     public class NFT_Grain_UIUSNINS_DSMI_EG_SB : TestMultiIndexGrainNonFaultTolerant<TestMultiIndexState>, INFT_Grain_UIUSNINS_DSMI_EG_SB
     {
         public NFT_Grain_UIUSNINS_DSMI_EG_SB(
-            [NonFaultTolerantWorkflowIndexedState]
+            [NonFaultTolerantWorkflowIndexedState(IndexingTestConstants.CosmosDBGrainStorage)]
             IIndexedState<TestMultiIndexState> indexedState)
             : base(indexedState) { }
     }
