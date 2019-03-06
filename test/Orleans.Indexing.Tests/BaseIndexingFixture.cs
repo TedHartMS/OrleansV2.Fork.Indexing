@@ -38,9 +38,9 @@ namespace Orleans.Indexing.Tests
                        })
                        .ConfigureApplicationParts(parts =>
                        {
-                           parts.AddApplicationPart(typeof(BaseIndexingFixture).Assembly);
-                           parts.AddApplicationPart(typeof(ISimpleGrain).Assembly);
-                           parts.AddApplicationPart(typeof(SimpleGrain).Assembly);
+                           parts.AddApplicationPart(typeof(BaseIndexingFixture).Assembly).WithReferences();
+                           parts.AddApplicationPart(typeof(ISimpleGrain).Assembly).WithReferences();
+                           parts.AddApplicationPart(typeof(SimpleGrain).Assembly).WithReferences();
                        });
 
             return databaseName != null

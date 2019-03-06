@@ -25,7 +25,8 @@ namespace Orleans.Indexing
                 .AddMemoryGrainStorage(IndexingConstants.INDEXING_STORAGE_PROVIDER_NAME)
                 .AddMemoryGrainStorage(IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)
                 .ConfigureServices(services => services.UseIndexing(configureAction))
-                .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(SiloBuilderExtensions).Assembly));
+                .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(SiloBuilderExtensions).Assembly))
+                .UseTransactions();
         }
 
         /// <summary>
@@ -45,7 +46,9 @@ namespace Orleans.Indexing
                     .AddSingleton(typeof(IAttributeToFactoryMapper<NonFaultTolerantWorkflowIndexedStateAttribute>),
                                   typeof(NonFaultTolerantWorkflowIndexedStateAttributeMapper))
                     .AddSingleton(typeof(IAttributeToFactoryMapper<FaultTolerantWorkflowIndexedStateAttribute>),
-                                  typeof(FaultTolerantWorkflowIndexedStateAttributeMapper));
+                                  typeof(FaultTolerantWorkflowIndexedStateAttributeMapper))
+                    .AddSingleton(typeof(IAttributeToFactoryMapper<TransactionalIndexedStateAttribute>),
+                                  typeof(TransactionalIndexedStateAttributeMapper));
             return services;
         }
     }
