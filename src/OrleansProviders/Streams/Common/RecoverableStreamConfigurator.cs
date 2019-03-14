@@ -7,6 +7,7 @@ using Orleans.Streams;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Microsoft.Extensions.Options;
 
 namespace Orleans.Streams
 {
@@ -30,10 +31,10 @@ namespace Orleans.Streams
 
     public class SiloRecoverableStreamConfigurator : SiloPersistentStreamConfigurator, ISiloRecoverableStreamConfigurator
     {
-        public SiloRecoverableStreamConfigurator(string name, ISiloHostBuilder builder, Func<IServiceProvider, string, IQueueAdapterFactory> adapterFactory)
-            : base(name, builder, adapterFactory)
+        public SiloRecoverableStreamConfigurator(string name, Action<Action<IServiceCollection>> configureDelegate, Func<IServiceProvider, string, IQueueAdapterFactory> adapterFactory)
+            : base(name, configureDelegate, adapterFactory)
         {
-            this.siloBuilder.ConfigureServices(services => services.ConfigureNamedOptionForLogging<StreamStatisticOptions>(name)
+            this.configureDelegate(services => services.ConfigureNamedOptionForLogging<StreamStatisticOptions>(name)
             .ConfigureNamedOptionForLogging<StreamCacheEvictionOptions>(name));
         }
     }

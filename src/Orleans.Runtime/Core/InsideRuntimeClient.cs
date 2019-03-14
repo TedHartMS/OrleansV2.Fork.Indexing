@@ -523,7 +523,7 @@ namespace Orleans.Runtime
                 "PrepForRemoting",
                 typeof(Exception),
                 new[] { typeof(Exception) },
-                typeof(SerializationManager).GetTypeInfo().Module,
+                typeof(SerializationManager).Module,
                 true);
             var il = method.GetILGenerator();
             il.Emit(OpCodes.Ldarg_0);
@@ -618,6 +618,9 @@ namespace Orleans.Runtime
                         }
                         break;
 
+                    case Message.RejectionTypes.CacheInvalidation when message.HasCacheInvalidationHeader:
+                        // The message targeted an invalid (eg, defunct) activation and this response serves only to invalidate this silo's activation cache.
+                        return;
                     default:
                         logger.Error(ErrorCode.Dispatcher_InvalidEnum_RejectionType,
                             "Missing enum in switch: " + message.RejectionType);
@@ -626,7 +629,7 @@ namespace Orleans.Runtime
             }
 
             CallbackData callbackData;
-            bool found = callbacks.TryGetValue(message.Id, out callbackData);
+            bool found = callbacks.TryRemove(message.Id, out callbackData);
             if (found)
             {
                 if (message.TransactionInfo != null)

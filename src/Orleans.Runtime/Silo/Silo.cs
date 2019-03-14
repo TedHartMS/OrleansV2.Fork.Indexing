@@ -118,6 +118,7 @@ namespace Orleans.Runtime
         /// </summary>
         /// <param name="siloDetails">The silo initialization parameters</param>
         /// <param name="services">Dependency Injection container</param>
+        [Obsolete("This constructor is obsolete and may be removed in a future release. Use SiloHostBuilder to create an instance of ISiloHost instead.")]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope",
             Justification = "Should not Dispose of messageCenter in this method because it continues to run / exist after this point.")]
         public Silo(ILocalSiloDetails siloDetails, IServiceProvider services)
@@ -573,22 +574,6 @@ namespace Orleans.Runtime
             logger.Info($"Grain Service {service.GetType().FullName} started successfully.");
         }
 
-        private async Task StopGrainService(IGrainService service, CancellationToken ct)
-        {
-            var grainService = (GrainService)service;
-            await this.scheduler
-                .QueueTask(grainService.Stop, grainService.SchedulingContext)
-                .WithCancellation(ct, "Stopping GrainService failed because the task was cancelled");
-
-            if (this.logger.IsEnabled(LogLevel.Debug))
-            {
-                logger.Debug(
-                    "{GrainServiceType} Grain Service with Id {GrainServiceId} stopped successfully.",
-                    grainService.GetType().FullName,
-                    grainService.GetPrimaryKeyLong(out string ignored));
-            }
-        }
-
         public async Task AddGrainService(IGrainService service)
         {
             await RegisterGrainService(service);
@@ -817,7 +802,17 @@ namespace Orleans.Runtime
 
             foreach (var grainService in grainServices)
             {
-                await StopGrainService(grainService, ct);
+                await this.scheduler
+                    .QueueTask(grainService.Stop, grainService.SchedulingContext)
+                    .WithCancellation(ct, "Stopping GrainService failed because the task was cancelled");
+
+                if (this.logger.IsEnabled(LogLevel.Debug))
+                {
+                    logger.Debug(
+                        "{GrainServiceType} Grain Service with Id {GrainServiceId} stopped successfully.", 
+                        grainService.GetType().FullName, 
+                        grainService.GetPrimaryKeyLong(out string ignored));
+                }
             }
         }
 
@@ -850,6 +845,9 @@ namespace Orleans.Runtime
 
         public static IGrain GetGrain(IGrainFactory grainFactory, string grainPrimaryKey, Type grainInterfaceType, Type outputGrainInterfaceType)
             => ((GrainFactory)grainFactory).GetGrain(grainPrimaryKey, grainInterfaceType, outputGrainInterfaceType);
+
+        public OutputGrainInterfaceType Cast<OutputGrainInterfaceType>(IAddressable grain) where OutputGrainInterfaceType : IGrain
+            => grain.Cast<OutputGrainInterfaceType>();
 
         public IGrain Cast(IAddressable grain, Type outputGrainInterfaceType)
             => (IGrain)this.runtimeClient.InternalGrainFactory.Cast(grain, outputGrainInterfaceType);

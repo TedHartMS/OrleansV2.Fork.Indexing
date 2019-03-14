@@ -44,7 +44,7 @@ namespace Orleans.Hosting
 {
     internal static class DefaultSiloServices
     {
-        internal static void AddDefaultServices(HostBuilderContext context, IServiceCollection services)
+        internal static void AddDefaultServices(IApplicationPartManager applicationPartManager, IServiceCollection services)
         {
             services.AddOptions();
 
@@ -225,21 +225,22 @@ namespace Orleans.Hosting
             services.TryAddSingleton(typeof(IKeyedServiceCollection<,>), typeof(KeyedServiceCollection<,>));
 
             // Serialization
-            services.TryAddSingleton<SerializationManager>(sp=>ActivatorUtilities.CreateInstance<SerializationManager>(sp, 
+            services.TryAddSingleton<SerializationManager>(sp=>ActivatorUtilities.CreateInstance<SerializationManager>(sp,
                 sp.GetRequiredService<IOptions<SiloMessagingOptions>>().Value.LargeMessageWarningThreshold));
             services.TryAddSingleton<ITypeResolver, CachedTypeResolver>();
             services.TryAddSingleton<IFieldUtils, FieldUtils>();
             services.AddSingleton<BinaryFormatterSerializer>();
             services.AddSingleton<BinaryFormatterISerializableSerializer>();
             services.AddFromExisting<IKeyedSerializer, BinaryFormatterISerializableSerializer>();
+#pragma warning disable CS0618 // Type or member is obsolete
             services.AddSingleton<ILBasedSerializer>();
             services.AddFromExisting<IKeyedSerializer, ILBasedSerializer>();
+#pragma warning restore CS0618 // Type or member is obsolete
 
             // Transactions
             services.TryAddSingleton<ITransactionAgent, DisabledTransactionAgent>();
 
             // Application Parts
-            var applicationPartManager = context.GetApplicationPartManager();
             services.TryAddSingleton<IApplicationPartManager>(applicationPartManager);
             applicationPartManager.AddApplicationPart(new AssemblyPart(typeof(RuntimeVersion).Assembly) { IsFrameworkAssembly = true });
             applicationPartManager.AddApplicationPart(new AssemblyPart(typeof(Silo).Assembly) { IsFrameworkAssembly = true });
@@ -249,7 +250,7 @@ namespace Orleans.Hosting
             applicationPartManager.AddFeatureProvider(new AssemblyAttributeFeatureProvider<SerializerFeature>());
             services.AddTransient<IConfigurationValidator, ApplicationPartValidator>();
 
-            //Add default option formatter if none is configured, for options which are required to be configured 
+            //Add default option formatter if none is configured, for options which are required to be configured
             services.ConfigureFormatter<SiloOptions>();
             services.ConfigureFormatter<ProcessExitHandlingOptions>();
             services.ConfigureFormatter<SchedulingOptions>();
@@ -275,8 +276,12 @@ namespace Orleans.Hosting
             services.AddTransient<IConfigurationValidator, ClusterOptionsValidator>();
             services.AddTransient<IConfigurationValidator, SiloClusteringValidator>();
 
-            // Disable hosted client by default.
-            services.TryAddSingleton<IHostedClient, DisabledHostedClient>();
+            // Enable hosted client.
+            services.TryAddSingleton<HostedClient>();
+            services.TryAddFromExisting<IHostedClient, HostedClient>();
+            services.AddFromExisting<ILifecycleParticipant<ISiloLifecycle>, HostedClient>();
+            services.TryAddSingleton<InvokableObjectManager>();
+            services.TryAddSingleton<IClusterClient, ClusterClient>();
 
             // Enable collection specific Age limits
             services.AddOptions<GrainCollectionOptions>()
@@ -299,7 +304,13 @@ namespace Orleans.Hosting
             // Validate all CollectionAgeLimit values for the right configuration.
             services.AddTransient<IConfigurationValidator, GrainCollectionOptionsValidator>();
 
+            services.AddTransient<IConfigurationValidator, LoadSheddingValidator>();
+
             services.TryAddSingleton<ITimerManager, TimerManagerImpl>();
+
+            // persistent state facet support
+            services.TryAddSingleton<IPersistentStateFactory, PersistentStateFactory>();
+            services.TryAddSingleton(typeof(IAttributeToFactoryMapper<PersistentStateAttribute>), typeof(PersistentStateAttributeMapper));
         }
     }
 }

@@ -454,11 +454,15 @@ namespace Orleans
             if (logger.IsEnabled(LogLevel.Trace)) logger.Trace("Received {0}", response);
 
             // ignore duplicate requests
-            if (response.Result == Message.ResponseTypes.Rejection && response.RejectionType == Message.RejectionTypes.DuplicateRequest)
+            if (response.Result == Message.ResponseTypes.Rejection
+                && (response.RejectionType == Message.RejectionTypes.DuplicateRequest
+                 || response.RejectionType == Message.RejectionTypes.CacheInvalidation))
+            {
                 return;
-
+            }
+            
             CallbackData callbackData;
-            var found = callbacks.TryGetValue(response.Id, out callbackData);
+            var found = callbacks.TryRemove(response.Id, out callbackData);
             if (found)
             {
                 // We need to import the RequestContext here as well.
@@ -670,6 +674,9 @@ namespace Orleans
         public event ConnectionToClusterLostHandler ClusterConnectionLost;
 
         /// <inheritdoc />
+        public event GatewayCountChangedHandler GatewayCountChanged;
+
+        /// <inheritdoc />
         public void NotifyClusterConnectionLost()
         {
             try
@@ -679,6 +686,19 @@ namespace Orleans
             catch (Exception ex)
             {
                 this.logger.Error(ErrorCode.ClientError, "Error when sending cluster disconnection notification", ex);
+            }
+        }
+
+        /// <inheritdoc />
+        public void NotifyGatewayCountChanged(int currentNumberOfGateways, int previousNumberOfGateways)
+        {
+            try
+            {
+                this.GatewayCountChanged?.Invoke(this, new GatewayCountChangedEventArgs(currentNumberOfGateways, previousNumberOfGateways));
+            }
+            catch (Exception ex)
+            {
+                this.logger.Error(ErrorCode.ClientError, "Error when sending gateway count changed notification", ex);
             }
         }
 
